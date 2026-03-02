@@ -25,7 +25,8 @@ export default function Asteroid({ id, startPos, onDestroy }) {
 
         if (entityRef.current.health <= 0) {
             destroyedRef.current = true;
-            onDestroy(id);
+            const t = rbRef.current.translation();
+            onDestroy(id, [t.x, t.y, t.z]);
             return;
         }
 

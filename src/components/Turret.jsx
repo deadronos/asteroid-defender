@@ -7,6 +7,9 @@ import { ECS } from '../ecs/world';
 export default function Turret({ id, position, rotation }) {
     const turretGroup = useRef();
     const [targetPos, setTargetPos] = useState(null);
+    const pulseRef = useRef(0);
+    const laserMaterialRef = useRef();
+    const impactRef = useRef();
 
     useFrame(() => {
         if (!turretGroup.current) return;
@@ -65,6 +68,19 @@ export default function Turret({ id, position, rotation }) {
             }
             setTargetPos(null);
         }
+
+        // Pulse Animation for Laser & Impact
+        pulseRef.current += 0.5;
+        if (laserMaterialRef.current && localTarget) {
+            // Pulse between 1 and 4 linewidth thickness
+            const pulse = 1 + (Math.sin(pulseRef.current) * 0.5 + 0.5) * 3;
+            laserMaterialRef.current.linewidth = pulse;
+        }
+        if (impactRef.current && localTarget) {
+            // Pulse scale between 0.8 and 1.5
+            const scale = 0.8 + (Math.sin(pulseRef.current * 1.5) * 0.5 + 0.5) * 0.7;
+            impactRef.current.scale.set(scale, scale, scale);
+        }
     });
 
     const localTarget = useMemo(() => {
@@ -87,11 +103,18 @@ export default function Turret({ id, position, rotation }) {
             </mesh>
 
             {localTarget && (
-                <Line
-                    points={[[0, 0, 3.5], [localTarget.x, localTarget.y, localTarget.z]]}
-                    color="#ff0000"
-                    lineWidth={3}
-                />
+                <>
+                    <Line
+                        points={[[0, 0, 3.5], [localTarget.x, localTarget.y, localTarget.z]]}
+                        color="#ff3333"
+                        lineWidth={3}
+                        material={laserMaterialRef}
+                    />
+                    <mesh ref={impactRef} position={[localTarget.x, localTarget.y, localTarget.z]}>
+                        <sphereGeometry args={[0.6, 8, 8]} />
+                        <meshBasicMaterial color="#ffaaaa" transparent opacity={0.8} />
+                    </mesh>
+                </>
             )}
         </group>
     );

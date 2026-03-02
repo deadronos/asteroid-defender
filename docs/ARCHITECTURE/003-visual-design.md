@@ -1,0 +1,22 @@
+# Architecture Decision Record: 003 - Visual Design & Effects
+
+## Context
+A space-defense game needs to visually communicate threat and action clearly against a dark background, without complex textures overwhelming the browser's GPU.
+
+## Decision
+We adopted a low-poly, cel-shaded art direction punctuated by high-contrast particle effects.
+
+### Cel-Shading & Geometry
+- **Primitives**: Standard Three.js geometry (`cylinder`, `dodecahedron`, `cone`) is utilized over imported GLTF models to reduce bundle size and memory footprint.
+- **Outlines**: `@react-three/drei`'s `<Edges>` component is attached to all solid meshes (Platform, Turrets, Asteroids) rendering a stark black line along hard angles (`threshold={15}`). Combined with flat-shaded gray and red materials, this mimics a 3D comic-book illustration style.
+
+### Laser Weaponry
+- **Rendering**: Instant-hit lasers are drawn using Drei's `<Line>` component, spanning from the Turret's origin to the transformed local coordinates of the locked target.
+- **Juice (Animation)**: 
+  - The line's `lineWidth` pulses rapidly via a sine wave driven by `useFrame` time, simulating intense energy output.
+  - A small, translucent `<SphereGeometry>` is rendered precisely at the target intersection point, simulating a glowing impact flare.
+
+### Destruction Particles (Explosions)
+- **Design Pattern**: We do *not* use complex particle systems (e.g., thousands of raw WebGL points). Instead, we use low-count Instanced or individually mapped meshes.
+- **Mechanic**: When an Asteroid's ECS `health` breaches 0, it removes itself from the physics solver and dispatches a callback with its final world coordinates. The main `GameScene` unmounts the asteroid and mounts an `<Explosion>` component exactly at that vector.
+- **Animation**: The `<Explosion>` is composed of 8 miniature `<dodecahedronGeometry>` fragments. Each fragment is assigned a random 3D trajectory velocity on initialization. A tight `useFrame` loop scales them down and moves them outward until they fade into zero and automatically unmount.
