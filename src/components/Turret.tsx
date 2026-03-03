@@ -16,7 +16,7 @@ const LASER_ORIGIN_Z = 3.5;
 export default function Turret({ id, position, rotation }: TurretProps) {
     const turretGroup = useRef<THREE.Group>(null);
     const [hasTarget, setHasTarget] = useState(false);
-    const baseRotation = useMemo(() => new THREE.Euler(rotation[0], rotation[1], rotation[2]), [rotation]);
+    const baseRotation = useMemo(() => new THREE.Euler(rotation[0], rotation[1], rotation[2]), [rotation[0], rotation[1], rotation[2]]);
     const idleOffsetRef = useRef(Math.random() * Math.PI * 2);
     const nextRecalibrationRef = useRef(6 + Math.random() * 5);
     const recalibrationStartRef = useRef<number | null>(null);

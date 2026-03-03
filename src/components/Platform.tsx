@@ -19,21 +19,18 @@ function ShieldRipple({ pos }: { pos: [number, number, number] }) {
     const bornAtRef = useRef<number | null>(null);
     const shieldRadius = 3.15;
 
-    const impactDirection = useMemo(() => {
-        const dir = new THREE.Vector3(...pos);
+    const [px, py, pz] = pos;
+    const impactData = useMemo(() => {
+        const dir = new THREE.Vector3(px, py, pz);
         if (dir.lengthSq() < 1e-4) dir.set(0, 1, 0);
-        return dir.normalize();
-    }, [pos]);
-
-    const impactPoint = useMemo(
-        () => impactDirection.clone().multiplyScalar(shieldRadius).toArray() as [number, number, number],
-        [impactDirection]
-    );
-    const impactRotation = useMemo(() => {
+        dir.normalize();
         const quat = new THREE.Quaternion();
-        quat.setFromUnitVectors(new THREE.Vector3(0, 0, 1), impactDirection);
-        return quat;
-    }, [impactDirection]);
+        quat.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+        return {
+            impactPoint: dir.multiplyScalar(shieldRadius).toArray() as [number, number, number],
+            impactRotation: quat,
+        };
+    }, [px, py, pz]);
 
     useFrame((state) => {
         if (!ringRef.current || !ringMaterialRef.current) return;
@@ -46,7 +43,7 @@ function ShieldRipple({ pos }: { pos: [number, number, number] }) {
     });
 
     return (
-        <group position={impactPoint} quaternion={impactRotation}>
+        <group position={impactData.impactPoint} quaternion={impactData.impactRotation}>
             <mesh ref={ringRef}>
                 <ringGeometry args={[0.08, 0.22, 6]} />
                 <meshBasicMaterial ref={ringMaterialRef} color="#7ec8ff" transparent opacity={0.45} side={THREE.DoubleSide} />
