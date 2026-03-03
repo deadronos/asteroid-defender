@@ -39,7 +39,7 @@ const Particle = ({ startPos, velocity }: ParticleProps) => {
     return (
         <mesh ref={meshRef} position={startPos} scale={scale}>
             <dodecahedronGeometry args={[0.5, 0]} />
-            <meshStandardMaterial color="#888c8d" flatShading transparent opacity={lifeRef.current} />
+            <meshStandardMaterial color="#ff6600" emissive="#ff4400" emissiveIntensity={2} flatShading transparent opacity={lifeRef.current} />
         </mesh>
     );
 };
