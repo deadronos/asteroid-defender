@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, BallCollider, RapierRigidBody } from '@react-three/rapier';
-import { Edges } from '@react-three/drei';
+import { Edges, Trail } from '@react-three/drei';
 import * as THREE from 'three';
 import { ECS, GameEntity, AsteroidType } from '../ecs/world';
 import useGameStore from '../store/gameStore';
@@ -31,6 +31,11 @@ export default function Asteroid({ id, startPos, type, onDestroy }: AsteroidProp
     const rbRef = useRef<RapierRigidBody>(null);
     const entityRef = useRef<GameEntity | null>(null);
     const destroyedRef = useRef(false);
+    const tumbleRef = useRef({
+        x: (Math.random() - 0.5) * 0.9,
+        y: (Math.random() - 0.5) * 0.9,
+        z: (Math.random() - 0.5) * 0.9,
+    });
     const cfg = ASTEROID_CONFIGS[type];
 
     useEffect(() => {
@@ -78,16 +83,19 @@ export default function Asteroid({ id, startPos, type, onDestroy }: AsteroidProp
 
         const dir = currentPos.clone().negate().normalize();
         rbRef.current.setLinvel({ x: dir.x * cfg.speed, y: dir.y * cfg.speed, z: dir.z * cfg.speed }, true);
+        rbRef.current.setAngvel(tumbleRef.current, true);
     });
 
     return (
         <RigidBody ref={rbRef} position={startPos} type="dynamic" colliders={false} gravityScale={0} friction={0} linearDamping={0}>
             <BallCollider args={[cfg.radius]} />
-            <mesh>
-                <dodecahedronGeometry args={[cfg.radius, 0]} />
-                <meshStandardMaterial color={cfg.color} flatShading />
-                <Edges scale={1} threshold={15} color="black" />
-            </mesh>
+            <Trail width={0.7} length={4} decay={1.2} stride={0.2} color={cfg.color} attenuation={(t) => t * t}>
+                <mesh>
+                    <dodecahedronGeometry args={[cfg.radius, 0]} />
+                    <meshStandardMaterial color={cfg.color} flatShading />
+                    <Edges scale={1} threshold={15} color="black" />
+                </mesh>
+            </Trail>
         </RigidBody>
     );
 }

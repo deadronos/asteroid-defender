@@ -16,6 +16,10 @@ const LASER_ORIGIN_Z = 3.5;
 export default function Turret({ id, position, rotation }: TurretProps) {
     const turretGroup = useRef<THREE.Group>(null);
     const [hasTarget, setHasTarget] = useState(false);
+    const baseRotation = useMemo(() => new THREE.Euler(rotation[0], rotation[1], rotation[2]), [rotation]);
+    const idleOffsetRef = useRef(Math.random() * Math.PI * 2);
+    const nextRecalibrationRef = useRef(6 + Math.random() * 5);
+    const recalibrationStartRef = useRef<number | null>(null);
     const pulseRef = useRef(0);
     const laserMaterialRef = useRef<any>(null);
     const impactRef = useRef<THREE.Mesh>(null);
@@ -23,12 +27,13 @@ export default function Turret({ id, position, rotation }: TurretProps) {
     const beamLightRef = useRef<THREE.PointLight>(null);
     const impactLightRef = useRef<THREE.PointLight>(null);
     const lineRef = useRef<any>(null);
+    const barrelGroupRef = useRef<THREE.Group>(null);
 
     // Keep vectors around instead of full React states to avoid unneeded renders
     const targetPosRef = useRef(new THREE.Vector3());
     const localTargetRef = useRef(new THREE.Vector3());
 
-    useFrame(() => {
+    useFrame((state) => {
         if (!turretGroup.current) return;
 
         if (useGameStore.getState().gameState === 'gameover') {
@@ -80,6 +85,8 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             nearestEntity.targetedBy = id;
 
             if (!hasTarget) setHasTarget(true);
+            recalibrationStartRef.current = null;
+            if (barrelGroupRef.current) barrelGroupRef.current.rotation.set(0, 0, 0);
 
             // Calculate damage falloff
             // Max distance is 50. Closer = more damage.
@@ -97,6 +104,28 @@ export default function Turret({ id, position, rotation }: TurretProps) {
                 if (entity.targetedBy === id) entity.targetedBy = null;
             }
             if (hasTarget) setHasTarget(false);
+
+            const idleTime = state.clock.elapsedTime + idleOffsetRef.current;
+            turretGroup.current.rotation.set(
+                baseRotation.x + Math.sin(idleTime * 0.6) * 0.04,
+                baseRotation.y + Math.sin(idleTime * 0.35) * 0.65,
+                baseRotation.z
+            );
+
+            if (state.clock.elapsedTime >= nextRecalibrationRef.current && recalibrationStartRef.current === null) {
+                recalibrationStartRef.current = state.clock.elapsedTime;
+                nextRecalibrationRef.current = state.clock.elapsedTime + 8 + Math.random() * 6;
+            }
+
+            if (recalibrationStartRef.current !== null && barrelGroupRef.current) {
+                const progress = Math.min((state.clock.elapsedTime - recalibrationStartRef.current) / 1.2, 1);
+                const raise = Math.sin(progress * Math.PI) * 0.35;
+                barrelGroupRef.current.rotation.set(-raise, 0, progress * Math.PI * 7);
+                if (progress >= 1) {
+                    recalibrationStartRef.current = null;
+                    barrelGroupRef.current.rotation.set(0, 0, 0);
+                }
+            }
         }
 
         // Pulse Animation for Laser & Impact
@@ -139,20 +168,22 @@ export default function Turret({ id, position, rotation }: TurretProps) {
 
     return (
         <group position={position} rotation={rotation} ref={turretGroup}>
-            <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 1.5]}>
-                <cylinderGeometry args={[0.8, 0.8, 3, 12]} />
-                <meshStandardMaterial color="#888c8d" flatShading />
-                <Edges scale={1} threshold={15} color="black" />
-            </mesh>
-            <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, LASER_ORIGIN_Z]}>
-                <coneGeometry args={[0.8, 1, 12]} />
-                <meshStandardMaterial ref={coreMaterialRef} color="#e03131" emissive="#ff4040" emissiveIntensity={2.2} flatShading />
-                <Edges scale={1} threshold={15} color="black" />
-            </mesh>
-            <mesh position={[0, 0, 3.9]}>
-                <sphereGeometry args={[0.22, 10, 10]} />
-                <meshBasicMaterial color={new THREE.Color(10, 2, 2)} toneMapped={false} />
-            </mesh>
+            <group ref={barrelGroupRef}>
+                <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 1.5]}>
+                    <cylinderGeometry args={[0.8, 0.8, 3, 12]} />
+                    <meshStandardMaterial color="#888c8d" flatShading />
+                    <Edges scale={1} threshold={15} color="black" />
+                </mesh>
+                <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, LASER_ORIGIN_Z]}>
+                    <coneGeometry args={[0.8, 1, 12]} />
+                    <meshStandardMaterial ref={coreMaterialRef} color="#e03131" emissive="#ff4040" emissiveIntensity={2.2} flatShading />
+                    <Edges scale={1} threshold={15} color="black" />
+                </mesh>
+                <mesh position={[0, 0, 3.9]}>
+                    <sphereGeometry args={[0.22, 10, 10]} />
+                    <meshBasicMaterial color={new THREE.Color(10, 2, 2)} toneMapped={false} />
+                </mesh>
+            </group>
 
             {hasTarget && (
                 <>

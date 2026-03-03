@@ -17,9 +17,15 @@ interface ExplosionData {
     type: AsteroidType;
 }
 
+interface ShieldImpactData {
+    id: string;
+    pos: [number, number, number];
+}
+
 export default function GameScene() {
     const [asteroids, setAsteroids] = useState<SpawnData[]>([]);
     const [explosions, setExplosions] = useState<ExplosionData[]>([]);
+    const [shieldImpacts, setShieldImpacts] = useState<ShieldImpactData[]>([]);
 
     const { incrementDestroyed, setActiveAsteroids } = useGameStore();
 
@@ -33,6 +39,12 @@ export default function GameScene() {
     const handleDestroy = useCallback((id: string, pos: [number, number, number], isBaseHit = false, type: AsteroidType) => {
         if (!isBaseHit) {
             incrementDestroyed();
+        } else {
+            const impactId = uuidv4();
+            setShieldImpacts(prev => [...prev, { id: impactId, pos }]);
+            setTimeout(() => {
+                setShieldImpacts(prev => prev.filter(impact => impact.id !== impactId));
+            }, 900);
         }
         setAsteroids(prev => {
             let newAsteroids = prev.filter(ast => ast.id !== id);
@@ -73,7 +85,7 @@ export default function GameScene() {
 
             <AsteroidSpawner onSpawn={handleSpawn} />
 
-            <Platform />
+            <Platform shieldImpacts={shieldImpacts} />
 
             <Turret id="t1" position={[5, 1, 0]} rotation={[-Math.PI / 2, 0, 0]} />
             <Turret id="t2" position={[-5, 1, 0]} rotation={[-Math.PI / 2, 0, 0]} />

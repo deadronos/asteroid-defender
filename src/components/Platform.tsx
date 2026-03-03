@@ -1,10 +1,61 @@
 import { RigidBody, CylinderCollider } from '@react-three/rapier';
 import { Edges } from '@react-three/drei';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-export default function Platform() {
+interface ShieldImpactData {
+    id: string;
+    pos: [number, number, number];
+}
+
+interface PlatformProps {
+    shieldImpacts: ShieldImpactData[];
+}
+
+function ShieldRipple({ pos }: { pos: [number, number, number] }) {
+    const ringRef = useRef<THREE.Mesh>(null);
+    const ringMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
+    const bornAtRef = useRef<number | null>(null);
+    const shieldRadius = 3.15;
+
+    const impactDirection = useMemo(() => {
+        const dir = new THREE.Vector3(...pos);
+        if (dir.lengthSq() < 1e-4) dir.set(0, 1, 0);
+        return dir.normalize();
+    }, [pos]);
+
+    const impactPoint = useMemo(
+        () => impactDirection.clone().multiplyScalar(shieldRadius).toArray() as [number, number, number],
+        [impactDirection]
+    );
+    const impactRotation = useMemo(() => {
+        const quat = new THREE.Quaternion();
+        quat.setFromUnitVectors(new THREE.Vector3(0, 0, 1), impactDirection);
+        return quat;
+    }, [impactDirection]);
+
+    useFrame((state) => {
+        if (!ringRef.current || !ringMaterialRef.current) return;
+        if (bornAtRef.current === null) bornAtRef.current = state.clock.elapsedTime;
+
+        const progress = Math.min((state.clock.elapsedTime - bornAtRef.current) / 0.9, 1);
+        const scale = 0.8 + progress * 3.6;
+        ringRef.current.scale.set(scale, scale, scale);
+        ringMaterialRef.current.opacity = 0.45 * (1 - progress);
+    });
+
+    return (
+        <group position={impactPoint} quaternion={impactRotation}>
+            <mesh ref={ringRef}>
+                <ringGeometry args={[0.08, 0.22, 6]} />
+                <meshBasicMaterial ref={ringMaterialRef} color="#7ec8ff" transparent opacity={0.45} side={THREE.DoubleSide} />
+            </mesh>
+        </group>
+    );
+}
+
+export default function Platform({ shieldImpacts }: PlatformProps) {
     const stripMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
     const rotatedStripMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
     const coreMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
@@ -29,6 +80,10 @@ export default function Platform() {
                     <Edges scale={1} threshold={15} color="black" />
                 </mesh>
                 <group position={[0, 1.05, 0]}>
+                    <mesh>
+                        <sphereGeometry args={[3.15, 24, 24]} />
+                        <meshBasicMaterial color="#7ec8ff" transparent opacity={0.03} side={THREE.DoubleSide} />
+                    </mesh>
                     <mesh rotation={[0, 0, 0]}>
                         <boxGeometry args={[18, 0.1, 0.35]} />
                         <meshStandardMaterial ref={stripMaterialRef} color="#7aa2ff" emissive="#4f7cff" emissiveIntensity={1.4} />
@@ -45,6 +100,9 @@ export default function Platform() {
                         <pointLight position={[6, 0.4, 0]} color="#ff9f43" intensity={1.8} distance={10} decay={2} />
                         <pointLight position={[-6, 0.4, 0]} color="#ff9f43" intensity={1.8} distance={10} decay={2} />
                     </group>
+                    {shieldImpacts.map((impact) => (
+                        <ShieldRipple key={impact.id} pos={impact.pos} />
+                    ))}
                 </group>
             </group>
         </RigidBody>
