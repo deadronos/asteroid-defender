@@ -11,12 +11,17 @@ interface TurretProps {
     rotation: [number, number, number];
 }
 
+const LASER_ORIGIN_Z = 3.5;
+
 export default function Turret({ id, position, rotation }: TurretProps) {
     const turretGroup = useRef<THREE.Group>(null);
     const [targetPos, setTargetPos] = useState<THREE.Vector3 | null>(null);
     const pulseRef = useRef(0);
     const laserMaterialRef = useRef<any>(null);
     const impactRef = useRef<THREE.Mesh>(null);
+    const coreMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
+    const beamLightRef = useRef<THREE.PointLight>(null);
+    const impactLightRef = useRef<THREE.PointLight>(null);
 
     useFrame(() => {
         if (!turretGroup.current) return;
@@ -83,15 +88,26 @@ export default function Turret({ id, position, rotation }: TurretProps) {
 
         // Pulse Animation for Laser & Impact
         pulseRef.current += 0.5;
+        const pulse = Math.sin(pulseRef.current) * 0.5 + 0.5;
+
+        if (coreMaterialRef.current) {
+            coreMaterialRef.current.emissiveIntensity = 1.6 + pulse * 1.8;
+        }
         if (laserMaterialRef.current && localTarget) {
             // Pulse between 1 and 4 linewidth thickness
-            const pulse = 1 + (Math.sin(pulseRef.current) * 0.5 + 0.5) * 3;
-            laserMaterialRef.current.linewidth = pulse;
+            laserMaterialRef.current.linewidth = 1 + pulse * 3;
         }
         if (impactRef.current && localTarget) {
             // Pulse scale between 0.8 and 1.5
             const scale = 0.8 + (Math.sin(pulseRef.current * 1.5) * 0.5 + 0.5) * 0.7;
             impactRef.current.scale.set(scale, scale, scale);
+        }
+        if (beamLightRef.current && localTarget) {
+            beamLightRef.current.position.set(localTarget.x * 0.5, localTarget.y * 0.5, LASER_ORIGIN_Z + (localTarget.z - LASER_ORIGIN_Z) * 0.5);
+            beamLightRef.current.intensity = 4 + pulse * 2.5;
+        }
+        if (impactLightRef.current && localTarget) {
+            impactLightRef.current.intensity = 5 + pulse * 3;
         }
     });
 
@@ -108,16 +124,20 @@ export default function Turret({ id, position, rotation }: TurretProps) {
                 <meshStandardMaterial color="#888c8d" flatShading />
                 <Edges scale={1} threshold={15} color="black" />
             </mesh>
-            <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 3.5]}>
+            <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, LASER_ORIGIN_Z]}>
                 <coneGeometry args={[0.8, 1, 12]} />
-                <meshStandardMaterial color="#e03131" flatShading />
+                <meshStandardMaterial ref={coreMaterialRef} color="#e03131" emissive="#ff4040" emissiveIntensity={2.2} flatShading />
                 <Edges scale={1} threshold={15} color="black" />
+            </mesh>
+            <mesh position={[0, 0, 3.9]}>
+                <sphereGeometry args={[0.22, 10, 10]} />
+                <meshBasicMaterial color={new THREE.Color(10, 2, 2)} toneMapped={false} />
             </mesh>
 
             {localTarget && (
                 <>
                     <Line
-                        points={[[0, 0, 3.5], [localTarget.x, localTarget.y, localTarget.z]]}
+                        points={[[0, 0, LASER_ORIGIN_Z], [localTarget.x, localTarget.y, localTarget.z]]}
                         color={new THREE.Color(10, 2, 2)}
                         lineWidth={3}
                         material={laserMaterialRef.current}
@@ -126,6 +146,8 @@ export default function Turret({ id, position, rotation }: TurretProps) {
                         <sphereGeometry args={[0.6, 8, 8]} />
                         <meshBasicMaterial color={new THREE.Color(10, 2, 2)} toneMapped={false} transparent opacity={0.9} />
                     </mesh>
+                    <pointLight ref={beamLightRef} position={[localTarget.x * 0.5, localTarget.y * 0.5, localTarget.z * 0.5]} color="#ff4a4a" intensity={5} distance={14} decay={2} />
+                    <pointLight ref={impactLightRef} position={[localTarget.x, localTarget.y, localTarget.z]} color="#ff7a5f" intensity={7} distance={10} decay={2} />
                 </>
             )}
         </group>

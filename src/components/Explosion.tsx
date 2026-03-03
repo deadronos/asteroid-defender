@@ -58,6 +58,9 @@ interface ExplosionProps {
 }
 
 export default function Explosion({ position, type }: ExplosionProps) {
+    const blastLightRef = useRef<THREE.PointLight>(null);
+    const lifeRef = useRef(1);
+
     // Generate 8 random debris velocities once on mount
     const fragments = useMemo(() => {
         return Array.from({ length: 8 }).map((_, i) => {
@@ -74,8 +77,16 @@ export default function Explosion({ position, type }: ExplosionProps) {
 
     const color = EXPLOSION_COLORS[type] || '#ff6600';
 
+    useFrame((_, delta) => {
+        lifeRef.current = Math.max(0, lifeRef.current - delta * 1.6);
+        if (blastLightRef.current) {
+            blastLightRef.current.intensity = 7 * lifeRef.current;
+        }
+    });
+
     return (
         <group>
+            <pointLight ref={blastLightRef} position={position} color={color} intensity={7} distance={18} decay={2} />
             {fragments.map(frag => (
                 <Particle key={frag.id} startPos={position} velocity={frag.velocity} color={color} />
             ))}

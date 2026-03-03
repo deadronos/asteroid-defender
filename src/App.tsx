@@ -49,7 +49,7 @@ function App() {
           </Physics>
         </Suspense>
         <EffectComposer>
-          <Bloom luminanceThreshold={1.0} luminanceSmoothing={0.9} intensity={2.0} />
+          <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.75} intensity={3.2} mipmapBlur />
           <DynamicDepthOfField />
         </EffectComposer>
       </Canvas>
