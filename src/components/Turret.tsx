@@ -15,19 +15,24 @@ const LASER_ORIGIN_Z = 3.5;
 
 export default function Turret({ id, position, rotation }: TurretProps) {
     const turretGroup = useRef<THREE.Group>(null);
-    const [targetPos, setTargetPos] = useState<THREE.Vector3 | null>(null);
+    const [hasTarget, setHasTarget] = useState(false);
     const pulseRef = useRef(0);
     const laserMaterialRef = useRef<any>(null);
     const impactRef = useRef<THREE.Mesh>(null);
     const coreMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
     const beamLightRef = useRef<THREE.PointLight>(null);
     const impactLightRef = useRef<THREE.PointLight>(null);
+    const lineRef = useRef<any>(null);
+
+    // Keep vectors around instead of full React states to avoid unneeded renders
+    const targetPosRef = useRef(new THREE.Vector3());
+    const localTargetRef = useRef(new THREE.Vector3());
 
     useFrame(() => {
         if (!turretGroup.current) return;
 
         if (useGameStore.getState().gameState === 'gameover') {
-            setTargetPos(null);
+            if (hasTarget) setHasTarget(false);
             return;
         }
 
@@ -58,15 +63,23 @@ export default function Turret({ id, position, rotation }: TurretProps) {
 
         if (nearestEntity) {
             // Un-mark previous target if we switched
-            if (targetPos && nearestEntity.position!.distanceTo(targetPos) > 0.1) {
+            if (hasTarget && nearestEntity.position!.distanceTo(targetPosRef.current) > 0.1) {
                 for (const entity of ECS.with('isAsteroid')) {
                     if (entity.targetedBy === id) entity.targetedBy = null;
                 }
             }
 
             turretGroup.current.lookAt(nearestEntity.position!);
-            setTargetPos(nearestEntity.position!.clone());
+            targetPosRef.current.copy(nearestEntity.position!);
+
+            // Calculate and maintain localTarget reference since the meshes are nested 
+            turretGroup.current.updateMatrixWorld();
+            const worldToLocal = turretGroup.current.worldToLocal(targetPosRef.current.clone());
+            localTargetRef.current.copy(worldToLocal);
+
             nearestEntity.targetedBy = id;
+
+            if (!hasTarget) setHasTarget(true);
 
             // Calculate damage falloff
             // Max distance is 50. Closer = more damage.
@@ -83,7 +96,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             for (const entity of ECS.with('isAsteroid')) {
                 if (entity.targetedBy === id) entity.targetedBy = null;
             }
-            setTargetPos(null);
+            if (hasTarget) setHasTarget(false);
         }
 
         // Pulse Animation for Laser & Impact
@@ -93,29 +106,36 @@ export default function Turret({ id, position, rotation }: TurretProps) {
         if (coreMaterialRef.current) {
             coreMaterialRef.current.emissiveIntensity = 1.6 + pulse * 1.8;
         }
-        if (laserMaterialRef.current && localTarget) {
+
+        if (!hasTarget) return;
+
+        if (laserMaterialRef.current) {
             // Pulse between 1 and 4 linewidth thickness
             laserMaterialRef.current.linewidth = 1 + pulse * 3;
         }
-        if (impactRef.current && localTarget) {
+
+        if (lineRef.current) {
+            lineRef.current.geometry.setPositions([
+                0, 0, LASER_ORIGIN_Z,
+                localTargetRef.current.x, localTargetRef.current.y, localTargetRef.current.z
+            ]);
+        }
+
+        if (impactRef.current) {
             // Pulse scale between 0.8 and 1.5
             const scale = 0.8 + (Math.sin(pulseRef.current * 1.5) * 0.5 + 0.5) * 0.7;
             impactRef.current.scale.set(scale, scale, scale);
+            impactRef.current.position.copy(localTargetRef.current);
         }
-        if (beamLightRef.current && localTarget) {
-            beamLightRef.current.position.set(localTarget.x * 0.5, localTarget.y * 0.5, LASER_ORIGIN_Z + (localTarget.z - LASER_ORIGIN_Z) * 0.5);
+        if (beamLightRef.current) {
+            beamLightRef.current.position.set(localTargetRef.current.x * 0.5, localTargetRef.current.y * 0.5, LASER_ORIGIN_Z + (localTargetRef.current.z - LASER_ORIGIN_Z) * 0.5);
             beamLightRef.current.intensity = 4 + pulse * 2.5;
         }
-        if (impactLightRef.current && localTarget) {
+        if (impactLightRef.current) {
+            impactLightRef.current.position.copy(localTargetRef.current);
             impactLightRef.current.intensity = 5 + pulse * 3;
         }
     });
-
-    const localTarget = useMemo(() => {
-        if (!targetPos || !turretGroup.current) return null;
-        turretGroup.current.updateMatrixWorld();
-        return turretGroup.current.worldToLocal(targetPos.clone());
-    }, [targetPos]);
 
     return (
         <group position={position} rotation={rotation} ref={turretGroup}>
@@ -134,20 +154,21 @@ export default function Turret({ id, position, rotation }: TurretProps) {
                 <meshBasicMaterial color={new THREE.Color(10, 2, 2)} toneMapped={false} />
             </mesh>
 
-            {localTarget && (
+            {hasTarget && (
                 <>
                     <Line
-                        points={[[0, 0, LASER_ORIGIN_Z], [localTarget.x, localTarget.y, localTarget.z]]}
+                        ref={lineRef}
+                        points={[[0, 0, LASER_ORIGIN_Z], [0, 0, LASER_ORIGIN_Z]]} // Initialized coords, replaced in useFrame
                         color={new THREE.Color(10, 2, 2)}
                         lineWidth={3}
                         material={laserMaterialRef.current}
                     />
-                    <mesh ref={impactRef} position={[localTarget.x, localTarget.y, localTarget.z]}>
+                    <mesh ref={impactRef} position={[0, 0, 0]}>
                         <sphereGeometry args={[0.6, 8, 8]} />
                         <meshBasicMaterial color={new THREE.Color(10, 2, 2)} toneMapped={false} transparent opacity={0.9} />
                     </mesh>
-                    <pointLight ref={beamLightRef} position={[localTarget.x * 0.5, localTarget.y * 0.5, localTarget.z * 0.5]} color="#ff4a4a" intensity={5} distance={14} decay={2} />
-                    <pointLight ref={impactLightRef} position={[localTarget.x, localTarget.y, localTarget.z]} color="#ff7a5f" intensity={7} distance={10} decay={2} />
+                    <pointLight ref={beamLightRef} position={[0, 0, 0]} color="#ff4a4a" intensity={5} distance={14} decay={2} />
+                    <pointLight ref={impactLightRef} position={[0, 0, 0]} color="#ff7a5f" intensity={7} distance={10} decay={2} />
                 </>
             )}
         </group>
