@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { Stars } from '@react-three/drei';
+import { useState, useCallback, useEffect } from 'react';
 import CinematicCamera from './CinematicCamera';
+import SpaceBackground from './SpaceBackground';
 import useGameStore from '../store/gameStore';
 import { AsteroidType } from '../ecs/world';
 import Platform from './Platform';
@@ -26,10 +26,9 @@ export default function GameScene() {
     const handleSpawn = useCallback((ast: SpawnData) => {
         setAsteroids(prev => {
             const newAsteroids = [...prev, ast];
-            setActiveAsteroids(newAsteroids.length);
             return newAsteroids;
         });
-    }, [setActiveAsteroids]);
+    }, []);
 
     const handleDestroy = useCallback((id: string, pos: [number, number, number], isBaseHit = false, type: AsteroidType) => {
         if (!isBaseHit) {
@@ -48,7 +47,6 @@ export default function GameScene() {
                 ];
             }
 
-            setActiveAsteroids(newAsteroids.length);
             return newAsteroids;
         });
 
@@ -58,13 +56,19 @@ export default function GameScene() {
         setTimeout(() => {
             setExplosions(prev => prev.filter(exp => exp.id !== expId));
         }, 1000);
-    }, [incrementDestroyed, setActiveAsteroids]);
+    }, [incrementDestroyed]);
+
+    // Sync asteroid count with global store to avoid updating during another component's render
+    // Sync asteroid count with global store to avoid updating during another component's render
+    useEffect(() => {
+        setActiveAsteroids(asteroids.length);
+    }, [asteroids.length, setActiveAsteroids]);
 
     return (
         <>
             <ambientLight intensity={0.3} />
             <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
-            <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+            <SpaceBackground />
             <CinematicCamera />
 
             <AsteroidSpawner onSpawn={handleSpawn} />
