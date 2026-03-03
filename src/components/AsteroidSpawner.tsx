@@ -2,12 +2,20 @@ import { useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { ECS } from '../ecs/world';
+import { ECS, AsteroidType } from '../ecs/world';
 import useGameStore from '../store/gameStore';
 
 export interface SpawnData {
     id: string;
     pos: [number, number, number];
+    type: AsteroidType;
+}
+
+function pickAsteroidType(): AsteroidType {
+    const roll = Math.random();
+    if (roll < 0.5) return 'swarmer';
+    if (roll < 0.75) return 'tank';
+    return 'splitter';
 }
 
 interface AsteroidSpawnerProps {
@@ -52,7 +60,7 @@ export default function AsteroidSpawner({ onSpawn }: AsteroidSpawnerProps) {
             const y = (radius * Math.sin(theta) * Math.sin(phi)) * 0.5;
             const z = radius * Math.cos(phi);
 
-            onSpawn({ id: uuidv4(), pos: [x, y, z] });
+            onSpawn({ id: uuidv4(), pos: [x, y, z], type: pickAsteroidType() });
         }
     });
 

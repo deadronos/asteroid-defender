@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Stars, OrbitControls } from '@react-three/drei';
 import useGameStore from '../store/gameStore';
+import { AsteroidType } from '../ecs/world';
 import Platform from './Platform';
 import Turret from './Turret';
 import Asteroid from './Asteroid';
@@ -28,12 +29,23 @@ export default function GameScene() {
         });
     }, [setActiveAsteroids]);
 
-    const handleDestroy = useCallback((id: string, pos: [number, number, number], isBaseHit = false) => {
+    const handleDestroy = useCallback((id: string, pos: [number, number, number], isBaseHit = false, type: AsteroidType) => {
         if (!isBaseHit) {
             incrementDestroyed();
         }
         setAsteroids(prev => {
-            const newAsteroids = prev.filter(ast => ast.id !== id);
+            let newAsteroids = prev.filter(ast => ast.id !== id);
+
+            // Splitters spawn two swarmer fragments when destroyed by turrets
+            if (type === 'splitter' && !isBaseHit) {
+                const offset = 2.0;
+                newAsteroids = [
+                    ...newAsteroids,
+                    { id: uuidv4(), pos: [pos[0] + offset, pos[1], pos[2]], type: 'swarmer' },
+                    { id: uuidv4(), pos: [pos[0] - offset, pos[1], pos[2]], type: 'swarmer' },
+                ];
+            }
+
             setActiveAsteroids(newAsteroids.length);
             return newAsteroids;
         });
@@ -63,7 +75,7 @@ export default function GameScene() {
             <Turret id="t4" position={[-5, -1, 0]} rotation={[Math.PI / 2, 0, 0]} />
 
             {asteroids.map(ast => (
-                <Asteroid key={ast.id} id={ast.id} startPos={ast.pos} onDestroy={handleDestroy} />
+                <Asteroid key={ast.id} id={ast.id} startPos={ast.pos} type={ast.type} onDestroy={handleDestroy} />
             ))}
 
             {explosions.map(exp => (
