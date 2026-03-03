@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { Stars } from '@react-three/drei';
 import CinematicCamera from './CinematicCamera';
+import SpaceBackground from './SpaceBackground';
 import useGameStore from '../store/gameStore';
 import { AsteroidType } from '../ecs/world';
 import Platform from './Platform';
@@ -64,7 +64,7 @@ export default function GameScene() {
         <>
             <ambientLight intensity={0.3} />
             <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
-            <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+            <SpaceBackground />
             <CinematicCamera />
 
             <AsteroidSpawner onSpawn={handleSpawn} />
