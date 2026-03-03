@@ -13,6 +13,7 @@ import { SpawnData } from './AsteroidSpawner';
 interface ExplosionData {
     id: string;
     pos: [number, number, number];
+    type: AsteroidType;
 }
 
 export default function GameScene() {
@@ -52,7 +53,7 @@ export default function GameScene() {
 
         // Spawn explosion and queue it for unmount after 1 second
         const expId = uuidv4();
-        setExplosions(prev => [...prev, { id: expId, pos }]);
+        setExplosions(prev => [...prev, { id: expId, pos, type }]);
         setTimeout(() => {
             setExplosions(prev => prev.filter(exp => exp.id !== expId));
         }, 1000);
@@ -79,7 +80,7 @@ export default function GameScene() {
             ))}
 
             {explosions.map(exp => (
-                <Explosion key={exp.id} position={exp.pos} />
+                <Explosion key={exp.id} position={exp.pos} type={exp.type} />
             ))}
         </>
     );

@@ -1,14 +1,22 @@
 import { useRef, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { AsteroidType } from '../ecs/world';
+
+export const EXPLOSION_COLORS: Record<AsteroidType, string> = {
+    swarmer: '#d4a843',
+    tank: '#555555',
+    splitter: '#a855f7',
+};
 
 interface ParticleProps {
     startPos: [number, number, number];
     velocity: THREE.Vector3;
+    color: string;
 }
 
 // An individual piece of shrapnel
-const Particle = ({ startPos, velocity }: ParticleProps) => {
+const Particle = ({ startPos, velocity, color }: ParticleProps) => {
     const meshRef = useRef<THREE.Mesh>(null);
     const [scale, setScale] = useState(1);
     const lifeRef = useRef(1.0); // 1.0 down to 0.0
@@ -39,16 +47,17 @@ const Particle = ({ startPos, velocity }: ParticleProps) => {
     return (
         <mesh ref={meshRef} position={startPos} scale={scale}>
             <dodecahedronGeometry args={[0.5, 0]} />
-            <meshStandardMaterial color="#ff6600" emissive={new THREE.Color(10, 2, 0)} toneMapped={false} flatShading transparent opacity={lifeRef.current} />
+            <meshStandardMaterial color={color} emissive={new THREE.Color(10, 2, 0)} toneMapped={false} flatShading transparent opacity={lifeRef.current} />
         </mesh>
     );
 };
 
 interface ExplosionProps {
     position: [number, number, number];
+    type: AsteroidType;
 }
 
-export default function Explosion({ position }: ExplosionProps) {
+export default function Explosion({ position, type }: ExplosionProps) {
     // Generate 8 random debris velocities once on mount
     const fragments = useMemo(() => {
         return Array.from({ length: 8 }).map((_, i) => {
@@ -63,10 +72,12 @@ export default function Explosion({ position }: ExplosionProps) {
         });
     }, []);
 
+    const color = EXPLOSION_COLORS[type] || '#ff6600';
+
     return (
         <group>
             {fragments.map(frag => (
-                <Particle key={frag.id} startPos={position} velocity={frag.velocity} />
+                <Particle key={frag.id} startPos={position} velocity={frag.velocity} color={color} />
             ))}
         </group>
     );
