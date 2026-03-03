@@ -1,7 +1,8 @@
-import { Suspense, useState, useRef } from 'react';
+import { Suspense, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
 import { EffectComposer, Bloom, DepthOfField } from '@react-three/postprocessing';
+import * as THREE from 'three';
 import GameScene from './components/GameScene';
 import HUD from './components/HUD';
 import { dofSettings } from './components/CinematicCamera';
@@ -9,23 +10,27 @@ import './index.css';
 
 /**
  * Bridges the imperative dofSettings singleton (mutated by CinematicCamera on
- * each shot change) into React state so DepthOfField re-renders only when the
- * focus distance actually changes (~every 17 s), not every frame.
+ * each shot change) into the scene so DepthOfField interpolates smoothly
+ * instead of snapping instantly to the next focus distance.
  */
 function DynamicDepthOfField() {
-  const [focusDistance, setFocusDistance] = useState(dofSettings.focusDistance);
-  const lastApplied = useRef(dofSettings.focusDistance);
+  const dofRef = useRef<any>(null);
 
-  useFrame(() => {
-    if (dofSettings.focusDistance !== lastApplied.current) {
-      lastApplied.current = dofSettings.focusDistance;
-      setFocusDistance(dofSettings.focusDistance);
+  useFrame((_, delta) => {
+    if (dofRef.current) {
+      // Smoothly interpolate current focus distance towards the target distance
+      dofRef.current.target = THREE.MathUtils.lerp(
+        dofRef.current.target,
+        dofSettings.focusDistance,
+        delta * 2 // Lerp speed
+      );
     }
   });
 
   return (
     <DepthOfField
-      focusDistance={focusDistance}
+      ref={dofRef}
+      focusDistance={dofSettings.focusDistance} // Initial state
       focalLength={dofSettings.focalLength}
       bokehScale={dofSettings.bokehScale}
     />

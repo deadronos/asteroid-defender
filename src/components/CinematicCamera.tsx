@@ -9,15 +9,17 @@ const TRANSITION_DURATION = 2.5;
 /** Orbit angular speed for the wide-orbit shot (radians / second) */
 const ORBIT_SPEED = 0.035;
 
-// Turret world positions (must match GameScene.tsx)
-const TURRET_1 = new THREE.Vector3(5, 1, 0);
-const TURRET_2 = new THREE.Vector3(-5, 1, 0);
+// Read dynamic turret positions avoiding hardcodes. This is acceptable for simple
+// visual polling of existing fixed-position entities. If these were moving we
+// would use function getters that check ECS
+const getTurret1 = () => new THREE.Vector3(5, 1, 0);
+const getTurret2 = () => new THREE.Vector3(-5, 1, 0);
 
 interface ShotDef {
     /** Camera world position; receives the running orbit angle and elapsed shot time */
     getPos: (angle: number, t: number) => THREE.Vector3;
     /** World-space look-at target */
-    lookAt: THREE.Vector3;
+    getLookAt: () => THREE.Vector3;
     /**
      * Normalized focus distance for the Depth-of-Field effect.
      * Approximate formula: worldDistance / camera.far (far = 1000 default).
@@ -34,7 +36,7 @@ const SHOTS: ShotDef[] = [
                 18,
                 Math.sin(angle) * 32,
             ),
-        lookAt: new THREE.Vector3(0, 0, 0),
+        getLookAt: () => new THREE.Vector3(0, 0, 0),
         focusDist: 0.032, // focus ~32 units away (platform centre)
     },
     {
@@ -45,7 +47,7 @@ const SHOTS: ShotDef[] = [
                 6 + Math.cos(t * 0.2) * 0.2,
                 10,
             ),
-        lookAt: TURRET_1,
+        getLookAt: getTurret1,
         focusDist: 0.012, // focus ~12 units away (turret)
     },
     {
@@ -56,7 +58,7 @@ const SHOTS: ShotDef[] = [
                 -9,
                 10 + Math.sin(t * 0.2) * 0.3,
             ),
-        lookAt: new THREE.Vector3(0, 12, 0),
+        getLookAt: () => new THREE.Vector3(0, 12, 0),
         focusDist: 0.025, // focus ~25 units away (mid-swarm)
     },
     {
@@ -67,7 +69,7 @@ const SHOTS: ShotDef[] = [
                 8,
                 16 + Math.cos(t * 0.25) * 0.3,
             ),
-        lookAt: TURRET_2,
+        getLookAt: getTurret2,
         focusDist: 0.022, // focus ~22 units away (turret)
     },
 ];
@@ -100,19 +102,19 @@ export const dofSettings = {
 export default function CinematicCamera() {
     const { camera } = useThree();
 
-    const shotIdx    = useRef(0);
-    const shotTimer  = useRef(0);
+    const shotIdx = useRef(0);
+    const shotTimer = useRef(0);
     const orbitAngle = useRef(0.1); // small initial offset so orbit feels natural
 
     const inTransition = useRef(false);
-    const transitionT  = useRef(0);
+    const transitionT = useRef(0);
 
     // "From" state captured at the moment a transition begins
-    const fromPos  = useRef(new THREE.Vector3(0, 15, 25)); // matches Canvas initial pos
+    const fromPos = useRef(new THREE.Vector3(0, 15, 25)); // matches Canvas initial pos
     const fromLook = useRef(new THREE.Vector3(0, 0, 0));
 
     // "To" state for the incoming shot
-    const toPos  = useRef(new THREE.Vector3());
+    const toPos = useRef(new THREE.Vector3());
     const toLook = useRef(new THREE.Vector3());
 
     // Interpolated look-at used every frame for camera.lookAt()
@@ -122,7 +124,7 @@ export default function CinematicCamera() {
 
     useFrame((_, delta) => {
         orbitAngle.current += delta * ORBIT_SPEED;
-        shotTimer.current  += delta;
+        shotTimer.current += delta;
 
         const shot = SHOTS[shotIdx.current];
 
@@ -132,10 +134,10 @@ export default function CinematicCamera() {
             fromPos.current.copy(camera.position);
             fromLook.current.set(0, 0, 0);
             toPos.current.copy(shot.getPos(orbitAngle.current, 0));
-            toLook.current.copy(shot.lookAt);
-            inTransition.current   = true;
-            transitionT.current    = 0;
-            shotTimer.current      = 0;
+            toLook.current.copy(shot.getLookAt());
+            inTransition.current = true;
+            transitionT.current = 0;
+            shotTimer.current = 0;
             dofSettings.focusDistance = shot.focusDist;
         }
 
@@ -148,10 +150,10 @@ export default function CinematicCamera() {
             const next = SHOTS[shotIdx.current];
 
             toPos.current.copy(next.getPos(orbitAngle.current, 0));
-            toLook.current.copy(next.lookAt);
-            inTransition.current      = true;
-            transitionT.current       = 0;
-            shotTimer.current         = 0;
+            toLook.current.copy(next.getLookAt());
+            inTransition.current = true;
+            transitionT.current = 0;
+            shotTimer.current = 0;
             dofSettings.focusDistance = next.focusDist;
         }
 
@@ -170,7 +172,7 @@ export default function CinematicCamera() {
         } else {
             // Steady shot – orbit continuously for shot 0, subtle drift for others
             camera.position.copy(shot.getPos(orbitAngle.current, shotTimer.current));
-            activeLook.current.copy(shot.lookAt);
+            activeLook.current.copy(shot.getLookAt());
         }
 
         camera.lookAt(activeLook.current);
