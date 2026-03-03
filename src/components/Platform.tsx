@@ -1,4 +1,3 @@
-import React from 'react';
 import { RigidBody, CylinderCollider } from '@react-three/rapier';
 import { Edges } from '@react-three/drei';
 

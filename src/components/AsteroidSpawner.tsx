@@ -1,16 +1,27 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ECS } from '../ecs/world';
+import useGameStore from '../store/gameStore';
 
-export default function AsteroidSpawner({ onSpawn }) {
+export interface SpawnData {
+    id: string;
+    pos: [number, number, number];
+}
+
+interface AsteroidSpawnerProps {
+    onSpawn: (ast: SpawnData) => void;
+}
+
+export default function AsteroidSpawner({ onSpawn }: AsteroidSpawnerProps) {
     const origin = new THREE.Vector3(0, 0, 0);
     const spawnTimer = useRef(0);
     // Base spawn interval in seconds
     const currentInterval = useRef(2.0);
 
-    useFrame((state, delta) => {
+    useFrame((_, delta) => {
+        if (useGameStore.getState().gameState === 'gameover') return;
         spawnTimer.current += delta;
 
         if (spawnTimer.current >= currentInterval.current) {

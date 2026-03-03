@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Stars, OrbitControls } from '@react-three/drei';
 import useGameStore from '../store/gameStore';
 import Platform from './Platform';
@@ -7,14 +7,20 @@ import Asteroid from './Asteroid';
 import AsteroidSpawner from './AsteroidSpawner';
 import Explosion from './Explosion';
 import { v4 as uuidv4 } from 'uuid';
+import { SpawnData } from './AsteroidSpawner';
+
+interface ExplosionData {
+    id: string;
+    pos: [number, number, number];
+}
 
 export default function GameScene() {
-    const [asteroids, setAsteroids] = useState([]);
-    const [explosions, setExplosions] = useState([]);
+    const [asteroids, setAsteroids] = useState<SpawnData[]>([]);
+    const [explosions, setExplosions] = useState<ExplosionData[]>([]);
 
     const { incrementDestroyed, setActiveAsteroids } = useGameStore();
 
-    const handleSpawn = useCallback((ast) => {
+    const handleSpawn = useCallback((ast: SpawnData) => {
         setAsteroids(prev => {
             const newAsteroids = [...prev, ast];
             setActiveAsteroids(newAsteroids.length);
@@ -22,8 +28,10 @@ export default function GameScene() {
         });
     }, [setActiveAsteroids]);
 
-    const handleDestroy = useCallback((id, pos) => {
-        incrementDestroyed();
+    const handleDestroy = useCallback((id: string, pos: [number, number, number], isBaseHit = false) => {
+        if (!isBaseHit) {
+            incrementDestroyed();
+        }
         setAsteroids(prev => {
             const newAsteroids = prev.filter(ast => ast.id !== id);
             setActiveAsteroids(newAsteroids.length);

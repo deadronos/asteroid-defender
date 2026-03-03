@@ -1,21 +1,33 @@
-import React, { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Edges, Line } from '@react-three/drei';
 import * as THREE from 'three';
-import { ECS } from '../ecs/world';
+import { ECS, GameEntity } from '../ecs/world';
+import useGameStore from '../store/gameStore';
 
-export default function Turret({ id, position, rotation }) {
-    const turretGroup = useRef();
-    const [targetPos, setTargetPos] = useState(null);
+interface TurretProps {
+    id: string;
+    position: [number, number, number];
+    rotation: [number, number, number];
+}
+
+export default function Turret({ id, position, rotation }: TurretProps) {
+    const turretGroup = useRef<THREE.Group>(null);
+    const [targetPos, setTargetPos] = useState<THREE.Vector3 | null>(null);
     const pulseRef = useRef(0);
-    const laserMaterialRef = useRef();
-    const impactRef = useRef();
+    const laserMaterialRef = useRef<any>(null);
+    const impactRef = useRef<THREE.Mesh>(null);
 
     useFrame(() => {
         if (!turretGroup.current) return;
 
+        if (useGameStore.getState().gameState === 'gameover') {
+            setTargetPos(null);
+            return;
+        }
+
         let nearestDist = Infinity;
-        let nearestEntity = null;
+        let nearestEntity: GameEntity | null = null;
 
         for (const entity of ECS.with('isAsteroid')) {
             if (entity.position) {
@@ -41,14 +53,14 @@ export default function Turret({ id, position, rotation }) {
 
         if (nearestEntity) {
             // Un-mark previous target if we switched
-            if (targetPos && nearestEntity.position.distanceTo(targetPos) > 0.1) {
+            if (targetPos && nearestEntity.position!.distanceTo(targetPos) > 0.1) {
                 for (const entity of ECS.with('isAsteroid')) {
                     if (entity.targetedBy === id) entity.targetedBy = null;
                 }
             }
 
-            turretGroup.current.lookAt(nearestEntity.position);
-            setTargetPos(nearestEntity.position.clone());
+            turretGroup.current.lookAt(nearestEntity.position!);
+            setTargetPos(nearestEntity.position!.clone());
             nearestEntity.targetedBy = id;
 
             // Calculate damage falloff
@@ -57,10 +69,10 @@ export default function Turret({ id, position, rotation }) {
             const maxDamage = 5;
             const minDamage = 0.1;
             // Un-penalize the distance for damage calculations if it was penalized
-            const actualDist = turretGroup.current.position.distanceTo(nearestEntity.position);
+            const actualDist = turretGroup.current.position.distanceTo(nearestEntity.position!);
             const damageVal = maxDamage - ((actualDist / 50) * (maxDamage - minDamage));
 
-            nearestEntity.health -= damageVal;
+            nearestEntity.health! -= damageVal;
         } else {
             // Clear our lock if no target
             for (const entity of ECS.with('isAsteroid')) {
@@ -108,7 +120,7 @@ export default function Turret({ id, position, rotation }) {
                         points={[[0, 0, 3.5], [localTarget.x, localTarget.y, localTarget.z]]}
                         color="#ff3333"
                         lineWidth={3}
-                        material={laserMaterialRef}
+                        material={laserMaterialRef.current}
                     />
                     <mesh ref={impactRef} position={[localTarget.x, localTarget.y, localTarget.z]}>
                         <sphereGeometry args={[0.6, 8, 8]} />
