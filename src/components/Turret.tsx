@@ -118,13 +118,13 @@ export default function Turret({ id, position, rotation }: TurretProps) {
                 <>
                     <Line
                         points={[[0, 0, 3.5], [localTarget.x, localTarget.y, localTarget.z]]}
-                        color="#ff6666"
+                        color={new THREE.Color(10, 2, 2)}
                         lineWidth={3}
                         material={laserMaterialRef.current}
                     />
                     <mesh ref={impactRef} position={[localTarget.x, localTarget.y, localTarget.z]}>
                         <sphereGeometry args={[0.6, 8, 8]} />
-                        <meshBasicMaterial color="#ff8888" transparent opacity={0.9} />
+                        <meshBasicMaterial color={new THREE.Color(10, 2, 2)} toneMapped={false} transparent opacity={0.9} />
                     </mesh>
                 </>
             )}
