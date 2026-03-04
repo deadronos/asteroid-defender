@@ -9,6 +9,8 @@ export const EXPLOSION_COLORS: Record<AsteroidType, string> = {
     splitter: '#a855f7',
 };
 
+const EMISSIVE_COLOR = new THREE.Color(10, 2, 0);
+
 interface ParticleProps {
     startPos: [number, number, number];
     velocity: THREE.Vector3;
@@ -32,7 +34,9 @@ const Particle = ({ startPos, velocity, color }: ParticleProps) => {
         }
 
         // Move the fragment outward
-        meshRef.current.position.add(velocity.clone().multiplyScalar(delta));
+        meshRef.current.position.x += velocity.x * delta;
+        meshRef.current.position.y += velocity.y * delta;
+        meshRef.current.position.z += velocity.z * delta;
 
         // Spin the fragment randomly
         meshRef.current.rotation.x += velocity.y * delta;
@@ -47,7 +51,7 @@ const Particle = ({ startPos, velocity, color }: ParticleProps) => {
     return (
         <mesh ref={meshRef} position={startPos} scale={scale}>
             <dodecahedronGeometry args={[0.5, 0]} />
-            <meshStandardMaterial color={color} emissive={new THREE.Color(10, 2, 0)} toneMapped={false} flatShading transparent opacity={lifeRef.current} />
+            <meshStandardMaterial color={color} emissive={EMISSIVE_COLOR} toneMapped={false} flatShading transparent opacity={lifeRef.current} />
         </mesh>
     );
 };

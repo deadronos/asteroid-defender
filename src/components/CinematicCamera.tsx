@@ -12,12 +12,17 @@ const ORBIT_SPEED = 0.035;
 // Read dynamic turret positions avoiding hardcodes. This is acceptable for simple
 // visual polling of existing fixed-position entities. If these were moving we
 // would use function getters that check ECS
-const getTurret1 = () => new THREE.Vector3(5, 1, 0);
-const getTurret2 = () => new THREE.Vector3(-5, 1, 0);
+const t1 = new THREE.Vector3(5, 1, 0);
+const getTurret1 = () => t1;
+const t2 = new THREE.Vector3(-5, 1, 0);
+const getTurret2 = () => t2;
+
+const lookZero = new THREE.Vector3(0, 0, 0);
+const lookHigh = new THREE.Vector3(0, 12, 0);
 
 interface ShotDef {
-    /** Camera world position; receives the running orbit angle and elapsed shot time */
-    getPos: (angle: number, t: number) => THREE.Vector3;
+    /** Camera world position; receives the running orbit angle, elapsed shot time, and target vector */
+    getPos: (angle: number, t: number, target: THREE.Vector3) => THREE.Vector3;
     /** World-space look-at target */
     getLookAt: () => THREE.Vector3;
     /**
@@ -30,45 +35,41 @@ interface ShotDef {
 const SHOTS: ShotDef[] = [
     {
         // 0 – Wide cinematic orbit: slow 360° sweep high above the battle
-        getPos: (angle) =>
-            new THREE.Vector3(
-                Math.cos(angle) * 32,
-                18,
-                Math.sin(angle) * 32,
-            ),
-        getLookAt: () => new THREE.Vector3(0, 0, 0),
+        getPos: (angle, _, target) => target.set(
+            Math.cos(angle) * 32,
+            18,
+            Math.sin(angle) * 32,
+        ),
+        getLookAt: () => lookZero,
         focusDist: 0.032, // focus ~32 units away (platform centre)
     },
     {
         // 1 – Tight close-up of turret #1 tracking an incoming asteroid
-        getPos: (_, t) =>
-            new THREE.Vector3(
-                10 + Math.sin(t * 0.25) * 0.35,
-                6 + Math.cos(t * 0.2) * 0.2,
-                10,
-            ),
+        getPos: (_, t, target) => target.set(
+            10 + Math.sin(t * 0.25) * 0.35,
+            6 + Math.cos(t * 0.2) * 0.2,
+            10,
+        ),
         getLookAt: getTurret1,
         focusDist: 0.012, // focus ~12 units away (turret)
     },
     {
         // 2 – Low-angle shot from the platform edge looking up at the swarm
-        getPos: (_, t) =>
-            new THREE.Vector3(
-                10 + Math.cos(t * 0.3) * 0.3,
-                -9,
-                10 + Math.sin(t * 0.2) * 0.3,
-            ),
-        getLookAt: () => new THREE.Vector3(0, 12, 0),
+        getPos: (_, t, target) => target.set(
+            10 + Math.cos(t * 0.3) * 0.3,
+            -9,
+            10 + Math.sin(t * 0.2) * 0.3,
+        ),
+        getLookAt: () => lookHigh,
         focusDist: 0.025, // focus ~25 units away (mid-swarm)
     },
     {
         // 3 – Diagonal side view featuring turret #2
-        getPos: (_, t) =>
-            new THREE.Vector3(
-                -18 + Math.sin(t * 0.2) * 0.35,
-                8,
-                16 + Math.cos(t * 0.25) * 0.3,
-            ),
+        getPos: (_, t, target) => target.set(
+            -18 + Math.sin(t * 0.2) * 0.35,
+            8,
+            16 + Math.cos(t * 0.25) * 0.3,
+        ),
         getLookAt: getTurret2,
         focusDist: 0.022, // focus ~22 units away (turret)
     },
@@ -133,7 +134,7 @@ export default function CinematicCamera() {
             firstFrame.current = false;
             fromPos.current.copy(camera.position);
             fromLook.current.set(0, 0, 0);
-            toPos.current.copy(shot.getPos(orbitAngle.current, 0));
+            shot.getPos(orbitAngle.current, 0, toPos.current);
             toLook.current.copy(shot.getLookAt());
             inTransition.current = true;
             transitionT.current = 0;
@@ -149,7 +150,7 @@ export default function CinematicCamera() {
             shotIdx.current = (shotIdx.current + 1) % SHOTS.length;
             const next = SHOTS[shotIdx.current];
 
-            toPos.current.copy(next.getPos(orbitAngle.current, 0));
+            next.getPos(orbitAngle.current, 0, toPos.current);
             toLook.current.copy(next.getLookAt());
             inTransition.current = true;
             transitionT.current = 0;
@@ -171,7 +172,7 @@ export default function CinematicCamera() {
             }
         } else {
             // Steady shot – orbit continuously for shot 0, subtle drift for others
-            camera.position.copy(shot.getPos(orbitAngle.current, shotTimer.current));
+            shot.getPos(orbitAngle.current, shotTimer.current, camera.position);
             activeLook.current.copy(shot.getLookAt());
         }
 

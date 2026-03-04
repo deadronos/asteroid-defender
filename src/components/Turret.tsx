@@ -35,6 +35,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
     // Keep vectors around instead of full React states to avoid unneeded renders
     const targetPosRef = useRef(new THREE.Vector3());
     const localTargetRef = useRef(new THREE.Vector3());
+    const currentTargetRef = useRef<GameEntity | null>(null);
 
     useFrame((state) => {
         if (!turretGroup.current) return;
@@ -44,7 +45,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             return;
         }
 
-        let nearestDist = Infinity;
+        let nearestDistSq = Infinity;
         let nearestEntity: GameEntity | null = null;
 
         for (const entity of ECS.with('isAsteroid')) {
@@ -53,16 +54,16 @@ export default function Turret({ id, position, rotation }: TurretProps) {
                 const isTopAsteroid = entity.position.y > 0;
 
                 if (isTopTurret === isTopAsteroid) {
-                    let dist = turretGroup.current.position.distanceTo(entity.position);
+                    let distSq = turretGroup.current.position.distanceToSquared(entity.position);
 
                     // Artificially inflate the distance if this asteroid is already targeted by ANOTHER turret
                     // This encourages turrets to pick unique targets if there is more than 1 in range
                     if (entity.targetedBy && entity.targetedBy !== id) {
-                        dist += 20; // 20 units penalty
+                        distSq += 400; // 20 units penalty
                     }
 
-                    if (dist < nearestDist && dist < 50) {
-                        nearestDist = dist;
+                    if (distSq < nearestDistSq && distSq < 2500) {
+                        nearestDistSq = distSq;
                         nearestEntity = entity;
                     }
                 }
@@ -71,11 +72,12 @@ export default function Turret({ id, position, rotation }: TurretProps) {
 
         if (nearestEntity) {
             // Un-mark previous target if we switched
-            if (hasTarget && nearestEntity.position!.distanceTo(targetPosRef.current) > 0.1) {
-                for (const entity of ECS.with('isAsteroid')) {
-                    if (entity.targetedBy === id) entity.targetedBy = null;
+            if (currentTargetRef.current && currentTargetRef.current !== nearestEntity) {
+                if (currentTargetRef.current.targetedBy === id) {
+                    currentTargetRef.current.targetedBy = null;
                 }
             }
+            currentTargetRef.current = nearestEntity;
 
             turretGroup.current.lookAt(nearestEntity.position!);
             targetPosRef.current.copy(nearestEntity.position!);
@@ -97,14 +99,18 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             const maxDamage = 5;
             const minDamage = 0.1;
             // Un-penalize the distance for damage calculations if it was penalized
-            const actualDist = turretGroup.current.position.distanceTo(nearestEntity.position!);
+            const actualDistSq = turretGroup.current.position.distanceToSquared(nearestEntity.position!);
+            const actualDist = Math.sqrt(actualDistSq);
             const damageVal = maxDamage - ((actualDist / 50) * (maxDamage - minDamage));
 
             nearestEntity.health! -= damageVal;
         } else {
             // Clear our lock if no target
-            for (const entity of ECS.with('isAsteroid')) {
-                if (entity.targetedBy === id) entity.targetedBy = null;
+            if (currentTargetRef.current) {
+                if (currentTargetRef.current.targetedBy === id) {
+                    currentTargetRef.current.targetedBy = null;
+                }
+                currentTargetRef.current = null;
             }
             if (hasTarget) setHasTarget(false);
 
