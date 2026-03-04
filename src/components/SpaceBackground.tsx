@@ -26,9 +26,9 @@ const NEBULA_FRAGMENT = `
 
     void main() {
         vec2 uv = dirToEquirect(normalize(vPos));
-        float t = uTime * 0.001;
+        float t = uTime * 0.004;
         vec3 nA = texture2D(uNebulaTex, vec2(fract(uv.x + t), uv.y)).rgb;
-        vec3 nB = texture2D(uNebulaTex, fract(uv * vec2(1.7, 1.3) + vec2(0.17, -t * 0.8))).rgb;
+        vec3 nB = texture2D(uNebulaTex, vec2(fract(uv.x * 1.7 + 0.17), clamp(uv.y * 1.3 - t * 0.8, 0.0, 1.0))).rgb;
         float n1 = nA.r;
         float n2 = nB.g;
         float shape = smoothstep(0.3, 0.7, n1 * n2 * 2.0);
@@ -77,7 +77,7 @@ function Nebula() {
             let px = x;
             let py = y;
             let pz = z;
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 6; i++) {
                 v += a * noise(px, py, pz);
                 px = px * 2.1 + 1.7;
                 py = py * 2.1 + 9.2;
