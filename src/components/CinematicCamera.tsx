@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import useGameStore from '../store/gameStore';
 
 /** Seconds each shot is held before the next transition begins */
 const SHOT_DURATION = 17;
@@ -177,6 +178,18 @@ export default function CinematicCamera() {
         }
 
         camera.lookAt(activeLook.current);
+
+        // Apply Camera Shake on Impact
+        const lastDamageTime = useGameStore.getState().lastDamageTime;
+        if (lastDamageTime > 0) {
+            const timeSinceDamage = (Date.now() - lastDamageTime) / 1000;
+            if (timeSinceDamage < 0.5) {
+                const shakeIntensity = (0.5 - timeSinceDamage) * 2.0;
+                camera.position.x += (Math.random() - 0.5) * shakeIntensity;
+                camera.position.y += (Math.random() - 0.5) * shakeIntensity;
+                camera.position.z += (Math.random() - 0.5) * shakeIntensity * 0.5;
+            }
+        }
     });
 
     return null;
