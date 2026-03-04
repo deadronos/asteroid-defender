@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { RigidBody, BallCollider, RapierRigidBody } from '@react-three/rapier';
 import { Edges, Trail } from '@react-three/drei';
 import * as THREE from 'three';
-import { ECS, GameEntity, AsteroidType, updateAsteroidSpatialIndex, removeAsteroidFromSpatialIndex } from '../ecs/world';
+import { ECS, GameEntity, AsteroidType } from '../ecs/world';
 import useGameStore from '../store/gameStore';
 
 const tempVec = new THREE.Vector3();
@@ -58,13 +58,20 @@ export default function Asteroid({ id, startPos, type, active, onDestroy }: Aste
                 health: cfg.health,
                 asteroidType: type,
             });
-            updateAsteroidSpatialIndex(entity, entity.position!);
             entityRef.current = entity;
 
             // Re-teleport and reset velocity when pulled from pool
             if (rbRef.current) {
                 rbRef.current.setTranslation({ x: startPos[0], y: startPos[1], z: startPos[2] }, true);
-                rbRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+
+                tempVec.set(startPos[0], startPos[1], startPos[2]);
+                tempDir.copy(tempVec).negate().normalize();
+                rbRef.current.setLinvel({ x: tempDir.x * cfg.speed, y: tempDir.y * cfg.speed, z: tempDir.z * cfg.speed }, true);
+                rbRef.current.setAngvel({
+                    x: (Math.random() - 0.5) * 0.9,
+                    y: (Math.random() - 0.5) * 0.9,
+                    z: (Math.random() - 0.5) * 0.9,
+                }, true);
             }
             prevHealthRef.current = cfg.health;
             flashTimerRef.current = 0;
@@ -78,7 +85,6 @@ export default function Asteroid({ id, startPos, type, active, onDestroy }: Aste
         } else {
             // Un-pool into storage
             if (entityRef.current) {
-                removeAsteroidFromSpatialIndex(entityRef.current);
                 ECS.remove(entityRef.current);
                 entityRef.current = null;
             }
@@ -95,7 +101,6 @@ export default function Asteroid({ id, startPos, type, active, onDestroy }: Aste
 
         return () => {
             if (entityRef.current) {
-                removeAsteroidFromSpatialIndex(entityRef.current);
                 ECS.remove(entityRef.current);
             }
         };
@@ -131,8 +136,7 @@ export default function Asteroid({ id, startPos, type, active, onDestroy }: Aste
                 materialRef.current.emissive.setHex(0xffffff);
                 materialRef.current.emissiveIntensity = 2.0;
             }
-        } else {
-            if (materialRef.current) {
+            if (flashTimerRef.current <= 0 && materialRef.current) {
                 materialRef.current.emissive.setHex(0x000000);
             }
         }
@@ -147,7 +151,6 @@ export default function Asteroid({ id, startPos, type, active, onDestroy }: Aste
 
         // Sync Rapier position to ECS for Turrets to read
         entityRef.current.position!.set(translation.x, translation.y, translation.z);
-        updateAsteroidSpatialIndex(entityRef.current, entityRef.current.position!);
 
         // Move Asteroid towards the center platform (0,0,0)
         tempVec.set(translation.x, translation.y, translation.z);
@@ -156,10 +159,6 @@ export default function Asteroid({ id, startPos, type, active, onDestroy }: Aste
             onDestroy(id, [translation.x, translation.y, translation.z], true, type);
             return;
         }
-
-        tempDir.copy(tempVec).negate().normalize();
-        rbRef.current.setLinvel({ x: tempDir.x * cfg.speed, y: tempDir.y * cfg.speed, z: tempDir.z * cfg.speed }, true);
-        rbRef.current.setAngvel(tumbleRef.current, true);
     });
 
     return (

@@ -4,14 +4,11 @@ import {
   ECS,
   asteroidQuery,
   queryAsteroidsInRange,
-  removeAsteroidFromSpatialIndex,
-  updateAsteroidSpatialIndex,
   type GameEntity,
 } from './world';
 
 function clearWorld() {
   for (const entity of Array.from(asteroidQuery)) {
-    removeAsteroidFromSpatialIndex(entity);
     ECS.remove(entity);
   }
 }
@@ -23,7 +20,6 @@ function addAsteroid(id: string, position: THREE.Vector3): GameEntity {
     position,
     health: 100,
   });
-  updateAsteroidSpatialIndex(entity, position);
   return entity;
 }
 
@@ -48,7 +44,6 @@ describe('asteroid spatial index', () => {
     const asteroid = addAsteroid('a-2', new THREE.Vector3(0, 0, 0));
 
     asteroid.position!.set(25, 0, 0);
-    updateAsteroidSpatialIndex(asteroid, asteroid.position!);
 
     const oldCellResults = queryAsteroidsInRange(new THREE.Vector3(0, 0, 0), 5);
     const newCellResults = queryAsteroidsInRange(new THREE.Vector3(25, 0, 0), 5);
@@ -60,7 +55,7 @@ describe('asteroid spatial index', () => {
   it('removes asteroids from range queries after index removal', () => {
     const asteroid = addAsteroid('a-3', new THREE.Vector3(10, 0, 0));
 
-    removeAsteroidFromSpatialIndex(asteroid);
+    ECS.remove(asteroid);
 
     const results = queryAsteroidsInRange(new THREE.Vector3(0, 0, 0), 50);
     expect(results).not.toContain(asteroid);
@@ -80,7 +75,6 @@ describe('asteroid spatial index', () => {
     const asteroid = addAsteroid('a-6', new THREE.Vector3(1, 1, 1));
 
     asteroid.position!.set(8, 2, 1);
-    updateAsteroidSpatialIndex(asteroid, asteroid.position!);
 
     const results = queryAsteroidsInRange(new THREE.Vector3(0, 0, 0), 20);
     const matches = results.filter((entity) => entity === asteroid);
