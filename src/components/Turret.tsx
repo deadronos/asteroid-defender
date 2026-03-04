@@ -140,7 +140,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
         }
 
         if (hologramRingRef.current) {
-            hologramRingRef.current.rotation.z = state.clock.elapsedTime * 1.2;
+            hologramRingRef.current.rotation.z = (state.clock.elapsedTime * 1.2) % (Math.PI * 2);
             const scale = hasTarget ? 1.05 + pulse * 0.2 : 0.95 + pulse * 0.08;
             hologramRingRef.current.scale.setScalar(scale);
         }
@@ -148,7 +148,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             hologramRingMaterialRef.current.opacity = hasTarget ? 0.45 + pulse * 0.2 : 0.2 + pulse * 0.08;
         }
         if (hologramReticleRef.current) {
-            hologramReticleRef.current.rotation.z = -state.clock.elapsedTime * 1.6;
+            hologramReticleRef.current.rotation.z = (-state.clock.elapsedTime * 1.6) % (Math.PI * 2);
         }
 
         if (!hasTarget) return;
