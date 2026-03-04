@@ -15,6 +15,7 @@ export type GameEntity = {
 
 // Define the central ECS world
 export const ECS = new World<GameEntity>();
+export const asteroidQuery = ECS.with('isAsteroid');
 
 // Create the React bindings
 export const { Entity, Component } = createReactAPI(ECS);

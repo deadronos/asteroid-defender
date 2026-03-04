@@ -2,7 +2,7 @@ import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Edges, Line } from '@react-three/drei';
 import * as THREE from 'three';
-import { ECS, GameEntity } from '../ecs/world';
+import { asteroidQuery, GameEntity } from '../ecs/world';
 import useGameStore from '../store/gameStore';
 
 interface TurretProps {
@@ -48,7 +48,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
         let nearestDistSq = Infinity;
         let nearestEntity: GameEntity | null = null;
 
-        for (const entity of ECS.with('isAsteroid')) {
+        for (const entity of asteroidQuery) {
             if (entity.position) {
                 const isTopTurret = turretGroup.current.position.y > 0;
                 const isTopAsteroid = entity.position.y > 0;
