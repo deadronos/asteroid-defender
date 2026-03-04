@@ -5,10 +5,10 @@ A visually polished, 3D browser-based space defense simulation built with React 
 ## Overview
 Asteroid Defender is an interactive idle clicker / automatic defense simulation where a central platform survives endless swarms of incoming space debris and asteroids. The game features an automated targeting system where four dual-barrel turrets continually scan for, track, and destroy enemy space rocks using dynamic laser beams. 
 
-Built using modern web technologies, the game emphasizes visual fidelity with a procedural 3D nebula skybox, real-time lighting, post-processing bloom, and dynamic particle explosion effects when asteroids are shattered.
+Built using modern web technologies, the game emphasizes visual fidelity with a procedurally baked nebula skybox, real-time lighting, post-processing bloom, and dynamic particle explosion effects when asteroids are shattered.
 
 ## Features
-- **3D Procedural Environment**: A seamless, procedurally generated 3D noise skybox representing a deep space nebula.
+- **3D Procedural Environment**: A seamless, procedurally generated nebula texture sampled on a skybox representing deep space.
 - **Automated Combat**: Turrets automatically select targets, track them, and fire lasers to defend the central platform.
 - **Dynamic Spawning**: A continuous flow of different asteroid types (Basic, Fast, Heavy, Swarmer, Splitter) with varying behaviors.
 - **Entity Component System**: Built on top of `miniplex` for managing game entities and logic efficiently.

@@ -15,48 +15,22 @@ const NEBULA_VERTEX = `
 
 const NEBULA_FRAGMENT = `
     uniform float uTime;
+    uniform sampler2D uNebulaTex;
     varying vec3 vPos;
 
-    float hash(vec3 p) {
-        return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453123);
-    }
-
-    float noise(vec3 p) {
-        vec3 i = floor(p);
-        vec3 f = fract(p);
-        f = f * f * (3.0 - 2.0 * f);
-        return mix(
-            mix(
-                mix(hash(i + vec3(0.0, 0.0, 0.0)), hash(i + vec3(1.0, 0.0, 0.0)), f.x),
-                mix(hash(i + vec3(0.0, 1.0, 0.0)), hash(i + vec3(1.0, 1.0, 0.0)), f.x),
-                f.y
-            ),
-            mix(
-                mix(hash(i + vec3(0.0, 0.0, 1.0)), hash(i + vec3(1.0, 0.0, 1.0)), f.x),
-                mix(hash(i + vec3(0.0, 1.0, 1.0)), hash(i + vec3(1.0, 1.0, 1.0)), f.x),
-                f.y
-            ),
-            f.z
-        );
-    }
-
-    float fbm(vec3 p) {
-        float v = 0.0;
-        float a = 0.5;
-        for (int i = 0; i < 6; i++) {
-            v += a * noise(p);
-            p = p * 2.1 + vec3(1.7, 9.2, 3.3);
-            a *= 0.5;
-        }
-        return v;
+    vec2 dirToEquirect(vec3 dir) {
+        float u = atan(dir.z, dir.x) / (2.0 * 3.14159265359) + 0.5;
+        float v = asin(clamp(dir.y, -1.0, 1.0)) / 3.14159265359 + 0.5;
+        return vec2(u, v);
     }
 
     void main() {
-        vec3 p = normalize(vPos) * 4.0;
-        float t = uTime * 0.004;
-
-        float n1 = fbm(p + vec3(t, t * 0.7, t * 0.4));
-        float n2 = fbm(p * 1.3 - vec3(t * 0.5, t, t * 0.2));
+        vec2 uv = dirToEquirect(normalize(vPos));
+        float t = uTime * 0.001;
+        vec3 nA = texture2D(uNebulaTex, vec2(fract(uv.x + t), uv.y)).rgb;
+        vec3 nB = texture2D(uNebulaTex, fract(uv * vec2(1.7, 1.3) + vec2(0.17, -t * 0.8))).rgb;
+        float n1 = nA.r;
+        float n2 = nB.g;
         float shape = smoothstep(0.3, 0.7, n1 * n2 * 2.0);
 
         vec3 deepBlue    = vec3(0.02, 0.04, 0.18);
@@ -64,7 +38,7 @@ const NEBULA_FRAGMENT = `
         vec3 nebulaTeal  = vec3(0.02, 0.12, 0.20);
         vec3 nebulaRed   = vec3(0.20, 0.04, 0.08);
 
-        float band = fbm(p * 0.4 + vec3(5.3, 2.1, 1.1));
+        float band = nB.b;
         vec3 col = mix(mix(deepBlue, nebulaPurple, n1), mix(nebulaTeal, nebulaRed, n2), band);
         col += vec3(0.06, 0.02, 0.14) * shape * 2.5;
 
@@ -75,7 +49,74 @@ const NEBULA_FRAGMENT = `
 
 function Nebula() {
     const matRef = useRef<THREE.ShaderMaterial>(null);
-    const uniforms = useMemo(() => ({ uTime: { value: 0 } }), []);
+    const nebulaTexture = useMemo(() => {
+        const width = 256;
+        const height = 128;
+        const data = new Uint8Array(width * height * 4);
+        const smooth = (t: number) => t * t * (3 - 2 * t);
+        const hash = (x: number, y: number, z: number) => {
+            const h = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453123;
+            return h - Math.floor(h);
+        };
+        const noise = (x: number, y: number, z: number) => {
+            const ix = Math.floor(x);
+            const iy = Math.floor(y);
+            const iz = Math.floor(z);
+            const fx = smooth(x - ix);
+            const fy = smooth(y - iy);
+            const fz = smooth(z - iz);
+            const x00 = hash(ix, iy, iz) * (1 - fx) + hash(ix + 1, iy, iz) * fx;
+            const x10 = hash(ix, iy + 1, iz) * (1 - fx) + hash(ix + 1, iy + 1, iz) * fx;
+            const x01 = hash(ix, iy, iz + 1) * (1 - fx) + hash(ix + 1, iy, iz + 1) * fx;
+            const x11 = hash(ix, iy + 1, iz + 1) * (1 - fx) + hash(ix + 1, iy + 1, iz + 1) * fx;
+            return (x00 * (1 - fy) + x10 * fy) * (1 - fz) + (x01 * (1 - fy) + x11 * fy) * fz;
+        };
+        const fbm = (x: number, y: number, z: number) => {
+            let v = 0;
+            let a = 0.5;
+            let px = x;
+            let py = y;
+            let pz = z;
+            for (let i = 0; i < 5; i++) {
+                v += a * noise(px, py, pz);
+                px = px * 2.1 + 1.7;
+                py = py * 2.1 + 9.2;
+                pz = pz * 2.1 + 3.3;
+                a *= 0.5;
+            }
+            return v;
+        };
+
+        let index = 0;
+        for (let y = 0; y < height; y++) {
+            const v = y / (height - 1);
+            const phi = (v - 0.5) * Math.PI;
+            const cosPhi = Math.cos(phi);
+            const sinPhi = Math.sin(phi);
+            for (let x = 0; x < width; x++) {
+                const u = x / (width - 1);
+                const theta = (u - 0.5) * Math.PI * 2;
+                const dirX = Math.cos(theta) * cosPhi * 4;
+                const dirY = sinPhi * 4;
+                const dirZ = Math.sin(theta) * cosPhi * 4;
+
+                data[index++] = Math.floor(fbm(dirX + 1.3, dirY + 2.1, dirZ + 0.7) * 255);
+                data[index++] = Math.floor(fbm(dirX * 1.2 + 5.3, dirY * 1.2 + 2.4, dirZ * 1.2 + 1.1) * 255);
+                data[index++] = Math.floor(fbm(dirX * 0.5 + 9.1, dirY * 0.5 + 3.2, dirZ * 0.5 + 4.6) * 255);
+                data[index++] = 255;
+            }
+        }
+
+        const texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.magFilter = THREE.LinearFilter;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.generateMipmaps = true;
+        texture.needsUpdate = true;
+        return texture;
+    }, []);
+    const uniforms = useMemo(() => ({ uTime: { value: 0 }, uNebulaTex: { value: nebulaTexture } }), [nebulaTexture]);
 
     useFrame((_, delta) => {
         if (matRef.current) {
