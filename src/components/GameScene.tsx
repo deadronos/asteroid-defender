@@ -1,15 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useFrame } from '@react-three/fiber';
 import CinematicCamera from './CinematicCamera';
 import SpaceBackground from './SpaceBackground';
 import useGameStore from '../store/gameStore';
 import { AsteroidType } from '../ecs/world';
 import Platform from './Platform';
 import Turret from './Turret';
-import AsteroidField from './AsteroidField';
+import Asteroid from './Asteroid';
 import AsteroidSpawner from './AsteroidSpawner';
 import Explosion from './Explosion';
 import { v4 as uuidv4 } from 'uuid';
-import { enqueueAsteroidSpawn } from '../ecs/asteroidSpawnQueue';
+import { drainAsteroidSpawns } from '../ecs/asteroidSpawnQueue';
 
 interface PooledAsteroid {
     id: string;
@@ -79,16 +80,23 @@ export default function GameScene() {
         });
     }, []);
 
-    const handleSpawn = useCallback((ast: SpawnData) => {
-        setAsteroids(prev => {
-            const nextIdx = prev.findIndex(a => !a.active);
-            if (nextIdx === -1) return prev;
-
-            const newAsteroids = [...prev];
-            newAsteroids[nextIdx] = { ...newAsteroids[nextIdx], active: true, pos: ast.pos, type: ast.type };
-            return newAsteroids;
-        });
-    }, []);
+    useFrame(() => {
+        const spawns = drainAsteroidSpawns();
+        if (spawns.length > 0) {
+            setAsteroids(prev => {
+                const newAsteroids = [...prev];
+                let modified = false;
+                for (const ast of spawns) {
+                    const nextIdx = newAsteroids.findIndex(a => !a.active);
+                    if (nextIdx !== -1) {
+                        newAsteroids[nextIdx] = { ...newAsteroids[nextIdx], active: true, pos: ast.pos, type: ast.type };
+                        modified = true;
+                    }
+                }
+                return modified ? newAsteroids : prev;
+            });
+        }
+    });
 
     const handleDestroy = useCallback((id: string, pos: [number, number, number], isBaseHit = false, type: AsteroidType) => {
         if (!isBaseHit) {
