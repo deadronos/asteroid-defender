@@ -2,7 +2,7 @@ import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Edges, Line } from '@react-three/drei';
 import * as THREE from 'three';
-import { asteroidQuery, GameEntity } from '../ecs/world';
+import { GameEntity, queryAsteroidsInRange } from '../ecs/world';
 import useGameStore from '../store/gameStore';
 
 interface TurretProps {
@@ -12,6 +12,7 @@ interface TurretProps {
 }
 
 const LASER_ORIGIN_Z = 3.5;
+const TURRET_RANGE = 50;
 
 export default function Turret({ id, position, rotation }: TurretProps) {
     const turretGroup = useRef<THREE.Group>(null);
@@ -48,7 +49,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
         let nearestDistSq = Infinity;
         let nearestEntity: GameEntity | null = null;
 
-        for (const entity of asteroidQuery) {
+        for (const entity of queryAsteroidsInRange(turretGroup.current.position, TURRET_RANGE)) {
             if (entity.position) {
                 const isTopTurret = turretGroup.current.position.y > 0;
                 const isTopAsteroid = entity.position.y > 0;
@@ -62,7 +63,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
                         distSq += 400; // 20 units penalty
                     }
 
-                    if (distSq < nearestDistSq && distSq < 2500) {
+                    if (distSq < nearestDistSq && distSq < TURRET_RANGE * TURRET_RANGE) {
                         nearestDistSq = distSq;
                         nearestEntity = entity;
                     }

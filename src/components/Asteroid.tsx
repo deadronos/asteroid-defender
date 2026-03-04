@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { RigidBody, BallCollider, RapierRigidBody } from '@react-three/rapier';
 import { Edges, Trail } from '@react-three/drei';
 import * as THREE from 'three';
-import { ECS, GameEntity, AsteroidType } from '../ecs/world';
+import { ECS, GameEntity, AsteroidType, updateAsteroidSpatialIndex, removeAsteroidFromSpatialIndex } from '../ecs/world';
 import useGameStore from '../store/gameStore';
 
 const tempVec = new THREE.Vector3();
@@ -49,8 +49,12 @@ export default function Asteroid({ id, startPos, type, onDestroy }: AsteroidProp
             health: cfg.health,
             asteroidType: type,
         });
+        updateAsteroidSpatialIndex(entity, entity.position!);
         entityRef.current = entity;
-        return () => { ECS.remove(entity); };
+        return () => {
+            removeAsteroidFromSpatialIndex(entity);
+            ECS.remove(entity);
+        };
     }, [id, startPos, type, cfg.health]);
 
     useFrame(() => {
@@ -66,6 +70,7 @@ export default function Asteroid({ id, startPos, type, onDestroy }: AsteroidProp
         if (entityRef.current.health! <= 0) {
             destroyedRef.current = true;
             const t = rbRef.current.translation();
+            removeAsteroidFromSpatialIndex(entityRef.current);
             onDestroy(id, [t.x, t.y, t.z], false, type);
             return;
         }
@@ -74,12 +79,14 @@ export default function Asteroid({ id, startPos, type, onDestroy }: AsteroidProp
 
         // Sync Rapier position to ECS for Turrets to read
         entityRef.current.position!.set(translation.x, translation.y, translation.z);
+        updateAsteroidSpatialIndex(entityRef.current, entityRef.current.position!);
 
         // Move Asteroid towards the center platform (0,0,0)
         tempVec.set(translation.x, translation.y, translation.z);
         if (tempVec.lengthSq() <= 9) { // Hit the platform
             destroyedRef.current = true;
             useGameStore.getState().takeDamage(cfg.damage);
+            removeAsteroidFromSpatialIndex(entityRef.current);
             onDestroy(id, [translation.x, translation.y, translation.z], true, type);
             return;
         }
