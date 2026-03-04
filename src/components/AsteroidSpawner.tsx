@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { ECS, AsteroidType } from '../ecs/world';
+import { asteroidQuery, AsteroidType } from '../ecs/world';
 import useGameStore from '../store/gameStore';
 
 export interface SpawnData {
@@ -37,7 +37,7 @@ export default function AsteroidSpawner({ onSpawn }: AsteroidSpawnerProps) {
 
             // 1. Calculate how many asteroids are "in close proximity"
             let closeCount = 0;
-            for (const entity of ECS.with('isAsteroid')) {
+            for (const entity of asteroidQuery) {
                 if (entity.position && entity.position.distanceTo(origin) < 25) {
                     closeCount++;
                 }
