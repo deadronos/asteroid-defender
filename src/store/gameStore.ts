@@ -6,6 +6,7 @@ interface GameState {
     health: number;
     maxHealth: number;
     gameState: 'playing' | 'gameover';
+    lastDamageTime: number;
     incrementDestroyed: () => void;
     setActiveAsteroids: (count: number) => void;
     takeDamage: (amount: number) => void;
@@ -18,6 +19,7 @@ const useGameStore = create<GameState>((set) => ({
     health: 100,
     maxHealth: 100,
     gameState: 'playing', // 'playing' or 'gameover'
+    lastDamageTime: 0,
 
     incrementDestroyed: () => set((state) => ({
         asteroidsDestroyed: state.asteroidsDestroyed + 1
@@ -30,7 +32,8 @@ const useGameStore = create<GameState>((set) => ({
         const newHealth = Math.max(0, state.health - amount);
         return {
             health: newHealth,
-            gameState: newHealth === 0 ? 'gameover' : state.gameState
+            gameState: newHealth === 0 ? 'gameover' : state.gameState,
+            lastDamageTime: Date.now()
         };
     }),
 
@@ -38,7 +41,8 @@ const useGameStore = create<GameState>((set) => ({
         asteroidsDestroyed: 0,
         activeAsteroids: 0,
         health: 100,
-        gameState: 'playing'
+        gameState: 'playing',
+        lastDamageTime: 0
     }),
 }));
 

@@ -27,38 +27,90 @@ interface AsteroidProps {
     id: string;
     startPos: [number, number, number];
     type: AsteroidType;
+    active: boolean; // Pooling: Object avoids physics/rendering workloads when inactive
     onDestroy: (id: string, pos: [number, number, number], isHit: boolean, type: AsteroidType) => void;
 }
 
-export default function Asteroid({ id, startPos, type, onDestroy }: AsteroidProps) {
+export default function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
     const rbRef = useRef<RapierRigidBody>(null);
     const entityRef = useRef<GameEntity | null>(null);
-    const destroyedRef = useRef(false);
+    const materialRef = useRef<THREE.MeshStandardMaterial>(null);
+
+    // Pooling: Instead of re-mounting, randomize values manually
     const tumbleRef = useRef({
         x: (Math.random() - 0.5) * 0.9,
         y: (Math.random() - 0.5) * 0.9,
         z: (Math.random() - 0.5) * 0.9,
     });
-    const cfg = ASTEROID_CONFIGS[type];
+
+    const prevHealthRef = useRef(0);
+    const flashTimerRef = useRef(0);
+    const isFirstActiveFrameRef = useRef(false);
+
+    const cfg = ASTEROID_CONFIGS[type] || ASTEROID_CONFIGS['swarmer'];
 
     useEffect(() => {
-        const entity = ECS.add({
-            id,
-            isAsteroid: true,
-            position: new THREE.Vector3(...startPos),
-            health: cfg.health,
-            asteroidType: type,
-        });
-        updateAsteroidSpatialIndex(entity, entity.position!);
-        entityRef.current = entity;
-        return () => {
-            removeAsteroidFromSpatialIndex(entity);
-            ECS.remove(entity);
-        };
-    }, [id, startPos, type, cfg.health]);
+        if (active) {
+            const entity = ECS.add({
+                id,
+                isAsteroid: true,
+                position: new THREE.Vector3(...startPos),
+                health: cfg.health,
+                asteroidType: type,
+            });
+            updateAsteroidSpatialIndex(entity, entity.position!);
+            entityRef.current = entity;
 
-    useFrame(() => {
-        if (!rbRef.current || !entityRef.current || destroyedRef.current) return;
+            // Re-teleport and reset velocity when pulled from pool
+            if (rbRef.current) {
+                rbRef.current.setTranslation({ x: startPos[0], y: startPos[1], z: startPos[2] }, true);
+                rbRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+            }
+            prevHealthRef.current = cfg.health;
+            flashTimerRef.current = 0;
+            isFirstActiveFrameRef.current = true;
+
+            tumbleRef.current = {
+                x: (Math.random() - 0.5) * 0.9,
+                y: (Math.random() - 0.5) * 0.9,
+                z: (Math.random() - 0.5) * 0.9,
+            };
+        } else {
+            // Un-pool into storage
+            if (entityRef.current) {
+                removeAsteroidFromSpatialIndex(entityRef.current);
+                ECS.remove(entityRef.current);
+                entityRef.current = null;
+            }
+            if (rbRef.current) {
+                // Teleport physically far beneath bounds to stop constraints overlapping
+                rbRef.current.setTranslation({ x: 0, y: -1000, z: 0 }, true);
+                rbRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+                rbRef.current.setAngvel({ x: 0, y: 0, z: 0 }, true);
+            }
+            if (materialRef.current) {
+                materialRef.current.emissive.setHex(0x000000);
+            }
+        }
+
+        return () => {
+            if (entityRef.current) {
+                removeAsteroidFromSpatialIndex(entityRef.current);
+                ECS.remove(entityRef.current);
+            }
+        };
+        // Only re-trigger pooling setup when `active` alters, not when positions rapidly shift upstream.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [active, id, type, cfg.health]);
+
+    useFrame((_, delta) => {
+        if (!rbRef.current || !entityRef.current || !active) return;
+
+        // Let the first frame pass to apply translation before moving towards center so Trail starts smooth
+        if (isFirstActiveFrameRef.current) {
+            isFirstActiveFrameRef.current = false;
+            return;
+        }
 
         const gameState = useGameStore.getState().gameState;
         if (gameState === 'gameover') {
@@ -67,10 +119,26 @@ export default function Asteroid({ id, startPos, type, onDestroy }: AsteroidProp
             return;
         }
 
+        // Hit flash logic
+        if (entityRef.current.health! < prevHealthRef.current) {
+            flashTimerRef.current = 0.1;
+        }
+        prevHealthRef.current = entityRef.current.health!;
+
+        if (flashTimerRef.current > 0) {
+            flashTimerRef.current -= delta;
+            if (materialRef.current) {
+                materialRef.current.emissive.setHex(0xffffff);
+                materialRef.current.emissiveIntensity = 2.0;
+            }
+        } else {
+            if (materialRef.current) {
+                materialRef.current.emissive.setHex(0x000000);
+            }
+        }
+
         if (entityRef.current.health! <= 0) {
-            destroyedRef.current = true;
             const t = rbRef.current.translation();
-            removeAsteroidFromSpatialIndex(entityRef.current);
             onDestroy(id, [t.x, t.y, t.z], false, type);
             return;
         }
@@ -84,9 +152,7 @@ export default function Asteroid({ id, startPos, type, onDestroy }: AsteroidProp
         // Move Asteroid towards the center platform (0,0,0)
         tempVec.set(translation.x, translation.y, translation.z);
         if (tempVec.lengthSq() <= 9) { // Hit the platform
-            destroyedRef.current = true;
             useGameStore.getState().takeDamage(cfg.damage);
-            removeAsteroidFromSpatialIndex(entityRef.current);
             onDestroy(id, [translation.x, translation.y, translation.z], true, type);
             return;
         }
@@ -99,13 +165,15 @@ export default function Asteroid({ id, startPos, type, onDestroy }: AsteroidProp
     return (
         <RigidBody ref={rbRef} position={startPos} type="dynamic" colliders={false} gravityScale={0} friction={0} linearDamping={0}>
             <BallCollider args={[cfg.radius]} />
-            <Trail width={0.7} length={4} decay={1.2} stride={0.2} color={cfg.color} attenuation={(t) => t * t}>
-                <mesh>
-                    <dodecahedronGeometry args={[cfg.radius, 0]} />
-                    <meshStandardMaterial color={cfg.color} flatShading />
-                    <Edges scale={1} threshold={15} color="black" />
-                </mesh>
-            </Trail>
+            {active && (
+                <Trail width={0.7} length={4} decay={1.2} stride={0.2} color={cfg.color} attenuation={(t) => t * t}>
+                    <mesh>
+                        <dodecahedronGeometry args={[cfg.radius, 0]} />
+                        <meshStandardMaterial ref={materialRef} color={cfg.color} flatShading />
+                        <Edges scale={1} threshold={15} color="black" />
+                    </mesh>
+                </Trail>
+            )}
         </RigidBody>
     );
 }
