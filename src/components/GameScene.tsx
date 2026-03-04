@@ -1,15 +1,15 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import CinematicCamera from './CinematicCamera';
 import SpaceBackground from './SpaceBackground';
 import useGameStore from '../store/gameStore';
 import { AsteroidType } from '../ecs/world';
 import Platform from './Platform';
 import Turret from './Turret';
-import Asteroid from './Asteroid';
+import AsteroidField from './AsteroidField';
 import AsteroidSpawner from './AsteroidSpawner';
 import Explosion from './Explosion';
 import { v4 as uuidv4 } from 'uuid';
-import { SpawnData } from './AsteroidSpawner';
+import { enqueueAsteroidSpawn } from '../ecs/asteroidSpawnQueue';
 
 interface ExplosionData {
     id: string;
@@ -23,20 +23,12 @@ interface ShieldImpactData {
 }
 
 export default function GameScene() {
-    const [asteroids, setAsteroids] = useState<SpawnData[]>([]);
     const [explosions, setExplosions] = useState<ExplosionData[]>([]);
     const [shieldImpacts, setShieldImpacts] = useState<ShieldImpactData[]>([]);
 
-    const { incrementDestroyed, setActiveAsteroids } = useGameStore();
+    const { incrementDestroyed } = useGameStore();
 
-    const handleSpawn = useCallback((ast: SpawnData) => {
-        setAsteroids(prev => {
-            const newAsteroids = [...prev, ast];
-            return newAsteroids;
-        });
-    }, []);
-
-    const handleDestroy = useCallback((id: string, pos: [number, number, number], isBaseHit = false, type: AsteroidType) => {
+    const handleDestroy = useCallback((_id: string, pos: [number, number, number], isBaseHit = false, type: AsteroidType) => {
         if (!isBaseHit) {
             incrementDestroyed();
         } else {
@@ -46,21 +38,12 @@ export default function GameScene() {
                 setShieldImpacts(prev => prev.filter(impact => impact.id !== impactId));
             }, 900);
         }
-        setAsteroids(prev => {
-            let newAsteroids = prev.filter(ast => ast.id !== id);
-
-            // Splitters spawn two swarmer fragments when destroyed by turrets
-            if (type === 'splitter' && !isBaseHit) {
-                const offset = 2.0;
-                newAsteroids = [
-                    ...newAsteroids,
-                    { id: uuidv4(), pos: [pos[0] + offset, pos[1], pos[2]], type: 'swarmer' },
-                    { id: uuidv4(), pos: [pos[0] - offset, pos[1], pos[2]], type: 'swarmer' },
-                ];
-            }
-
-            return newAsteroids;
-        });
+        // Splitters spawn two swarmer fragments when destroyed by turrets
+        if (type === 'splitter' && !isBaseHit) {
+            const offset = 2.0;
+            enqueueAsteroidSpawn({ id: uuidv4(), pos: [pos[0] + offset, pos[1], pos[2]], type: 'swarmer' });
+            enqueueAsteroidSpawn({ id: uuidv4(), pos: [pos[0] - offset, pos[1], pos[2]], type: 'swarmer' });
+        }
 
         // Spawn explosion and queue it for unmount after 1 second
         const expId = uuidv4();
@@ -70,12 +53,6 @@ export default function GameScene() {
         }, 1000);
     }, [incrementDestroyed]);
 
-    // Sync asteroid count with global store to avoid updating during another component's render
-    // Sync asteroid count with global store to avoid updating during another component's render
-    useEffect(() => {
-        setActiveAsteroids(asteroids.length);
-    }, [asteroids.length, setActiveAsteroids]);
-
     return (
         <>
             <ambientLight intensity={0.3} />
@@ -83,7 +60,7 @@ export default function GameScene() {
             <SpaceBackground />
             <CinematicCamera />
 
-            <AsteroidSpawner onSpawn={handleSpawn} />
+            <AsteroidSpawner />
 
             <Platform shieldImpacts={shieldImpacts} />
 
@@ -92,9 +69,7 @@ export default function GameScene() {
             <Turret id="t3" position={[5, -1, 0]} rotation={[Math.PI / 2, 0, 0]} />
             <Turret id="t4" position={[-5, -1, 0]} rotation={[Math.PI / 2, 0, 0]} />
 
-            {asteroids.map(ast => (
-                <Asteroid key={ast.id} id={ast.id} startPos={ast.pos} type={ast.type} onDestroy={handleDestroy} />
-            ))}
+            <AsteroidField onDestroy={handleDestroy} />
 
             {explosions.map(exp => (
                 <Explosion key={exp.id} position={exp.pos} type={exp.type} />
