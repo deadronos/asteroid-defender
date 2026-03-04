@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState, useCallback } from 'react';
+import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
@@ -18,6 +18,10 @@ const NEBULA_FRAGMENT = `
     uniform sampler2D uNebulaTex;
     varying vec3 vPos;
 
+    float mirrorRepeat(float x) {
+        return abs(fract(x) * 2.0 - 1.0);
+    }
+
     vec2 dirToEquirect(vec3 dir) {
         float u = atan(dir.z, dir.x) / (2.0 * 3.14159265359) + 0.5;
         float v = asin(clamp(dir.y, -1.0, 1.0)) / 3.14159265359 + 0.5;
@@ -28,7 +32,8 @@ const NEBULA_FRAGMENT = `
         vec2 uv = dirToEquirect(normalize(vPos));
         float t = uTime * 0.004;
         vec3 nA = texture2D(uNebulaTex, vec2(fract(uv.x + t), uv.y)).rgb;
-        vec3 nB = texture2D(uNebulaTex, vec2(fract(uv.x * 1.7 + 0.17), clamp(uv.y * 1.3 - t * 0.8, 0.0, 1.0))).rgb;
+        float vB = mirrorRepeat(uv.y * 1.3 - t * 0.8);
+        vec3 nB = texture2D(uNebulaTex, vec2(fract(uv.x * 1.7 + 0.17), vB)).rgb;
         float n1 = nA.r;
         float n2 = nB.g;
         float shape = smoothstep(0.3, 0.7, n1 * n2 * 2.0);
@@ -49,6 +54,7 @@ const NEBULA_FRAGMENT = `
 
 function Nebula() {
     const matRef = useRef<THREE.ShaderMaterial>(null);
+    const timeWrapSeconds = 1250;
     const nebulaTexture = useMemo(() => {
         const width = 256;
         const height = 128;
@@ -116,12 +122,19 @@ function Nebula() {
         texture.needsUpdate = true;
         return texture;
     }, []);
+
+    useEffect(() => {
+        return () => {
+            nebulaTexture.dispose();
+        };
+    }, [nebulaTexture]);
+
     const uniforms = useMemo(() => ({ uTime: { value: 0 }, uNebulaTex: { value: nebulaTexture } }), [nebulaTexture]);
 
     useFrame((_, delta) => {
         if (matRef.current) {
-            // Keep uTime bounded to avoid floating-point precision loss over long sessions
-            matRef.current.uniforms.uTime.value = (matRef.current.uniforms.uTime.value + delta) % 1000.0;
+            // Keep uTime bounded; 1250s keeps the sampled texture phases continuous at wrap.
+            matRef.current.uniforms.uTime.value = (matRef.current.uniforms.uTime.value + delta) % timeWrapSeconds;
         }
     });
 
