@@ -1,5 +1,6 @@
-import { Suspense, useRef } from 'react';
+import { Suspense, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
+import { PerformanceMonitor } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
 import { EffectComposer, Bloom, DepthOfField } from '@react-three/postprocessing';
 import * as THREE from 'three';
@@ -38,20 +39,29 @@ function DynamicDepthOfField() {
 }
 
 function App() {
+  const [dpr, setDpr] = useState(1.5);
+
   return (
     <>
       <HUD />
-      <Canvas camera={{ position: [0, 15, 25], fov: 60 }}>
-        <color attach="background" args={['#050510']} />
-        <Suspense fallback={null}>
-          <Physics>
-            <GameScene />
-          </Physics>
-        </Suspense>
-        <EffectComposer>
-          <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.75} intensity={3.2} mipmapBlur />
-          <DynamicDepthOfField />
-        </EffectComposer>
+      <Canvas camera={{ position: [0, 15, 25], fov: 60 }} dpr={dpr}>
+        <PerformanceMonitor
+          onIncline={() => setDpr(2)}
+          onDecline={() => setDpr(1)}
+          flipflops={3}
+          onFallback={() => setDpr(0.5)}
+        >
+          <color attach="background" args={['#050510']} />
+          <Suspense fallback={null}>
+            <Physics>
+              <GameScene />
+            </Physics>
+          </Suspense>
+          <EffectComposer>
+            <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.75} intensity={3.2} mipmapBlur />
+            <DynamicDepthOfField />
+          </EffectComposer>
+        </PerformanceMonitor>
       </Canvas>
     </>
   );
