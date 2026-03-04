@@ -1,16 +1,50 @@
-# React + Vite
+# Asteroid Defender
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A visually polished, 3D browser-based space defense simulation built with React Three Fiber.
 
-Currently, two official plugins are available:
+## Overview
+Asteroid Defender is an interactive idle clicker / automatic defense simulation where a central platform survives endless swarms of incoming space debris and asteroids. The game features an automated targeting system where four dual-barrel turrets continually scan for, track, and destroy enemy space rocks using dynamic laser beams. 
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Built using modern web technologies, the game emphasizes visual fidelity with a procedural 3D nebula skybox, real-time lighting, post-processing bloom, and dynamic particle explosion effects when asteroids are shattered.
 
-## React Compiler
+## Features
+- **3D Procedural Environment**: A seamless, procedurally generated 3D noise skybox representing a deep space nebula.
+- **Automated Combat**: Turrets automatically select targets, track them, and fire lasers to defend the central platform.
+- **Dynamic Spawning**: A continuous flow of different asteroid types (Basic, Fast, Heavy, Swarmer, Splitter) with varying behaviors.
+- **Entity Component System**: Built on top of `miniplex` for managing game entities and logic efficiently.
+- **Visual Polish**: 
+  - Post-processing bloom for glowing lasers and explosions.
+  - Custom shader streaks for shooting stars.
+  - Fragmented particle physics for destroyed asteroids.
+  - Smooth camera movements and UI overlays.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
+- **Framework**: [React 19](https://react.dev/)
+- **3D Rendering**: [Three.js](https://threejs.org/) + [@react-three/fiber](https://docs.pmnd.rs/react-three-fiber/)
+- **Utility / Helpers**: [@react-three/drei](https://github.com/pmndrs/drei)
+- **Physics & Effects**: [@react-three/rapier](https://github.com/pmndrs/react-three-rapier) + [@react-three/postprocessing](https://github.com/pmndrs/react-postprocessing)
+- **ECS Engine**: [miniplex](https://miniplex.dev/)
+- **State Management**: [Zustand](https://zustand-demo.pmnd.rs/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Prerequisites
+Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
+
+### Installation & Running Locally
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+3. Open your browser and navigate to the address shown in your terminal (usually `http://localhost:5173`).
+
+## License
+This project is licensed under the [MIT License](LICENSE.md).

@@ -14,9 +14,14 @@ We adopted a low-poly, cel-shaded art direction punctuated by high-contrast part
 - **Rendering**: Instant-hit lasers are drawn using Drei's `<Line>` component, spanning from the Turret's origin to the transformed local coordinates of the locked target.
 - **Juice (Animation)**: 
   - The line's `lineWidth` pulses rapidly via a sine wave driven by `useFrame` time, simulating intense energy output.
-  - A small, translucent `<SphereGeometry>` is rendered precisely at the target intersection point, simulating a glowing impact flare.
+  - A small, translucent `<SphereGeometry>` with high `emissive` values is rendered precisely at the target intersection point, simulating a glowing impact flare.
+  - A post-processing `<Bloom>` effect is applied to the root React Three Fiber `<EffectComposer>`, causing the laser lines and impacts to visibly glow against the dark space background.
 
 ### Destruction Particles (Explosions)
 - **Design Pattern**: We do *not* use complex particle systems (e.g., thousands of raw WebGL points). Instead, we use low-count Instanced or individually mapped meshes.
-- **Mechanic**: When an Asteroid's ECS `health` breaches 0, it removes itself from the physics solver and dispatches a callback with its final world coordinates. The main `GameScene` unmounts the asteroid and mounts an `<Explosion>` component exactly at that vector.
-- **Animation**: The `<Explosion>` is composed of 8 miniature `<dodecahedronGeometry>` fragments. Each fragment is assigned a random 3D trajectory velocity on initialization. A tight `useFrame` loop scales them down and moves them outward until they fade into zero and automatically unmount.
+- **Mechanic**: When an Asteroid's ECS `health` breaches 0, or it collides with the central platform, it removes itself from the physics solver and dispatches a callback with its final world coordinates. The main `GameScene` unmounts the asteroid and mounts an `<Explosion>` component exactly at that vector.
+- **Animation**: The `<Explosion>` is composed of 8 miniature `<dodecahedronGeometry>` fragments. Each fragment is assigned a random 3D trajectory velocity on initialization. The material color of the explosion matches the `AsteroidClass` color. A tight `useFrame` loop scales them down and moves them outward until they fade into zero and automatically unmount.
+
+### Environment & Skybox (Space Background)
+- **Procedural Nebula**: To simulate deep space without massive texture assets, a continuous 3D noise shader is mapped to the internal face of a large background `<Sphere>`. By using `normalize(position)` instead of 2D UV coordinates, the nebula wraps seamlessly around the entire scene without visible poles or seams.
+- **Atmospheric Depth**: A `<SpaceDust>` component floats slowly through the actual play area, providing parallax and a sense of scale against the background sphere. Intermittent `<ShootingStar>` components fire across the skybox on randomized temporal intervals to keep the deep background feeling chaotic and active.

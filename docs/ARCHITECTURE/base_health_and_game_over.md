@@ -18,7 +18,7 @@ The application was modified to introduce a lose condition where asteroids that 
 
 ### 3. Destruction Handling (`GameScene.jsx`)
 - Modified `handleDestroy` to take an `isBaseHit` boolean to differentiate between asteroids destroyed by turrets vs. asteroids destroyed by impact.
-- The score (`asteroidsDestroyed`) is only incremented if `isBaseHit === false`.
+- The score (`asteroidsDestroyed`) is only incremented if `isBaseHit === false` (i.e. if the asteroid was destroyed by a turret and not by colliding with the base).
 - Both cases spawn an `Explosion` component at the impact site.
 
 ### 4. Game Pause Hooks (`AsteroidSpawner.jsx`, `Turret.jsx`)
