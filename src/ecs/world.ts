@@ -16,6 +16,7 @@ export type GameEntity = {
 // Define the central ECS world
 export const ECS = new World<GameEntity>();
 export const asteroidQuery = ECS.with('isAsteroid');
+// Turret range is 50; 10-unit cells keep neighborhood queries bounded (<= 11^3 cells).
 const SPATIAL_CELL_SIZE = 10;
 const asteroidSpatialGrid = new Map<string, Set<GameEntity>>();
 const asteroidCellByEntity = new WeakMap<GameEntity, string>();
