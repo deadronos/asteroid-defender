@@ -28,6 +28,9 @@ export default function Turret({ id, position, rotation }: TurretProps) {
     const impactLightRef = useRef<THREE.PointLight>(null);
     const lineRef = useRef<any>(null);
     const barrelGroupRef = useRef<THREE.Group>(null);
+    const hologramRingRef = useRef<THREE.Mesh>(null);
+    const hologramRingMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
+    const hologramReticleRef = useRef<THREE.Group>(null);
 
     // Keep vectors around instead of full React states to avoid unneeded renders
     const targetPosRef = useRef(new THREE.Vector3());
@@ -136,6 +139,18 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             coreMaterialRef.current.emissiveIntensity = 1.6 + pulse * 1.8;
         }
 
+        if (hologramRingRef.current) {
+            hologramRingRef.current.rotation.z = state.clock.elapsedTime * 1.2;
+            const scale = hasTarget ? 1.05 + pulse * 0.2 : 0.95 + pulse * 0.08;
+            hologramRingRef.current.scale.setScalar(scale);
+        }
+        if (hologramRingMaterialRef.current) {
+            hologramRingMaterialRef.current.opacity = hasTarget ? 0.45 + pulse * 0.2 : 0.2 + pulse * 0.08;
+        }
+        if (hologramReticleRef.current) {
+            hologramReticleRef.current.rotation.z = -state.clock.elapsedTime * 1.6;
+        }
+
         if (!hasTarget) return;
 
         if (laserMaterialRef.current) {
@@ -183,6 +198,21 @@ export default function Turret({ id, position, rotation }: TurretProps) {
                     <sphereGeometry args={[0.22, 10, 10]} />
                     <meshBasicMaterial color={new THREE.Color(10, 2, 2)} toneMapped={false} />
                 </mesh>
+            </group>
+            <group position={[0, 0, 2.3]} ref={hologramReticleRef}>
+                <mesh ref={hologramRingRef} rotation={[Math.PI / 2, 0, 0]}>
+                    <ringGeometry args={[1.3, 1.45, 32]} />
+                    <meshBasicMaterial
+                        ref={hologramRingMaterialRef}
+                        color="#7ec8ff"
+                        transparent
+                        opacity={0.25}
+                        side={THREE.DoubleSide}
+                        depthWrite={false}
+                    />
+                </mesh>
+                <Line points={[[-1.55, 0, 0], [1.55, 0, 0]]} color="#7ec8ff" lineWidth={1} transparent opacity={0.45} />
+                <Line points={[[0, -1.55, 0], [0, 1.55, 0]]} color="#7ec8ff" lineWidth={1} transparent opacity={0.45} />
             </group>
 
             {hasTarget && (
