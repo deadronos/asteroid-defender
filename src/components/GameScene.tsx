@@ -1,15 +1,15 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import CinematicCamera from './CinematicCamera';
 import SpaceBackground from './SpaceBackground';
 import useGameStore from '../store/gameStore';
 import { AsteroidType } from '../ecs/world';
 import Platform from './Platform';
 import Turret from './Turret';
-import Asteroid from './Asteroid';
+import AsteroidField from './AsteroidField';
 import AsteroidSpawner from './AsteroidSpawner';
 import Explosion from './Explosion';
 import { v4 as uuidv4 } from 'uuid';
-import { SpawnData } from './AsteroidSpawner';
+import { enqueueAsteroidSpawn } from '../ecs/asteroidSpawnQueue';
 
 interface PooledAsteroid {
     id: string;
@@ -149,7 +149,7 @@ export default function GameScene() {
             <SpaceBackground />
             <CinematicCamera />
 
-            <AsteroidSpawner onSpawn={handleSpawn} />
+            <AsteroidSpawner />
 
             <Platform shieldImpacts={shieldImpacts} />
 
