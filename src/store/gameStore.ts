@@ -13,6 +13,10 @@ interface GameState {
     lastDamageTime: number;
     cameraMode: CameraMode;
     reducedMotion: boolean;
+    /** Whether the cinematic-sweep HUD label is shown during transitions */
+    showCinematicIndicator: boolean;
+    /** True while the cinematic camera is mid-transition between shots */
+    inCinematicTransition: boolean;
     incrementDestroyed: () => void;
     setActiveAsteroids: (count: number) => void;
     takeDamage: (amount: number) => void;
@@ -24,6 +28,8 @@ interface GameState {
     resetGame: () => void;
     toggleCameraMode: () => void;
     toggleReducedMotion: () => void;
+    toggleCinematicIndicator: () => void;
+    setCinematicTransition: (active: boolean) => void;
 }
 
 const MAX_HEALTH = 100;
@@ -45,6 +51,8 @@ const useGameStore = create<GameState>((set) => ({
     lastDamageTime: 0,
     cameraMode: 'cinematic',
     reducedMotion: false,
+    showCinematicIndicator: true,
+    inCinematicTransition: false,
 
     incrementDestroyed: () => set((state) => ({
         asteroidsDestroyed: state.asteroidsDestroyed + 1
@@ -103,6 +111,12 @@ const useGameStore = create<GameState>((set) => ({
     toggleReducedMotion: () => set((state) => ({
         reducedMotion: !state.reducedMotion,
     })),
+
+    toggleCinematicIndicator: () => set((state) => ({
+        showCinematicIndicator: !state.showCinematicIndicator,
+    })),
+
+    setCinematicTransition: (active) => set({ inCinematicTransition: active }),
 }));
 
 export default useGameStore;

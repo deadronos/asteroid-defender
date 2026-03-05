@@ -14,6 +14,22 @@ const ORBIT_SPEED = 0.035;
  * allowing the next cut (target-lock hysteresis).
  */
 const POST_TRANSITION_MIN_HOLD = 3;
+/**
+ * Maximum transition duration (seconds) enforced during active combat.
+ * Keeps occlusion periods below the ~1.5 s threshold specified in the
+ * readability requirements.
+ */
+const COMBAT_MAX_TRANSITION_DURATION = 1.5;
+/**
+ * Shot indices that are skipped during active combat because they obstruct
+ * readability (e.g. occlusion of the base center or low-angle that puts
+ * turrets/asteroids mostly off-screen).
+ *
+ * Shot 2 – low-angle from the platform edge (camera y = -9) – is excluded
+ * because the base platform is fully off-screen below the camera and the
+ * incoming asteroid swarm appears too far in the background.
+ */
+const COMBAT_BLOCKED_SHOTS = new Set([2]);
 
 // Read dynamic turret positions avoiding hardcodes. This is acceptable for simple
 // visual polling of existing fixed-position entities. If these were moving we
@@ -91,6 +107,22 @@ function smoothstep(t: number): number {
 }
 
 /**
+ * Returns the next shot index that is not in the blocked set, starting from
+ * `currentIdx + 1` and wrapping around.  Falls back to `currentIdx` if every
+ * shot is blocked (should never happen with the current SHOTS definition, but
+ * keeps the camera moving rather than crashing).
+ */
+function findNextSafeShot(currentIdx: number, blockedShots: Set<number>): number {
+    let candidate = (currentIdx + 1) % SHOTS.length;
+    for (let i = 0; i < SHOTS.length; i++) {
+        if (!blockedShots.has(candidate)) return candidate;
+        candidate = (candidate + 1) % SHOTS.length;
+    }
+    // All shots are blocked – return current so behaviour is well-defined.
+    return currentIdx;
+}
+
+/**
  * Shared mutable object – mutated by CinematicCamera on every shot change,
  * read by DynamicDepthOfField in App.tsx.  Using a plain object avoids the
  * overhead of Zustand or React context for per-shot (not per-frame) updates.
@@ -151,8 +183,14 @@ export default function CinematicCamera() {
     // Initialized to the store default so no spurious transition fires on mount.
     const prevCameraMode = useRef<string>('cinematic');
 
+    // Mirrors inTransition.current so we only push a store update on change.
+    const prevInTransitionForStore = useRef(false);
+
     useFrame((_, delta) => {
-        const { cameraMode, reducedMotion } = useGameStore.getState();
+        const { cameraMode, reducedMotion, gameState, activeAsteroids } = useGameStore.getState();
+
+        // Active combat: game is running and at least one asteroid is present
+        const isActiveCombat = gameState === 'playing' && activeAsteroids > 0;
 
         // Multipliers applied when reducedMotion is active
         const orbitMult = reducedMotion ? 0.4 : 1.0;
@@ -160,6 +198,12 @@ export default function CinematicCamera() {
         const activeShotDuration = reducedMotion ? SHOT_DURATION * 2 : SHOT_DURATION;
         const activeTransitionDuration = reducedMotion ? TRANSITION_DURATION * 1.5 : TRANSITION_DURATION;
         const minHold = reducedMotion ? POST_TRANSITION_MIN_HOLD * 2 : POST_TRANSITION_MIN_HOLD;
+
+        // During active combat, cap transitions to COMBAT_MAX_TRANSITION_DURATION
+        // to avoid occlusion periods longer than ~1.5 s.
+        const effectiveTransitionDuration = isActiveCombat
+            ? Math.min(activeTransitionDuration, COMBAT_MAX_TRANSITION_DURATION)
+            : activeTransitionDuration;
 
         orbitAngle.current += delta * ORBIT_SPEED * orbitMult;
         shotTimer.current += delta;
@@ -215,10 +259,39 @@ export default function CinematicCamera() {
                 }
             }
             camera.lookAt(activeLook.current);
+            // Static mode is never mid-cinematic-transition from the HUD's perspective.
+            if (prevInTransitionForStore.current) {
+                prevInTransitionForStore.current = false;
+                useGameStore.getState().setCinematicTransition(false);
+            }
             return;
         }
 
         // ── Cinematic mode ───────────────────────────────────────────────────
+
+        // During active combat, if the current shot is a readability-blocked
+        // shot (e.g. the low-angle shot) and we are not already transitioning,
+        // immediately begin an eased cut to the next safe shot regardless of
+        // the normal hold/duration timers.
+        if (
+            isActiveCombat &&
+            COMBAT_BLOCKED_SHOTS.has(shotIdx.current) &&
+            !inTransition.current
+        ) {
+            fromPos.current.copy(camera.position);
+            fromLook.current.copy(activeLook.current);
+
+            const safeIdx = findNextSafeShot(shotIdx.current, COMBAT_BLOCKED_SHOTS);
+            shotIdx.current = safeIdx;
+            const safeShot = SHOTS[safeIdx];
+            safeShot.getPos(orbitAngle.current, 0, toPos.current);
+            toLook.current.copy(safeShot.getLookAt());
+            inTransition.current = true;
+            transitionT.current = 0;
+            shotTimer.current = 0;
+            postTransitionHold.current = 0;
+            dofSettings.focusDistance = safeShot.focusDist;
+        }
 
         // Trigger transition to next shot only after the shot duration AND the
         // minimum post-transition hold (hysteresis) have both elapsed.
@@ -230,8 +303,13 @@ export default function CinematicCamera() {
             fromPos.current.copy(camera.position);
             fromLook.current.copy(activeLook.current);
 
-            shotIdx.current = (shotIdx.current + 1) % SHOTS.length;
-            const next = SHOTS[shotIdx.current];
+            // Advance to the next shot, skipping any that are blocked during
+            // active combat to preserve readability.
+            const nextIdx = isActiveCombat
+                ? findNextSafeShot(shotIdx.current, COMBAT_BLOCKED_SHOTS)
+                : (shotIdx.current + 1) % SHOTS.length;
+            shotIdx.current = nextIdx;
+            const next = SHOTS[nextIdx];
 
             next.getPos(orbitAngle.current, 0, toPos.current);
             toLook.current.copy(next.getLookAt());
@@ -245,7 +323,7 @@ export default function CinematicCamera() {
         // ── Animate camera this frame ────────────────────────────────────────
         if (inTransition.current) {
             transitionT.current = Math.min(
-                transitionT.current + delta / activeTransitionDuration,
+                transitionT.current + delta / effectiveTransitionDuration,
                 1,
             );
             const t = smoothstep(transitionT.current);
@@ -265,6 +343,14 @@ export default function CinematicCamera() {
         }
 
         camera.lookAt(activeLook.current);
+
+        // Notify the store when transition state changes so the HUD indicator
+        // can show / hide the "Cinematic sweep" label.
+        const nowTransitioning = inTransition.current;
+        if (nowTransitioning !== prevInTransitionForStore.current) {
+            prevInTransitionForStore.current = nowTransitioning;
+            useGameStore.getState().setCinematicTransition(nowTransitioning);
+        }
 
         // Apply Camera Shake on Impact (attenuated in reduced-motion mode)
         const lastDamageTime = useGameStore.getState().lastDamageTime;

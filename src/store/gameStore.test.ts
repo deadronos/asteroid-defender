@@ -108,3 +108,37 @@ describe('gameStore camera settings', () => {
     expect(state.reducedMotion).toBe(true);
   });
 });
+
+describe('gameStore cinematic indicator', () => {
+  it('defaults showCinematicIndicator to true', () => {
+    expect(useGameStore.getState().showCinematicIndicator).toBe(true);
+  });
+
+  it('toggleCinematicIndicator flips the flag', () => {
+    useGameStore.getState().toggleCinematicIndicator();
+    expect(useGameStore.getState().showCinematicIndicator).toBe(false);
+
+    useGameStore.getState().toggleCinematicIndicator();
+    expect(useGameStore.getState().showCinematicIndicator).toBe(true);
+  });
+
+  it('inCinematicTransition defaults to false', () => {
+    expect(useGameStore.getState().inCinematicTransition).toBe(false);
+  });
+
+  it('setCinematicTransition updates the inCinematicTransition flag', () => {
+    useGameStore.getState().setCinematicTransition(true);
+    expect(useGameStore.getState().inCinematicTransition).toBe(true);
+
+    useGameStore.getState().setCinematicTransition(false);
+    expect(useGameStore.getState().inCinematicTransition).toBe(false);
+  });
+
+  it('showCinematicIndicator persists across game state changes', () => {
+    useGameStore.getState().toggleCinematicIndicator();
+    expect(useGameStore.getState().showCinematicIndicator).toBe(false);
+
+    useGameStore.getState().startGame();
+    expect(useGameStore.getState().showCinematicIndicator).toBe(false);
+  });
+});
