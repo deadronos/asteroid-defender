@@ -15,8 +15,11 @@ export default function HUD() {
     const restartGame = useGameStore((state) => state.restartGame);
     const cameraMode = useGameStore((state) => state.cameraMode);
     const reducedMotion = useGameStore((state) => state.reducedMotion);
+    const showCinematicIndicator = useGameStore((state) => state.showCinematicIndicator);
+    const inCinematicTransition = useGameStore((state) => state.inCinematicTransition);
     const toggleCameraMode = useGameStore((state) => state.toggleCameraMode);
     const toggleReducedMotion = useGameStore((state) => state.toggleReducedMotion);
+    const toggleCinematicIndicator = useGameStore((state) => state.toggleCinematicIndicator);
     const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
     // trigger a brief visual pulse when the game state changes
     const [badgePulse, setBadgePulse] = useState(false);
@@ -223,6 +226,28 @@ export default function HUD() {
                 >
                     ♿
                 </button>
+
+                {cameraMode === 'cinematic' && (
+                    <button
+                        onClick={toggleCinematicIndicator}
+                        aria-label={showCinematicIndicator ? 'Hide cinematic sweep label' : 'Show cinematic sweep label'}
+                        title={showCinematicIndicator ? 'Sweep label ON (click to hide)' : 'Sweep label OFF (click to show)'}
+                        style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: '10px',
+                            border: `1px solid ${showCinematicIndicator ? 'rgba(167,139,250,0.55)' : 'rgba(255,255,255,0.25)'}`,
+                            background: showCinematicIndicator ? 'rgba(109,40,217,0.28)' : 'rgba(8, 12, 24, 0.86)',
+                            color: showCinematicIndicator ? '#ddd6fe' : '#9ca3af',
+                            fontSize: '1.1rem',
+                            cursor: 'pointer',
+                            backdropFilter: 'blur(6px)',
+                            boxShadow: '0 8px 16px rgba(0,0,0,0.35)',
+                        }}
+                    >
+                        🎥
+                    </button>
+                )}
 
                 <button
                     onClick={openOnboarding}
@@ -450,6 +475,32 @@ export default function HUD() {
                     >
                         Restart Protocol
                     </button>
+                </div>
+            )}
+
+            {cameraMode === 'cinematic' && inCinematicTransition && showCinematicIndicator && (
+                <div
+                    aria-live="polite"
+                    aria-label="Cinematic sweep in progress"
+                    style={{
+                        position: 'fixed',
+                        bottom: 'max(24px, env(safe-area-inset-bottom, 24px))',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 10,
+                        pointerEvents: 'none',
+                        background: 'rgba(0,0,0,0.55)',
+                        border: '1px solid rgba(167,139,250,0.4)',
+                        borderRadius: '999px',
+                        padding: '4px 14px',
+                        fontSize: 'clamp(0.65rem, 1.2vw, 0.8rem)',
+                        color: 'rgba(221,214,254,0.85)',
+                        letterSpacing: '0.06em',
+                        backdropFilter: 'blur(4px)',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    🎬 Cinematic sweep
                 </div>
             )}
         </>
