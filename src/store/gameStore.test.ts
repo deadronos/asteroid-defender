@@ -74,3 +74,37 @@ describe('gameStore gameplay state machine', () => {
     expect(after.sessionId).toBe(before + 1);
   });
 });
+
+describe('gameStore camera settings', () => {
+  it('defaults to cinematic mode and reducedMotion off', () => {
+    const state = useGameStore.getState();
+    expect(state.cameraMode).toBe('cinematic');
+    expect(state.reducedMotion).toBe(false);
+  });
+
+  it('toggleCameraMode switches between cinematic and static', () => {
+    useGameStore.getState().toggleCameraMode();
+    expect(useGameStore.getState().cameraMode).toBe('static');
+
+    useGameStore.getState().toggleCameraMode();
+    expect(useGameStore.getState().cameraMode).toBe('cinematic');
+  });
+
+  it('toggleReducedMotion flips the reducedMotion flag', () => {
+    useGameStore.getState().toggleReducedMotion();
+    expect(useGameStore.getState().reducedMotion).toBe(true);
+
+    useGameStore.getState().toggleReducedMotion();
+    expect(useGameStore.getState().reducedMotion).toBe(false);
+  });
+
+  it('camera settings persist across game state changes', () => {
+    useGameStore.getState().toggleCameraMode();
+    useGameStore.getState().toggleReducedMotion();
+
+    useGameStore.getState().startGame();
+    const state = useGameStore.getState();
+    expect(state.cameraMode).toBe('static');
+    expect(state.reducedMotion).toBe(true);
+  });
+});

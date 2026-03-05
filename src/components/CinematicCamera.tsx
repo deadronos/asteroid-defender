@@ -9,6 +9,11 @@ const SHOT_DURATION = 17;
 const TRANSITION_DURATION = 2.5;
 /** Orbit angular speed for the wide-orbit shot (radians / second) */
 const ORBIT_SPEED = 0.035;
+/**
+ * Minimum seconds to hold a shot after a transition completes before
+ * allowing the next cut (target-lock hysteresis).
+ */
+const POST_TRANSITION_MIN_HOLD = 3;
 
 // Read dynamic turret positions avoiding hardcodes. This is acceptable for simple
 // visual polling of existing fixed-position entities. If these were moving we
@@ -20,6 +25,10 @@ const getTurret2 = () => t2;
 
 const lookZero = new THREE.Vector3(0, 0, 0);
 const lookHigh = new THREE.Vector3(0, 12, 0);
+
+/** Fixed camera position and look-at used in static (non-cinematic) mode */
+const STATIC_CAMERA_POS = new THREE.Vector3(0, 18, 30);
+const STATIC_CAMERA_LOOK = new THREE.Vector3(0, 0, 0);
 
 interface ShotDef {
     /** Camera world position; receives the running orbit angle, elapsed shot time, and target vector */
@@ -99,6 +108,14 @@ export const dofSettings = {
  * low-angle swarm shot, diagonal side view), transitioning smoothly
  * between them every ~17 seconds.  Replaces the static OrbitControls.
  *
+ * Supports two modes controlled via the game store:
+ *  - `cinematic`: full shot-cycling behaviour with eased transitions.
+ *  - `static`: smoothly transitions to a fixed overview position and holds.
+ *
+ * A `reducedMotion` flag (also in the store) halves the orbit speed,
+ * doubles the time between cuts, reduces positional drift, and softens
+ * camera shake for players sensitive to motion.
+ *
  * Returns null – no rendered geometry.
  */
 export default function CinematicCamera() {
@@ -124,8 +141,27 @@ export default function CinematicCamera() {
 
     const firstFrame = useRef(true);
 
+    // Tracks time spent in the current shot *after* a transition has fully
+    // completed.  This enforces target-lock hysteresis: the camera will not
+    // cut to the next shot until at least POST_TRANSITION_MIN_HOLD seconds
+    // have passed since the last transition finished.
+    const postTransitionHold = useRef(0);
+
+    // Previous camera mode – used to detect runtime mode switches.
+    // Initialized to the store default so no spurious transition fires on mount.
+    const prevCameraMode = useRef<string>('cinematic');
+
     useFrame((_, delta) => {
-        orbitAngle.current += delta * ORBIT_SPEED;
+        const { cameraMode, reducedMotion } = useGameStore.getState();
+
+        // Multipliers applied when reducedMotion is active
+        const orbitMult = reducedMotion ? 0.4 : 1.0;
+        const driftMult = reducedMotion ? 0.3 : 1.0;
+        const activeShotDuration = reducedMotion ? SHOT_DURATION * 2 : SHOT_DURATION;
+        const activeTransitionDuration = reducedMotion ? TRANSITION_DURATION * 1.5 : TRANSITION_DURATION;
+        const minHold = reducedMotion ? POST_TRANSITION_MIN_HOLD * 2 : POST_TRANSITION_MIN_HOLD;
+
+        orbitAngle.current += delta * ORBIT_SPEED * orbitMult;
         shotTimer.current += delta;
 
         const shot = SHOTS[shotIdx.current];
@@ -140,11 +176,57 @@ export default function CinematicCamera() {
             inTransition.current = true;
             transitionT.current = 0;
             shotTimer.current = 0;
+            postTransitionHold.current = 0;
             dofSettings.focusDistance = shot.focusDist;
         }
 
-        // ── Trigger transition to next shot ─────────────────────────────────
-        if (!inTransition.current && shotTimer.current >= SHOT_DURATION) {
+        // ── Detect runtime camera-mode switch and start a smooth transition ──
+        if (prevCameraMode.current !== cameraMode) {
+            prevCameraMode.current = cameraMode;
+            fromPos.current.copy(camera.position);
+            fromLook.current.copy(activeLook.current);
+            if (cameraMode === 'static') {
+                toPos.current.copy(STATIC_CAMERA_POS);
+                toLook.current.copy(STATIC_CAMERA_LOOK);
+            } else {
+                // Re-entering cinematic: smoothly move to the current shot's start
+                shot.getPos(orbitAngle.current, 0, toPos.current);
+                toLook.current.copy(shot.getLookAt());
+                shotTimer.current = 0;
+                postTransitionHold.current = 0;
+                dofSettings.focusDistance = shot.focusDist;
+            }
+            inTransition.current = true;
+            transitionT.current = 0;
+        }
+
+        // ── Static mode: handle transition to overview then hold ─────────────
+        if (cameraMode === 'static') {
+            if (inTransition.current) {
+                transitionT.current = Math.min(
+                    transitionT.current + delta / TRANSITION_DURATION,
+                    1,
+                );
+                const t = smoothstep(transitionT.current);
+                camera.position.lerpVectors(fromPos.current, toPos.current, t);
+                activeLook.current.lerpVectors(fromLook.current, toLook.current, t);
+                if (transitionT.current >= 1) {
+                    inTransition.current = false;
+                }
+            }
+            camera.lookAt(activeLook.current);
+            return;
+        }
+
+        // ── Cinematic mode ───────────────────────────────────────────────────
+
+        // Trigger transition to next shot only after the shot duration AND the
+        // minimum post-transition hold (hysteresis) have both elapsed.
+        if (
+            !inTransition.current &&
+            shotTimer.current >= activeShotDuration &&
+            postTransitionHold.current >= minHold
+        ) {
             fromPos.current.copy(camera.position);
             fromLook.current.copy(activeLook.current);
 
@@ -156,13 +238,14 @@ export default function CinematicCamera() {
             inTransition.current = true;
             transitionT.current = 0;
             shotTimer.current = 0;
+            postTransitionHold.current = 0;
             dofSettings.focusDistance = next.focusDist;
         }
 
         // ── Animate camera this frame ────────────────────────────────────────
         if (inTransition.current) {
             transitionT.current = Math.min(
-                transitionT.current + delta / TRANSITION_DURATION,
+                transitionT.current + delta / activeTransitionDuration,
                 1,
             );
             const t = smoothstep(transitionT.current);
@@ -170,21 +253,26 @@ export default function CinematicCamera() {
             activeLook.current.lerpVectors(fromLook.current, toLook.current, t);
             if (transitionT.current >= 1) {
                 inTransition.current = false;
+                postTransitionHold.current = 0;
             }
         } else {
-            // Steady shot – orbit continuously for shot 0, subtle drift for others
-            shot.getPos(orbitAngle.current, shotTimer.current, camera.position);
+            // Steady shot – orbit continuously for shot 0, subtle drift for others.
+            // driftMult scales down oscillation time so reduced-motion produces
+            // significantly less positional movement.
+            postTransitionHold.current += delta;
+            shot.getPos(orbitAngle.current, shotTimer.current * driftMult, camera.position);
             activeLook.current.copy(shot.getLookAt());
         }
 
         camera.lookAt(activeLook.current);
 
-        // Apply Camera Shake on Impact
+        // Apply Camera Shake on Impact (attenuated in reduced-motion mode)
         const lastDamageTime = useGameStore.getState().lastDamageTime;
         if (lastDamageTime > 0) {
             const timeSinceDamage = (Date.now() - lastDamageTime) / 1000;
             if (timeSinceDamage < 0.5) {
-                const shakeIntensity = (0.5 - timeSinceDamage) * 2.0;
+                const shakeScale = reducedMotion ? 0.3 : 1.0;
+                const shakeIntensity = (0.5 - timeSinceDamage) * 2.0 * shakeScale;
                 camera.position.x += (Math.random() - 0.5) * shakeIntensity;
                 camera.position.y += (Math.random() - 0.5) * shakeIntensity;
                 camera.position.z += (Math.random() - 0.5) * shakeIntensity * 0.5;
