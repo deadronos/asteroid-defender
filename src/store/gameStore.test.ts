@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import useGameStore from './gameStore';
 
 const initialState = useGameStore.getInitialState();
@@ -14,6 +14,8 @@ describe('gameStore gameplay state machine', () => {
     expect(state.gameState).toBe('menu');
     expect(state.health).toBe(state.maxHealth);
     expect(state.sessionId).toBe(0);
+    expect(state.runStartedAt).toBe(0);
+    expect(state.runEndedAt).toBeNull();
   });
 
   it('startGame resets counters and begins a new session', () => {
@@ -72,6 +74,33 @@ describe('gameStore gameplay state machine', () => {
     expect(after.asteroidsDestroyed).toBe(0);
     expect(after.activeAsteroids).toBe(0);
     expect(after.sessionId).toBe(before + 1);
+  });
+
+  it('tracks run start and end timestamps across restart', () => {
+    const nowSpy = vi.spyOn(Date, 'now');
+
+    nowSpy.mockReturnValue(1000);
+    useGameStore.getState().startGame();
+
+    let state = useGameStore.getState();
+    expect(state.runStartedAt).toBe(1000);
+    expect(state.runEndedAt).toBeNull();
+
+    nowSpy.mockReturnValue(2500);
+    useGameStore.getState().takeDamage(1000);
+
+    state = useGameStore.getState();
+    expect(state.gameState).toBe('gameover');
+    expect(state.runEndedAt).toBe(2500);
+
+    nowSpy.mockReturnValue(4000);
+    useGameStore.getState().restartGame();
+
+    state = useGameStore.getState();
+    expect(state.runStartedAt).toBe(4000);
+    expect(state.runEndedAt).toBeNull();
+
+    nowSpy.mockRestore();
   });
 });
 

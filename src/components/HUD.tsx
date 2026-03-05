@@ -3,12 +3,21 @@ import useGameStore from '../store/gameStore';
 
 const ONBOARDING_STORAGE_KEY = 'asteroid-defender:onboarding-seen-v1';
 
+function formatDuration(milliseconds: number) {
+    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
 export default function HUD() {
     const asteroidsDestroyed = useGameStore((state) => state.asteroidsDestroyed);
     const activeAsteroids = useGameStore((state) => state.activeAsteroids);
     const health = useGameStore((state) => state.health);
     const maxHealth = useGameStore((state) => state.maxHealth);
     const gameState = useGameStore((state) => state.gameState);
+    const runStartedAt = useGameStore((state) => state.runStartedAt);
+    const runEndedAt = useGameStore((state) => state.runEndedAt);
     const startGame = useGameStore((state) => state.startGame);
     const togglePause = useGameStore((state) => state.togglePause);
     const resumeGame = useGameStore((state) => state.resumeGame);
@@ -25,6 +34,8 @@ export default function HUD() {
     const [badgePulse, setBadgePulse] = useState(false);
 
     const healthPercent = maxHealth > 0 ? (health / maxHealth) * 100 : 0;
+    const runDuration = runStartedAt > 0 && runEndedAt !== null ? runEndedAt - runStartedAt : 0;
+    const runDurationLabel = formatDuration(runDuration);
 
     const stateBadge = {
         menu: { label: 'MENU', bg: 'rgba(59,130,246,0.24)', border: 'rgba(96,165,250,0.65)', color: '#bfdbfe' },
@@ -54,12 +65,18 @@ export default function HUD() {
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key !== 'Escape' || event.repeat) return;
+            if (event.repeat) return;
 
             const state = useGameStore.getState();
-            if (state.gameState === 'playing' || state.gameState === 'paused') {
+            if (event.key === 'Escape' && (state.gameState === 'playing' || state.gameState === 'paused')) {
                 event.preventDefault();
                 state.togglePause();
+                return;
+            }
+
+            if ((event.key === 'r' || event.key === 'R') && (state.gameState === 'paused' || state.gameState === 'gameover')) {
+                event.preventDefault();
+                state.restartGame();
             }
         };
 
@@ -355,7 +372,7 @@ export default function HUD() {
                                 fontWeight: 700,
                             }}
                         >
-                            Restart
+                            Restart (R)
                         </button>
                     </div>
                 </div>
@@ -459,6 +476,7 @@ export default function HUD() {
                 }}>
                     <h1 style={{ color: '#ef4444', fontSize: 'clamp(2rem, 6vw, 4rem)', margin: '0 0 1rem 0', textShadow: '0 0 20px rgba(239,68,68,0.5)' }}>BASE DESTROYED</h1>
                     <p style={{ color: '#fff', fontSize: 'clamp(1rem, 3vw, 1.5rem)', marginBottom: '2rem' }}>You destroyed {asteroidsDestroyed} asteroids before falling.</p>
+                    <p style={{ color: '#bfdbfe', fontSize: 'clamp(0.95rem, 2.6vw, 1.25rem)', margin: '0 0 2rem 0' }}>Time survived: {runDurationLabel}</p>
                     <button
                         onClick={restartGame}
                         style={{
@@ -473,7 +491,7 @@ export default function HUD() {
                         onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                         onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     >
-                        Restart Protocol
+                        Restart Protocol (R)
                     </button>
                 </div>
             )}

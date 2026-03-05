@@ -10,6 +10,8 @@ interface GameState {
     maxHealth: number;
     gameState: GameplayState;
     sessionId: number;
+    runStartedAt: number;
+    runEndedAt: number | null;
     lastDamageTime: number;
     cameraMode: CameraMode;
     reducedMotion: boolean;
@@ -39,6 +41,8 @@ function freshRoundState() {
         asteroidsDestroyed: 0,
         activeAsteroids: 0,
         health: MAX_HEALTH,
+        runStartedAt: 0,
+        runEndedAt: null,
         lastDamageTime: 0,
     };
 }
@@ -62,11 +66,13 @@ const useGameStore = create<GameState>((set) => ({
 
     takeDamage: (amount) => set((state) => {
         if (state.gameState !== 'playing') return state;
+        const now = Date.now();
         const newHealth = Math.max(0, state.health - amount);
         return {
             health: newHealth,
             gameState: newHealth === 0 ? 'gameover' : state.gameState,
-            lastDamageTime: Date.now()
+            runEndedAt: newHealth === 0 ? (state.runEndedAt ?? now) : state.runEndedAt,
+            lastDamageTime: now
         };
     }),
 
@@ -74,6 +80,7 @@ const useGameStore = create<GameState>((set) => ({
         ...freshRoundState(),
         gameState: 'playing',
         sessionId: state.sessionId + 1,
+        runStartedAt: Date.now(),
     })),
 
     pauseGame: () => set((state) => {
@@ -96,12 +103,14 @@ const useGameStore = create<GameState>((set) => ({
         ...freshRoundState(),
         gameState: 'playing',
         sessionId: state.sessionId + 1,
+        runStartedAt: Date.now(),
     })),
 
     resetGame: () => set((state) => ({
         ...freshRoundState(),
         gameState: 'playing',
         sessionId: state.sessionId + 1,
+        runStartedAt: Date.now(),
     })),
 
     toggleCameraMode: () => set((state) => ({
