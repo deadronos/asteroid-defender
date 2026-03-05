@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import CinematicCamera from './CinematicCamera';
 import SpaceBackground from './SpaceBackground';
@@ -10,7 +10,7 @@ import Asteroid from './Asteroid';
 import AsteroidSpawner from './AsteroidSpawner';
 import Explosion from './Explosion';
 import { v4 as uuidv4 } from 'uuid';
-import { drainAsteroidSpawns } from '../ecs/asteroidSpawnQueue';
+import { clearAsteroidSpawns, drainAsteroidSpawns } from '../ecs/asteroidSpawnQueue';
 
 interface PooledAsteroid {
     id: string;
@@ -55,7 +55,51 @@ export default function GameScene() {
 
     const [shieldImpacts, setShieldImpacts] = useState<ShieldImpactData[]>([]);
 
-    const { incrementDestroyed, setActiveAsteroids } = useGameStore();
+    const explosionsRef = useRef<PooledExplosion[]>([]);
+
+    const incrementDestroyed = useGameStore((state) => state.incrementDestroyed);
+    const setActiveAsteroids = useGameStore((state) => state.setActiveAsteroids);
+    const sessionId = useGameStore((state) => state.sessionId);
+
+    useEffect(() => {
+        explosionsRef.current = explosions;
+    }, [explosions]);
+
+    const clearExplosionTimers = useCallback((pool: PooledExplosion[]) => {
+        for (const explosion of pool) {
+            if (explosion.timer) {
+                clearTimeout(explosion.timer);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            clearExplosionTimers(explosionsRef.current);
+        };
+    }, [clearExplosionTimers]);
+
+    useEffect(() => {
+        clearAsteroidSpawns();
+        setShieldImpacts([]);
+        setAsteroids((prev) => prev.map((ast) => ({
+            ...ast,
+            active: false,
+            pos: [0, -1000, 0],
+        })));
+        setExplosions((prev) => prev.map((exp) => {
+            if (exp.timer) {
+                clearTimeout(exp.timer);
+            }
+            return {
+                ...exp,
+                active: false,
+                pos: [0, -1000, 0],
+                timer: undefined,
+            };
+        }));
+        setActiveAsteroids(0);
+    }, [sessionId, setActiveAsteroids]);
 
     const triggerExplosion = useCallback((pos: [number, number, number], type: AsteroidType) => {
         setExplosions(prev => {
@@ -81,6 +125,8 @@ export default function GameScene() {
     }, []);
 
     useFrame(() => {
+        if (useGameStore.getState().gameState !== 'playing') return;
+
         const spawns = drainAsteroidSpawns();
         if (spawns.length > 0) {
             setAsteroids(prev => {

@@ -9,9 +9,30 @@ export default function HUD() {
     const health = useGameStore((state) => state.health);
     const maxHealth = useGameStore((state) => state.maxHealth);
     const gameState = useGameStore((state) => state.gameState);
+    const startGame = useGameStore((state) => state.startGame);
+    const togglePause = useGameStore((state) => state.togglePause);
+    const resumeGame = useGameStore((state) => state.resumeGame);
+    const restartGame = useGameStore((state) => state.restartGame);
     const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
++    // trigger a brief visual pulse when the game state changes
++    const [badgePulse, setBadgePulse] = useState(false);
 
-    const healthPercent = (health / maxHealth) * 100;
+    const healthPercent = maxHealth > 0 ? (health / maxHealth) * 100 : 0;
+
+    const stateBadge = {
+        menu: { label: 'MENU', bg: 'rgba(59,130,246,0.24)', border: 'rgba(96,165,250,0.65)', color: '#bfdbfe' },
+        playing: { label: 'PLAYING', bg: 'rgba(34,197,94,0.2)', border: 'rgba(74,222,128,0.6)', color: '#dcfce7' },
+        paused: { label: 'PAUSED', bg: 'rgba(245,158,11,0.2)', border: 'rgba(251,191,36,0.65)', color: '#fef3c7' },
+        gameover: { label: 'GAME OVER', bg: 'rgba(239,68,68,0.2)', border: 'rgba(248,113,113,0.6)', color: '#fee2e2' },
+    }[gameState];
++
++    // animate badge on state transitions
++    useEffect(() => {
++        // pulse the badge then clear after animation duration
++        setBadgePulse(true);
++        const t = setTimeout(() => setBadgePulse(false), 200);
++        return () => clearTimeout(t);
++    }, [gameState]);
 
     useEffect(() => {
         try {
@@ -23,6 +44,23 @@ export default function HUD() {
             // If storage is unavailable, default to showing onboarding for accessibility.
             setIsOnboardingOpen(true);
         }
+    }, []);
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape' || event.repeat) return;
+
+            const state = useGameStore.getState();
+            if (state.gameState === 'playing' || state.gameState === 'paused') {
+                event.preventDefault();
+                state.togglePause();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
     }, []);
 
     const dismissOnboarding = () => {
@@ -51,7 +89,32 @@ export default function HUD() {
                 gap: '8px',
                 textShadow: '0 2px 4px rgba(0,0,0,0.8)'
             }}>
-                <h1 style={{ margin: 0, fontSize: '2rem', color: '#fff' }}>Asteroid Defender</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <h1 style={{ margin: 0, fontSize: '2rem', color: '#fff' }}>Asteroid Defender</h1>
+                    <span
+                        aria-label={`Game state: ${stateBadge.label}`}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '4px 10px',
+                            borderRadius: '999px',
+                            fontSize: '0.72rem',
+                            letterSpacing: '0.08em',
+                            fontWeight: 800,
+                            lineHeight: 1,
+                            textTransform: 'uppercase',
+                            color: stateBadge.color,
+                            background: stateBadge.bg,
+                            border: `1px solid ${stateBadge.border}`,
+                            boxShadow: '0 3px 8px rgba(0,0,0,0.3)',
++                            transition: 'transform 0.2s ease-out',
++                            transform: badgePulse ? 'scale(1.2)' : 'scale(1)',
+                        }}
+                    >
+                        {stateBadge.label}
+                    </span>
+                </div>
 
                 <div style={{
                     background: 'rgba(0, 0, 0, 0.6)',
@@ -83,29 +146,150 @@ export default function HUD() {
                 </div>
             </div>
 
-            <button
-                onClick={openOnboarding}
-                aria-label="Open help"
+            <div
                 style={{
                     position: 'fixed',
                     top: 20,
                     right: 20,
                     zIndex: 120,
-                    width: 48,
-                    height: 48,
-                    borderRadius: '50%',
-                    border: '1px solid rgba(255,255,255,0.35)',
-                    background: 'rgba(8, 12, 24, 0.8)',
-                    color: '#fff',
-                    fontSize: '1.4rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    backdropFilter: 'blur(6px)',
-                    boxShadow: '0 8px 16px rgba(0,0,0,0.35)'
+                    display: 'flex',
+                    gap: 10,
+                    alignItems: 'center',
                 }}
             >
-                ?
-            </button>
+                {(gameState === 'playing' || gameState === 'paused') && (
+                    <button
+                        onClick={togglePause}
+                        aria-label={gameState === 'playing' ? 'Pause game' : 'Resume game'}
+                        style={{
+                            minWidth: 108,
+                            height: 44,
+                            borderRadius: '10px',
+                            border: '1px solid rgba(126, 200, 255, 0.45)',
+                            background: 'rgba(8, 12, 24, 0.86)',
+                            color: '#dbeafe',
+                            fontSize: '0.95rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            backdropFilter: 'blur(6px)',
+                            boxShadow: '0 8px 16px rgba(0,0,0,0.35)'
+                        }}
+                    >
+                        {gameState === 'playing' ? 'Pause (Esc)' : 'Resume (Esc)'}
+                    </button>
+                )}
+
+                <button
+                    onClick={openOnboarding}
+                    aria-label="Open help"
+                    style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: '50%',
+                        border: '1px solid rgba(255,255,255,0.35)',
+                        background: 'rgba(8, 12, 24, 0.8)',
+                        color: '#fff',
+                        fontSize: '1.4rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        backdropFilter: 'blur(6px)',
+                        boxShadow: '0 8px 16px rgba(0,0,0,0.35)'
+                    }}
+                >
+                    ?
+                </button>
+            </div>
+
+            {gameState === 'menu' && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    backgroundColor: 'rgba(2, 4, 12, 0.84)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 125,
+                    pointerEvents: 'auto',
+                    backdropFilter: 'blur(8px)',
+                    textAlign: 'center',
+                    padding: '24px'
+                }}>
+                    <h1 style={{ color: '#fff', fontSize: '3.2rem', margin: '0 0 0.8rem 0', textShadow: '0 0 20px rgba(126,200,255,0.35)' }}>
+                        Asteroid Defender
+                    </h1>
+                    <p style={{ color: '#bfdbfe', fontSize: '1.15rem', maxWidth: 620, margin: '0 0 1.8rem 0' }}>
+                        Command online. Start the defense cycle when ready, pause at any time with <strong>Esc</strong>, and hold the platform.
+                    </p>
+                    <button
+                        onClick={startGame}
+                        style={{
+                            padding: '16px 32px',
+                            fontSize: '1.2rem',
+                            cursor: 'pointer',
+                            backgroundColor: '#2563eb',
+                            border: 'none',
+                            borderRadius: '10px',
+                            color: '#fff',
+                            fontWeight: 'bold',
+                            letterSpacing: '1px',
+                            boxShadow: '0 10px 25px rgba(37,99,235,0.35)',
+                        }}
+                    >
+                        Start Defense
+                    </button>
+                </div>
+            )}
+
+            {gameState === 'paused' && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    backgroundColor: 'rgba(0,0,0,0.72)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 110,
+                    pointerEvents: 'auto',
+                    backdropFilter: 'blur(6px)'
+                }}>
+                    <h1 style={{ color: '#e2e8f0', fontSize: '3rem', margin: '0 0 0.8rem 0' }}>Simulation Paused</h1>
+                    <p style={{ color: '#bfdbfe', fontSize: '1.05rem', margin: '0 0 1.8rem 0' }}>Press Esc or resume when ready.</p>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                        <button
+                            onClick={resumeGame}
+                            style={{
+                                padding: '12px 24px',
+                                fontSize: '1rem',
+                                cursor: 'pointer',
+                                backgroundColor: '#2563eb',
+                                border: 'none',
+                                borderRadius: '8px',
+                                color: '#fff',
+                                fontWeight: 700,
+                            }}
+                        >
+                            Resume
+                        </button>
+                        <button
+                            onClick={restartGame}
+                            style={{
+                                padding: '12px 24px',
+                                fontSize: '1rem',
+                                cursor: 'pointer',
+                                backgroundColor: '#ef4444',
+                                border: 'none',
+                                borderRadius: '8px',
+                                color: '#fff',
+                                fontWeight: 700,
+                            }}
+                        >
+                            Restart
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {isOnboardingOpen && (
                 <div
@@ -205,7 +389,7 @@ export default function HUD() {
                     <h1 style={{ color: '#ef4444', fontSize: '4rem', margin: '0 0 1rem 0', textShadow: '0 0 20px rgba(239,68,68,0.5)' }}>BASE DESTROYED</h1>
                     <p style={{ color: '#fff', fontSize: '1.5rem', marginBottom: '2rem' }}>You destroyed {asteroidsDestroyed} asteroids before falling.</p>
                     <button
-                        onClick={() => window.location.reload()}
+                        onClick={restartGame}
                         style={{
                             padding: '16px 32px', fontSize: '1.5rem',
                             cursor: 'pointer', backgroundColor: '#ef4444',

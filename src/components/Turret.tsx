@@ -41,7 +41,11 @@ export default function Turret({ id, position, rotation }: TurretProps) {
     useFrame((state) => {
         if (!turretGroup.current) return;
 
-        if (useGameStore.getState().gameState === 'gameover') {
+        if (useGameStore.getState().gameState !== 'playing') {
+            if (currentTargetRef.current?.targetedBy === id) {
+                currentTargetRef.current.targetedBy = null;
+            }
+            currentTargetRef.current = null;
             if (hasTarget) setHasTarget(false);
             return;
         }

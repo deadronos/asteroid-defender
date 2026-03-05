@@ -166,7 +166,7 @@ export default function AsteroidField({ onDestroy }: AsteroidFieldProps) {
     }
 
     const gameState = useGameStore.getState().gameState;
-    if (gameState !== 'gameover') {
+    if (gameState === 'playing') {
       for (let i = runtimesRef.current.length - 1; i >= 0; i--) {
         const runtime = runtimesRef.current[i];
         if (!runtime) continue;

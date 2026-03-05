@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import GameScene from './components/GameScene';
 import HUD from './components/HUD';
 import { dofSettings } from './components/CinematicCamera';
+import useGameStore from './store/gameStore';
 import './index.css';
 
 /**
@@ -40,6 +41,7 @@ function DynamicDepthOfField() {
 
 function App() {
   const [dpr, setDpr] = useState(1.5);
+  const gameState = useGameStore((state) => state.gameState);
 
   return (
     <>
@@ -53,7 +55,7 @@ function App() {
         >
           <color attach="background" args={['#050510']} />
           <Suspense fallback={null}>
-            <Physics>
+            <Physics paused={gameState !== 'playing'}>
               <GameScene />
             </Physics>
           </Suspense>
