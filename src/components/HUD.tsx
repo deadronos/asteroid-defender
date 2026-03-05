@@ -14,8 +14,8 @@ export default function HUD() {
     const resumeGame = useGameStore((state) => state.resumeGame);
     const restartGame = useGameStore((state) => state.restartGame);
     const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-+    // trigger a brief visual pulse when the game state changes
-+    const [badgePulse, setBadgePulse] = useState(false);
+    // trigger a brief visual pulse when the game state changes
+    const [badgePulse, setBadgePulse] = useState(false);
 
     const healthPercent = maxHealth > 0 ? (health / maxHealth) * 100 : 0;
 
@@ -25,14 +25,13 @@ export default function HUD() {
         paused: { label: 'PAUSED', bg: 'rgba(245,158,11,0.2)', border: 'rgba(251,191,36,0.65)', color: '#fef3c7' },
         gameover: { label: 'GAME OVER', bg: 'rgba(239,68,68,0.2)', border: 'rgba(248,113,113,0.6)', color: '#fee2e2' },
     }[gameState];
-+
-+    // animate badge on state transitions
-+    useEffect(() => {
-+        // pulse the badge then clear after animation duration
-+        setBadgePulse(true);
-+        const t = setTimeout(() => setBadgePulse(false), 200);
-+        return () => clearTimeout(t);
-+    }, [gameState]);
+    // animate badge on state transitions
+    useEffect(() => {
+        // pulse the badge then clear after animation duration
+        setBadgePulse(true);
+        const t = setTimeout(() => setBadgePulse(false), 200);
+        return () => clearTimeout(t);
+    }, [gameState]);
 
     useEffect(() => {
         try {
@@ -80,26 +79,26 @@ export default function HUD() {
         <>
             <div style={{
                 position: 'absolute',
-                top: 20,
-                left: 20,
+                top: 'max(16px, env(safe-area-inset-top, 16px))',
+                left: 'max(16px, env(safe-area-inset-left, 16px))',
                 zIndex: 10,
                 pointerEvents: 'none',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '8px',
-                textShadow: '0 2px 4px rgba(0,0,0,0.8)'
+                gap: 'clamp(6px, 1vw, 12px)',
+                textShadow: '0 2px 6px rgba(0,0,0,0.9)'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <h1 style={{ margin: 0, fontSize: '2rem', color: '#fff' }}>Asteroid Defender</h1>
+                    <h1 style={{ margin: 0, fontSize: 'clamp(1.25rem, 3.5vw, 2rem)', color: '#fff' }}>Asteroid Defender</h1>
                     <span
                         aria-label={`Game state: ${stateBadge.label}`}
                         style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '4px 10px',
+                            padding: 'clamp(3px, 0.6vw, 5px) clamp(7px, 1.2vw, 12px)',
                             borderRadius: '999px',
-                            fontSize: '0.72rem',
+                            fontSize: 'clamp(0.6rem, 1.2vw, 0.72rem)',
                             letterSpacing: '0.08em',
                             fontWeight: 800,
                             lineHeight: 1,
@@ -108,8 +107,8 @@ export default function HUD() {
                             background: stateBadge.bg,
                             border: `1px solid ${stateBadge.border}`,
                             boxShadow: '0 3px 8px rgba(0,0,0,0.3)',
-+                            transition: 'transform 0.2s ease-out',
-+                            transform: badgePulse ? 'scale(1.2)' : 'scale(1)',
+                            transition: 'transform 0.2s ease-out',
+                            transform: badgePulse ? 'scale(1.2)' : 'scale(1)',
                         }}
                     >
                         {stateBadge.label}
@@ -117,15 +116,15 @@ export default function HUD() {
                 </div>
 
                 <div style={{
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    padding: '12px 16px',
+                    background: 'rgba(0, 0, 0, 0.75)',
+                    padding: 'clamp(10px, 1.5vw, 14px) clamp(12px, 2vw, 18px)',
                     borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    backdropFilter: 'blur(4px)'
+                    border: '1px solid rgba(255, 255, 255, 0.28)',
+                    backdropFilter: 'blur(6px)'
                 }}>
-                    <div style={{ fontSize: '1.2rem', marginBottom: '12px' }}>
+                    <div style={{ fontSize: 'clamp(0.85rem, 1.8vw, 1.1rem)', marginBottom: '10px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <span style={{ color: '#aaa' }}>Base Integrity</span>
+                            <span style={{ color: '#d1d5db' }}>Base Integrity</span>
                             <span style={{ color: health > 30 ? '#4ade80' : '#ef4444', fontWeight: 'bold' }}>{health}%</span>
                         </div>
                         <div style={{ width: '100%', height: '12px', background: 'rgba(255,255,255,0.1)', borderRadius: '6px', overflow: 'hidden' }}>
@@ -133,12 +132,12 @@ export default function HUD() {
                         </div>
                     </div>
 
-                    <div style={{ fontSize: '1.2rem', marginBottom: '4px' }}>
-                        <span style={{ color: '#aaa' }}>Destroyed: </span>
+                    <div style={{ fontSize: 'clamp(0.85rem, 1.8vw, 1.1rem)', marginBottom: '4px' }}>
+                        <span style={{ color: '#d1d5db' }}>Destroyed: </span>
                         <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{asteroidsDestroyed}</span>
                     </div>
-                    <div style={{ fontSize: '1.1rem' }}>
-                        <span style={{ color: '#aaa' }}>Warning | Active Swarm: </span>
+                    <div style={{ fontSize: 'clamp(0.85rem, 1.8vw, 1.1rem)' }}>
+                        <span style={{ color: '#d1d5db' }}>Warning | Active Swarm: </span>
                         <span style={{ color: activeAsteroids > 5 ? '#ef4444' : '#facc15', fontWeight: 'bold' }}>
                             {activeAsteroids}
                         </span>
@@ -149,8 +148,8 @@ export default function HUD() {
             <div
                 style={{
                     position: 'fixed',
-                    top: 20,
-                    right: 20,
+                    top: 'max(16px, env(safe-area-inset-top, 16px))',
+                    right: 'max(16px, env(safe-area-inset-right, 16px))',
                     zIndex: 120,
                     display: 'flex',
                     gap: 10,
@@ -215,17 +214,17 @@ export default function HUD() {
                     textAlign: 'center',
                     padding: '24px'
                 }}>
-                    <h1 style={{ color: '#fff', fontSize: '3.2rem', margin: '0 0 0.8rem 0', textShadow: '0 0 20px rgba(126,200,255,0.35)' }}>
+                    <h1 style={{ color: '#fff', fontSize: 'clamp(1.8rem, 5vw, 3.2rem)', margin: '0 0 0.8rem 0', textShadow: '0 0 20px rgba(126,200,255,0.35)' }}>
                         Asteroid Defender
                     </h1>
-                    <p style={{ color: '#bfdbfe', fontSize: '1.15rem', maxWidth: 620, margin: '0 0 1.8rem 0' }}>
+                    <p style={{ color: '#bfdbfe', fontSize: 'clamp(0.9rem, 2vw, 1.15rem)', maxWidth: 620, margin: '0 0 1.8rem 0' }}>
                         Command online. Start the defense cycle when ready, pause at any time with <strong>Esc</strong>, and hold the platform.
                     </p>
                     <button
                         onClick={startGame}
                         style={{
-                            padding: '16px 32px',
-                            fontSize: '1.2rem',
+                            padding: 'clamp(12px, 2vw, 16px) clamp(24px, 4vw, 32px)',
+                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
                             cursor: 'pointer',
                             backgroundColor: '#2563eb',
                             border: 'none',
@@ -254,8 +253,8 @@ export default function HUD() {
                     pointerEvents: 'auto',
                     backdropFilter: 'blur(6px)'
                 }}>
-                    <h1 style={{ color: '#e2e8f0', fontSize: '3rem', margin: '0 0 0.8rem 0' }}>Simulation Paused</h1>
-                    <p style={{ color: '#bfdbfe', fontSize: '1.05rem', margin: '0 0 1.8rem 0' }}>Press Esc or resume when ready.</p>
+                    <h1 style={{ color: '#e2e8f0', fontSize: 'clamp(1.8rem, 5vw, 3rem)', margin: '0 0 0.8rem 0' }}>Simulation Paused</h1>
+                    <p style={{ color: '#bfdbfe', fontSize: 'clamp(0.9rem, 2vw, 1.05rem)', margin: '0 0 1.8rem 0' }}>Press Esc or resume when ready.</p>
                     <div style={{ display: 'flex', gap: 12 }}>
                         <button
                             onClick={resumeGame}
@@ -386,12 +385,12 @@ export default function HUD() {
                     zIndex: 100, pointerEvents: 'auto',
                     backdropFilter: 'blur(8px)'
                 }}>
-                    <h1 style={{ color: '#ef4444', fontSize: '4rem', margin: '0 0 1rem 0', textShadow: '0 0 20px rgba(239,68,68,0.5)' }}>BASE DESTROYED</h1>
-                    <p style={{ color: '#fff', fontSize: '1.5rem', marginBottom: '2rem' }}>You destroyed {asteroidsDestroyed} asteroids before falling.</p>
+                    <h1 style={{ color: '#ef4444', fontSize: 'clamp(2rem, 6vw, 4rem)', margin: '0 0 1rem 0', textShadow: '0 0 20px rgba(239,68,68,0.5)' }}>BASE DESTROYED</h1>
+                    <p style={{ color: '#fff', fontSize: 'clamp(1rem, 3vw, 1.5rem)', marginBottom: '2rem' }}>You destroyed {asteroidsDestroyed} asteroids before falling.</p>
                     <button
                         onClick={restartGame}
                         style={{
-                            padding: '16px 32px', fontSize: '1.5rem',
+                            padding: 'clamp(12px, 2vw, 16px) clamp(24px, 4vw, 32px)', fontSize: 'clamp(1rem, 2.5vw, 1.5rem)',
                             cursor: 'pointer', backgroundColor: '#ef4444',
                             border: 'none', borderRadius: '8px', color: '#fff',
                             fontWeight: 'bold', textTransform: 'uppercase',
