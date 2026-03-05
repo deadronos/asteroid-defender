@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 export type GameplayState = 'menu' | 'playing' | 'paused' | 'gameover';
+export type CameraMode = 'cinematic' | 'static';
 
 interface GameState {
     asteroidsDestroyed: number;
@@ -10,6 +11,8 @@ interface GameState {
     gameState: GameplayState;
     sessionId: number;
     lastDamageTime: number;
+    cameraMode: CameraMode;
+    reducedMotion: boolean;
     incrementDestroyed: () => void;
     setActiveAsteroids: (count: number) => void;
     takeDamage: (amount: number) => void;
@@ -19,6 +22,8 @@ interface GameState {
     togglePause: () => void;
     restartGame: () => void;
     resetGame: () => void;
+    toggleCameraMode: () => void;
+    toggleReducedMotion: () => void;
 }
 
 const MAX_HEALTH = 100;
@@ -38,6 +43,8 @@ const useGameStore = create<GameState>((set) => ({
     gameState: 'menu',
     sessionId: 0,
     lastDamageTime: 0,
+    cameraMode: 'cinematic',
+    reducedMotion: false,
 
     incrementDestroyed: () => set((state) => ({
         asteroidsDestroyed: state.asteroidsDestroyed + 1
@@ -87,6 +94,14 @@ const useGameStore = create<GameState>((set) => ({
         ...freshRoundState(),
         gameState: 'playing',
         sessionId: state.sessionId + 1,
+    })),
+
+    toggleCameraMode: () => set((state) => ({
+        cameraMode: state.cameraMode === 'cinematic' ? 'static' : 'cinematic',
+    })),
+
+    toggleReducedMotion: () => set((state) => ({
+        reducedMotion: !state.reducedMotion,
     })),
 }));
 

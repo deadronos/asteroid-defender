@@ -13,6 +13,10 @@ export default function HUD() {
     const togglePause = useGameStore((state) => state.togglePause);
     const resumeGame = useGameStore((state) => state.resumeGame);
     const restartGame = useGameStore((state) => state.restartGame);
+    const cameraMode = useGameStore((state) => state.cameraMode);
+    const reducedMotion = useGameStore((state) => state.reducedMotion);
+    const toggleCameraMode = useGameStore((state) => state.toggleCameraMode);
+    const toggleReducedMotion = useGameStore((state) => state.toggleReducedMotion);
     const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
     // trigger a brief visual pulse when the game state changes
     const [badgePulse, setBadgePulse] = useState(false);
@@ -177,6 +181,48 @@ export default function HUD() {
                         {gameState === 'playing' ? 'Pause (Esc)' : 'Resume (Esc)'}
                     </button>
                 )}
+
+                <button
+                    onClick={toggleCameraMode}
+                    aria-label={cameraMode === 'cinematic' ? 'Switch to static camera' : 'Switch to cinematic camera'}
+                    title={cameraMode === 'cinematic' ? 'Cinematic (click for Static)' : 'Static (click for Cinematic)'}
+                    style={{
+                        height: 44,
+                        padding: '0 14px',
+                        borderRadius: '10px',
+                        border: `1px solid ${cameraMode === 'cinematic' ? 'rgba(167,139,250,0.55)' : 'rgba(255,255,255,0.25)'}`,
+                        background: cameraMode === 'cinematic' ? 'rgba(109,40,217,0.28)' : 'rgba(8, 12, 24, 0.86)',
+                        color: cameraMode === 'cinematic' ? '#ddd6fe' : '#9ca3af',
+                        fontSize: '0.88rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        backdropFilter: 'blur(6px)',
+                        boxShadow: '0 8px 16px rgba(0,0,0,0.35)',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    {cameraMode === 'cinematic' ? '🎬 Cinematic' : '📷 Static'}
+                </button>
+
+                <button
+                    onClick={toggleReducedMotion}
+                    aria-label={reducedMotion ? 'Disable reduced motion' : 'Enable reduced motion'}
+                    title={reducedMotion ? 'Reduced Motion ON (click to disable)' : 'Reduced Motion OFF (click to enable)'}
+                    style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: '10px',
+                        border: `1px solid ${reducedMotion ? 'rgba(52,211,153,0.55)' : 'rgba(255,255,255,0.25)'}`,
+                        background: reducedMotion ? 'rgba(6,78,59,0.4)' : 'rgba(8, 12, 24, 0.86)',
+                        color: reducedMotion ? '#6ee7b7' : '#9ca3af',
+                        fontSize: '1.1rem',
+                        cursor: 'pointer',
+                        backdropFilter: 'blur(6px)',
+                        boxShadow: '0 8px 16px rgba(0,0,0,0.35)',
+                    }}
+                >
+                    ♿
+                </button>
 
                 <button
                     onClick={openOnboarding}
@@ -352,7 +398,8 @@ export default function HUD() {
                             <li><strong>Base Integrity</strong>: your remaining health.</li>
                             <li><strong>Destroyed</strong>: asteroids eliminated by your defenses.</li>
                             <li><strong>Active Swarm</strong>: current asteroid pressure.</li>
-                            <li><strong>Camera</strong>: cinematic perspectives shift roughly every 17 seconds.</li>
+                            <li><strong>🎬 Cinematic / 📷 Static</strong>: toggle the camera style at any time.</li>
+                            <li><strong>♿ Reduced Motion</strong>: slower cuts and less camera movement.</li>
                         </ul>
 
                         <button
