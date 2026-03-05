@@ -1,7 +1,6 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import CinematicCamera from './CinematicCamera';
-import SpaceBackground from './SpaceBackground';
 import useGameStore from '../store/gameStore';
 import { AsteroidType } from '../ecs/world';
 import Platform from './Platform';
@@ -11,6 +10,9 @@ import AsteroidSpawner from './AsteroidSpawner';
 import Explosion from './Explosion';
 import { v4 as uuidv4 } from 'uuid';
 import { clearAsteroidSpawns, drainAsteroidSpawns } from '../ecs/asteroidSpawnQueue';
+
+// Lazy-load the cosmetic background so core gameplay geometry renders first.
+const SpaceBackground = lazy(() => import('./SpaceBackground'));
 
 interface PooledAsteroid {
     id: string;
@@ -200,7 +202,9 @@ export default function GameScene() {
         <>
             <ambientLight intensity={0.3} />
             <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
-            <SpaceBackground />
+            <Suspense fallback={null}>
+                <SpaceBackground />
+            </Suspense>
             <CinematicCamera />
 
             <AsteroidSpawner />

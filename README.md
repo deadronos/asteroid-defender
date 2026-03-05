@@ -48,3 +48,31 @@ Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
 
 ## License
 This project is licensed under the [MIT License](LICENSE.md).
+
+## Performance Budget
+
+These targets guide optimization work and help detect regressions.
+
+| Metric | Target |
+|---|---|
+| Initial JS payload (gzip) | < 500 kB per chunk (see note), < 1.5 MB total |
+| Time to Interactive (TTI) | < 5 s on a mid-range device (4× CPU throttle) |
+| Gameplay frame rate | ≥ 60 FPS on a discrete GPU; ≥ 30 FPS on integrated graphics |
+| Memory (heap) at steady state | < 256 MB |
+
+> **Note on chunk size:** `vendor-rapier` (~838 kB gzip) exceeds the per-chunk cap because it contains the compiled Rust/WASM Rapier physics engine — an upstream constraint that cannot be reduced by tree-shaking. All other chunks meet the < 500 kB target.
+
+### Bundle strategy
+
+The build is split into six vendor chunks so browsers can cache them independently and download them in parallel:
+
+| Chunk | Contents |
+|---|---|
+| `vendor-react` | `react`, `react-dom` |
+| `vendor-three` | `three` |
+| `vendor-r3f` | `@react-three/fiber`, `@react-three/drei` |
+| `vendor-rapier` | `@react-three/rapier` |
+| `vendor-postprocessing` | `@react-three/postprocessing`, `postprocessing` |
+| `vendor-state` | `zustand`, `miniplex`, `miniplex-react` |
+
+Post-processing effects (`EffectComposer`, `Bloom`, `DepthOfField`) and the cosmetic `SpaceBackground` are lazy-loaded so the core game canvas becomes interactive before those chunks finish downloading.
