@@ -1,0 +1,25 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" rx="28" fill="#070B1A" />
+  <circle cx="64" cy="64" r="52" fill="url(#spaceGlow)" />
+  <circle cx="64" cy="64" r="22" fill="#7EE7FF" fill-opacity="0.2" stroke="#7EE7FF" stroke-width="6" />
+  <path
+    d="M64 24L75 50L104 53L82 72L88 101L64 86L40 101L46 72L24 53L53 50L64 24Z"
+    fill="#F4F7FB"
+    fill-opacity="0.14"
+    stroke="#F4F7FB"
+    stroke-width="4"
+  />
+  <path
+    d="M88 34C93 31 100 33 103 39C106 45 104 53 98 57C92 61 84 58 81 52C78 46 81 38 88 34Z"
+    fill="#FF9E5E"
+    stroke="#FFE3A5"
+    stroke-width="3"
+  />
+  <path d="M91 39L97 43L94 49L87 47L85 41L91 39Z" fill="#FFF5D1" fill-opacity="0.55" />
+  <defs>
+    <radialGradient id="spaceGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(64 64) rotate(90) scale(52)">
+      <stop stop-color="#143A6F" />
+      <stop offset="1" stop-color="#070B1A" />
+    </radialGradient>
+  </defs>
+</svg>
