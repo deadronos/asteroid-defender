@@ -63,11 +63,47 @@ export default function HUD() {
         }
     }, []);
 
+    const dismissOnboarding = () => {
+        setIsOnboardingOpen(false);
+        try {
+            window.localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+        } catch {
+            // Ignore storage failures; overlay can still be closed for the current session.
+        }
+    };
+
+    const startFromOnboarding = () => {
+        dismissOnboarding();
+        startGame();
+    };
+
+    const openOnboarding = () => {
+        setIsOnboardingOpen(true);
+    };
+
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.repeat) return;
 
             const state = useGameStore.getState();
+            if (event.key === 'Enter' && state.gameState === 'menu') {
+                event.preventDefault();
+                startFromOnboarding();
+                return;
+            }
+
+            if ((event.key === '?' || event.key === 'h' || event.key === 'H') && state.gameState !== 'gameover') {
+                event.preventDefault();
+                openOnboarding();
+                return;
+            }
+
+            if (event.key === 'Escape' && isOnboardingOpen && state.gameState !== 'menu') {
+                event.preventDefault();
+                dismissOnboarding();
+                return;
+            }
+
             if (event.key === 'Escape' && (state.gameState === 'playing' || state.gameState === 'paused')) {
                 event.preventDefault();
                 state.togglePause();
@@ -84,20 +120,9 @@ export default function HUD() {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, []);
+    }, [dismissOnboarding, isOnboardingOpen, openOnboarding, startFromOnboarding]);
 
-    const dismissOnboarding = () => {
-        setIsOnboardingOpen(false);
-        try {
-            window.localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
-        } catch {
-            // Ignore storage failures; overlay can still be closed for the current session.
-        }
-    };
-
-    const openOnboarding = () => {
-        setIsOnboardingOpen(true);
-    };
+    const canStartFromOverlay = gameState === 'menu';
 
     return (
         <>
@@ -269,21 +294,23 @@ export default function HUD() {
                 <button
                     onClick={openOnboarding}
                     aria-label="Open help"
+                    title="Help (? / H)"
                     style={{
-                        width: 48,
+                        padding: '0 16px',
+                        minWidth: 74,
                         height: 48,
-                        borderRadius: '50%',
+                        borderRadius: '999px',
                         border: '1px solid rgba(255,255,255,0.35)',
                         background: 'rgba(8, 12, 24, 0.8)',
                         color: '#fff',
-                        fontSize: '1.4rem',
+                        fontSize: '0.95rem',
                         fontWeight: 700,
                         cursor: 'pointer',
                         backdropFilter: 'blur(6px)',
                         boxShadow: '0 8px 16px rgba(0,0,0,0.35)'
                     }}
                 >
-                    ?
+                    Help
                 </button>
             </div>
 
@@ -433,19 +460,27 @@ export default function HUD() {
                         </div>
 
                         <p style={{ margin: '10px 0 12px', color: '#bfdbfe' }}>
-                            Defend the base from incoming asteroids. Turrets auto-target and fire; if asteroids hit the platform, Base Integrity drops.
+                            Defend the base from incoming asteroids. Turrets auto-target and fire, so your job is to manage the defense view, monitor the swarm, and keep Base Integrity above zero.
                         </p>
 
                         <ul style={{ margin: '0 0 14px 18px', padding: 0, display: 'grid', gap: '6px' }}>
                             <li><strong>Base Integrity</strong>: your remaining health.</li>
                             <li><strong>Destroyed</strong>: asteroids eliminated by your defenses.</li>
                             <li><strong>Active Swarm</strong>: current asteroid pressure.</li>
-                            <li><strong>🎬 Cinematic / 📷 Static</strong>: toggle the camera style at any time.</li>
-                            <li><strong>♿ Reduced Motion</strong>: slower cuts and less camera movement.</li>
+                            <li><strong>Enter / Start Defense</strong>: launch the run from the briefing overlay.</li>
+                            <li><strong>Esc</strong>: pause or resume the simulation.</li>
+                            <li><strong>R</strong>: restart while paused or after game over.</li>
+                            <li><strong>? / H</strong>: reopen this help overlay during play.</li>
+                            <li><strong>🎬 Cinematic / 📷 Static</strong>: switch between sweeping showcase shots and a steady tactical view.</li>
+                            <li><strong>♿ Reduced Motion</strong>: slow camera cuts and reduce movement intensity.</li>
                         </ul>
 
+                        <p style={{ margin: '0 0 14px', color: '#cbd5f5' }}>
+                            Cinematic mode performs short camera sweeps between dramatic angles. If you want a steadier view, switch to Static or enable Reduced Motion.
+                        </p>
+
                         <button
-                            onClick={dismissOnboarding}
+                            onClick={canStartFromOverlay ? startFromOnboarding : dismissOnboarding}
                             style={{
                                 width: '100%',
                                 padding: '12px 16px',
@@ -458,7 +493,7 @@ export default function HUD() {
                                 cursor: 'pointer',
                             }}
                         >
-                            Got it — Defend the Base
+                            {canStartFromOverlay ? 'Start Defense (Enter)' : 'Close Help'}
                         </button>
                     </div>
                 </div>
