@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react';
 import useGameStore from '../store/gameStore';
+
+const ONBOARDING_STORAGE_KEY = 'asteroid-defender:onboarding-seen-v1';
 
 export default function HUD() {
     const asteroidsDestroyed = useGameStore((state) => state.asteroidsDestroyed);
@@ -6,8 +9,34 @@ export default function HUD() {
     const health = useGameStore((state) => state.health);
     const maxHealth = useGameStore((state) => state.maxHealth);
     const gameState = useGameStore((state) => state.gameState);
+    const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
     const healthPercent = (health / maxHealth) * 100;
+
+    useEffect(() => {
+        try {
+            const hasSeenOnboarding = window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
+            if (!hasSeenOnboarding) {
+                setIsOnboardingOpen(true);
+            }
+        } catch {
+            // If storage is unavailable, default to showing onboarding for accessibility.
+            setIsOnboardingOpen(true);
+        }
+    }, []);
+
+    const dismissOnboarding = () => {
+        setIsOnboardingOpen(false);
+        try {
+            window.localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+        } catch {
+            // Ignore storage failures; overlay can still be closed for the current session.
+        }
+    };
+
+    const openOnboarding = () => {
+        setIsOnboardingOpen(true);
+    };
 
     return (
         <>
@@ -53,6 +82,115 @@ export default function HUD() {
                     </div>
                 </div>
             </div>
+
+            <button
+                onClick={openOnboarding}
+                aria-label="Open help"
+                style={{
+                    position: 'fixed',
+                    top: 20,
+                    right: 20,
+                    zIndex: 120,
+                    width: 48,
+                    height: 48,
+                    borderRadius: '50%',
+                    border: '1px solid rgba(255,255,255,0.35)',
+                    background: 'rgba(8, 12, 24, 0.8)',
+                    color: '#fff',
+                    fontSize: '1.4rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    backdropFilter: 'blur(6px)',
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.35)'
+                }}
+            >
+                ?
+            </button>
+
+            {isOnboardingOpen && (
+                <div
+                    onClick={dismissOnboarding}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        zIndex: 130,
+                        background: 'rgba(2, 4, 12, 0.82)',
+                        backdropFilter: 'blur(6px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '24px',
+                    }}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="How to play"
+                        onClick={(event) => event.stopPropagation()}
+                        style={{
+                            width: 'min(560px, 100%)',
+                            background: 'linear-gradient(145deg, rgba(13,17,33,0.96), rgba(8,12,24,0.96))',
+                            border: '1px solid rgba(126, 200, 255, 0.35)',
+                            borderRadius: '14px',
+                            boxShadow: '0 16px 34px rgba(0,0,0,0.5)',
+                            padding: '20px 20px 18px',
+                            color: '#dbeafe',
+                            lineHeight: 1.45,
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                            <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#fff' }}>Mission Brief</h2>
+                            <button
+                                onClick={dismissOnboarding}
+                                aria-label="Close help"
+                                style={{
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    width: 36,
+                                    height: 36,
+                                    background: 'rgba(255,255,255,0.1)',
+                                    color: '#fff',
+                                    fontSize: '1.1rem',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <p style={{ margin: '10px 0 12px', color: '#bfdbfe' }}>
+                            Defend the base from incoming asteroids. Turrets auto-target and fire; if asteroids hit the platform, Base Integrity drops.
+                        </p>
+
+                        <ul style={{ margin: '0 0 14px 18px', padding: 0, display: 'grid', gap: '6px' }}>
+                            <li><strong>Base Integrity</strong>: your remaining health.</li>
+                            <li><strong>Destroyed</strong>: asteroids eliminated by your defenses.</li>
+                            <li><strong>Active Swarm</strong>: current asteroid pressure.</li>
+                            <li><strong>Camera</strong>: cinematic perspectives shift roughly every 17 seconds.</li>
+                        </ul>
+
+                        <button
+                            onClick={dismissOnboarding}
+                            style={{
+                                width: '100%',
+                                padding: '12px 16px',
+                                border: 'none',
+                                borderRadius: '10px',
+                                background: '#3b82f6',
+                                color: '#fff',
+                                fontSize: '1rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                            }}
+                        >
+                            Got it — Defend the Base
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {gameState === 'gameover' && (
                 <div style={{
