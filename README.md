@@ -51,7 +51,7 @@ This project is licensed under the [MIT License](LICENSE.md).
 
 ## Performance Budget
 
-These targets guide optimization work and help detect regressions.
+These targets guide optimization work and help detect regressions. See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for the full bundle-analysis (before/after breakdown) and further optimization guidance.
 
 | Metric | Target |
 |---|---|
@@ -64,7 +64,7 @@ These targets guide optimization work and help detect regressions.
 
 ### Bundle strategy
 
-The build is split into six vendor chunks so browsers can cache them independently and download them in parallel:
+The build is split into six vendor chunks so browsers can cache them independently and download them in parallel. Additional lazy-loaded chunks (`PostEffects`, `SpaceBackground`) are only fetched after the first frame renders:
 
 | Chunk | Contents |
 |---|---|
