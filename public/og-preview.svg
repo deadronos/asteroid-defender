@@ -1,0 +1,51 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#040816" />
+  <rect width="1200" height="630" fill="url(#nebula)" />
+  <circle cx="978" cy="128" r="2" fill="#F4F7FB" />
+  <circle cx="1080" cy="86" r="3" fill="#F4F7FB" fill-opacity="0.75" />
+  <circle cx="1055" cy="168" r="2" fill="#9DEBFF" />
+  <circle cx="922" cy="82" r="2" fill="#F4F7FB" fill-opacity="0.7" />
+  <circle cx="1123" cy="194" r="2" fill="#F4F7FB" fill-opacity="0.6" />
+  <circle cx="182" cy="88" r="2" fill="#F4F7FB" fill-opacity="0.8" />
+  <circle cx="92" cy="146" r="3" fill="#9DEBFF" fill-opacity="0.8" />
+  <circle cx="274" cy="190" r="2" fill="#F4F7FB" fill-opacity="0.6" />
+  <path d="M0 450C176 390 321 377 434 412C553 449 666 530 835 521C959 514 1094 460 1200 410V630H0V450Z" fill="url(#haze)" fill-opacity="0.9" />
+  <circle cx="876" cy="374" r="150" fill="url(#planetGlow)" fill-opacity="0.75" />
+  <circle cx="876" cy="374" r="104" fill="#173766" />
+  <circle cx="876" cy="374" r="84" fill="#0C1730" />
+  <circle cx="876" cy="374" r="27" fill="#7EE7FF" fill-opacity="0.2" stroke="#7EE7FF" stroke-width="8" />
+  <path d="M876 248L896 302L952 306L909 343L923 399L876 369L829 399L843 343L800 306L856 302L876 248Z" fill="#F4F7FB" fill-opacity="0.12" stroke="#F4F7FB" stroke-width="6" />
+  <path d="M958 228C977 217 1002 223 1013 243C1024 264 1018 291 996 304C974 317 947 310 936 288C925 267 933 239 958 228Z" fill="#FF9E5E" stroke="#FFE3A5" stroke-width="5" />
+  <path d="M966 244L986 255L977 277L954 271L947 250L966 244Z" fill="#FFF5D1" fill-opacity="0.55" />
+  <path d="M798 190L866 286" stroke="#7EE7FF" stroke-width="5" stroke-linecap="round" stroke-opacity="0.55" />
+  <path d="M772 219L838 312" stroke="#7EE7FF" stroke-width="3" stroke-linecap="round" stroke-opacity="0.35" />
+  <path d="M164 180H520" stroke="#7EE7FF" stroke-width="6" stroke-linecap="round" stroke-opacity="0.7" />
+  <text x="160" y="250" fill="#F5F7FB" font-size="88" font-family="Arial, Helvetica, sans-serif" font-weight="700" letter-spacing="1.5">
+    Asteroid Defender
+  </text>
+  <text x="160" y="318" fill="#9DEBFF" font-size="34" font-family="Arial, Helvetica, sans-serif" font-weight="700" letter-spacing="6">
+    3D SPACE DEFENSE
+  </text>
+  <text x="160" y="392" fill="#E3EAF6" font-size="38" font-family="Arial, Helvetica, sans-serif">
+    Hold the orbital line against endless asteroid swarms.
+  </text>
+  <text x="160" y="445" fill="#B5C0D6" font-size="28" font-family="Arial, Helvetica, sans-serif">
+    React Three Fiber • Automated turret combat • Cinematic browser action
+  </text>
+  <defs>
+    <radialGradient id="nebula" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(622 324) rotate(148.017) scale(788.302 891.222)">
+      <stop stop-color="#1F3D7A" />
+      <stop offset="0.44" stop-color="#091226" />
+      <stop offset="1" stop-color="#040816" />
+    </radialGradient>
+    <linearGradient id="haze" x1="210" y1="407" x2="930" y2="612" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF7B6B" stop-opacity="0.35" />
+      <stop offset="0.48" stop-color="#7E6BFF" stop-opacity="0.18" />
+      <stop offset="1" stop-color="#1E243F" stop-opacity="0" />
+    </linearGradient>
+    <radialGradient id="planetGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(876 374) rotate(90) scale(150)">
+      <stop stop-color="#4BCBFF" />
+      <stop offset="1" stop-color="#0B1124" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+</svg>
