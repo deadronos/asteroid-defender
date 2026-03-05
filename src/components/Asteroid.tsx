@@ -118,11 +118,7 @@ export default function Asteroid({ id, startPos, type, active, onDestroy }: Aste
         }
 
         const gameState = useGameStore.getState().gameState;
-        if (gameState === 'gameover') {
-            rbRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
-            rbRef.current.setAngvel({ x: 0, y: 0, z: 0 }, true);
-            return;
-        }
+        if (gameState !== 'playing') return;
 
         // Hit flash logic
         if (entityRef.current.health! < prevHealthRef.current) {

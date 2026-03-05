@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -18,9 +18,15 @@ export default function AsteroidSpawner() {
     const spawnTimer = useRef(0);
     // Base spawn interval in seconds
     const currentInterval = useRef(2.0);
+    const sessionId = useGameStore((state) => state.sessionId);
+
+    useEffect(() => {
+        spawnTimer.current = 0;
+        currentInterval.current = 2.0;
+    }, [sessionId]);
 
     useFrame((_, delta) => {
-        if (useGameStore.getState().gameState === 'gameover') return;
+        if (useGameStore.getState().gameState !== 'playing') return;
         spawnTimer.current += delta;
 
         if (spawnTimer.current >= currentInterval.current) {
