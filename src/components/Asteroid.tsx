@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, memo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, BallCollider, RapierRigidBody } from '@react-three/rapier';
 import { Edges, Trail } from '@react-three/drei';
@@ -31,7 +31,7 @@ interface AsteroidProps {
     onDestroy: (id: string, pos: [number, number, number], isHit: boolean, type: AsteroidType) => void;
 }
 
-export default function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
+function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
     const rbRef = useRef<RapierRigidBody>(null);
     const entityRef = useRef<GameEntity | null>(null);
     const materialRef = useRef<THREE.MeshStandardMaterial>(null);
@@ -172,3 +172,5 @@ export default function Asteroid({ id, startPos, type, active, onDestroy }: Aste
         </RigidBody>
     );
 }
+
+export default memo(Asteroid);

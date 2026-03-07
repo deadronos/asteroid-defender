@@ -35,7 +35,8 @@ export default function AsteroidSpawner() {
             // 1. Calculate how many asteroids are "in close proximity"
             let closeCount = 0;
             for (const entity of asteroidQuery) {
-                if (entity.position && entity.position.distanceTo(origin) < 25) {
+                // Use distanceToSquared to avoid Math.sqrt in the hot loop
+                if (entity.position && entity.position.distanceToSquared(origin) < 625) {
                     closeCount++;
                 }
             }

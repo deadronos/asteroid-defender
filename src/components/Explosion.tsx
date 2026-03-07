@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, memo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { AsteroidType } from '../ecs/world';
@@ -17,7 +17,7 @@ interface ParticleProps {
     active: boolean;
 }
 
-const Particle = ({ startPos, color, active }: ParticleProps) => {
+const Particle = memo(({ startPos, color, active }: ParticleProps) => {
     const meshRef = useRef<THREE.Mesh>(null);
     const materialRef = useRef<THREE.MeshStandardMaterial>(null);
     const lifeRef = useRef(1.0);
@@ -67,7 +67,7 @@ const Particle = ({ startPos, color, active }: ParticleProps) => {
             <meshStandardMaterial ref={materialRef} color={color} emissive={EMISSIVE_COLOR} toneMapped={false} flatShading transparent opacity={1} />
         </mesh>
     );
-};
+});
 
 interface ExplosionProps {
     position: [number, number, number];
@@ -75,7 +75,7 @@ interface ExplosionProps {
     active: boolean;
 }
 
-export default function Explosion({ position, type, active }: ExplosionProps) {
+function Explosion({ position, type, active }: ExplosionProps) {
     const blastLightRef = useRef<THREE.PointLight>(null);
     const lifeRef = useRef(1);
 
@@ -109,3 +109,5 @@ export default function Explosion({ position, type, active }: ExplosionProps) {
         </group>
     );
 }
+
+export default memo(Explosion);

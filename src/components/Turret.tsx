@@ -14,6 +14,8 @@ interface TurretProps {
 const LASER_ORIGIN_Z = 3.5;
 const TURRET_RANGE = 50;
 
+const tempVec = new THREE.Vector3();
+
 export default function Turret({ id, position, rotation }: TurretProps) {
     const turretGroup = useRef<THREE.Group>(null);
     const [hasTarget, setHasTarget] = useState(false);
@@ -54,25 +56,26 @@ export default function Turret({ id, position, rotation }: TurretProps) {
         let nearestEntity: GameEntity | null = null;
 
         const rangeSq = TURRET_RANGE * TURRET_RANGE;
+        const isTopTurret = turretGroup.current.position.y > 0;
+
         for (const entity of asteroidQuery.entities) {
             if (entity.position) {
+                // Hemisphere check first - avoid distance calculations for entities on the other side
+                const isTopAsteroid = entity.position.y > 0;
+                if (isTopTurret !== isTopAsteroid) continue;
+
                 let distSq = turretGroup.current.position.distanceToSquared(entity.position);
                 if (distSq > rangeSq) continue;
 
-                const isTopTurret = turretGroup.current.position.y > 0;
-                const isTopAsteroid = entity.position.y > 0;
+                // Artificially inflate the distance if this asteroid is already targeted by ANOTHER turret
+                // This encourages turrets to pick unique targets if there is more than 1 in range
+                if (entity.targetedBy && entity.targetedBy !== id) {
+                    distSq += 400; // 20 units penalty
+                }
 
-                if (isTopTurret === isTopAsteroid) {
-                    // Artificially inflate the distance if this asteroid is already targeted by ANOTHER turret
-                    // This encourages turrets to pick unique targets if there is more than 1 in range
-                    if (entity.targetedBy && entity.targetedBy !== id) {
-                        distSq += 400; // 20 units penalty
-                    }
-
-                    if (distSq < nearestDistSq && distSq < rangeSq) {
-                        nearestDistSq = distSq;
-                        nearestEntity = entity;
-                    }
+                if (distSq < nearestDistSq) {
+                    nearestDistSq = distSq;
+                    nearestEntity = entity;
                 }
             }
         }
@@ -91,7 +94,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
 
             // Calculate and maintain localTarget reference since the meshes are nested 
             turretGroup.current.updateMatrixWorld();
-            const worldToLocal = turretGroup.current.worldToLocal(targetPosRef.current.clone());
+            const worldToLocal = turretGroup.current.worldToLocal(tempVec.copy(targetPosRef.current));
             localTargetRef.current.copy(worldToLocal);
 
             nearestEntity.targetedBy = id;

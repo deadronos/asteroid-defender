@@ -158,35 +158,31 @@ export default function GameScene() {
         }
 
         setAsteroids(prev => {
-            let nextPrev = prev;
+            const nextAsteroids = [...prev];
 
-            const idx = prev.findIndex(ast => ast.id === id);
+            const idx = nextAsteroids.findIndex(ast => ast.id === id);
             if (idx !== -1) {
-                const newAsteroids = [...prev];
-                newAsteroids[idx] = { ...newAsteroids[idx], active: false };
-                nextPrev = newAsteroids;
+                nextAsteroids[idx] = { ...nextAsteroids[idx], active: false };
             }
 
             // Splitters spawn two swarmer fragments when destroyed by turrets
             if (type === 'splitter' && !isBaseHit) {
                 const offset = 2.0;
                 let splitsLeft = 2;
-                for (let i = 0; i < nextPrev.length && splitsLeft > 0; i++) {
-                    if (!nextPrev[i].active) {
-                        const newSpawn = [...nextPrev];
-                        newSpawn[i] = {
-                            ...newSpawn[i],
+                for (let i = 0; i < nextAsteroids.length && splitsLeft > 0; i++) {
+                    if (!nextAsteroids[i].active) {
+                        nextAsteroids[i] = {
+                            ...nextAsteroids[i],
                             active: true,
                             type: 'swarmer',
                             pos: [pos[0] + (splitsLeft === 2 ? offset : -offset), pos[1], pos[2]]
                         };
-                        nextPrev = newSpawn;
                         splitsLeft--;
                     }
                 }
             }
 
-            return nextPrev;
+            return nextAsteroids;
         });
 
         triggerExplosion(pos, type);
