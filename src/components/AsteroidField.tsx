@@ -5,8 +5,6 @@ import {
   AsteroidType,
   ECS,
   GameEntity,
-  removeAsteroidFromSpatialIndex,
-  updateAsteroidSpatialIndex,
 } from '../ecs/world';
 import { clearAsteroidSpawns, drainAsteroidSpawns } from '../ecs/asteroidSpawnQueue';
 import useGameStore from '../store/gameStore';
@@ -76,7 +74,7 @@ export default function AsteroidField({ onDestroy }: AsteroidFieldProps) {
     const runtime = runtimesRef.current[index];
     if (!runtime) return;
 
-    removeAsteroidFromSpatialIndex(runtime.entity);
+    
     ECS.remove(runtime.entity);
     runtimeByIdRef.current.delete(runtime.id);
     runtimeTypeCountsRef.current[runtime.type] = Math.max(
@@ -107,7 +105,7 @@ export default function AsteroidField({ onDestroy }: AsteroidFieldProps) {
       asteroidType: type,
       targetedBy: null,
     });
-    updateAsteroidSpatialIndex(entity, position);
+    
 
     const runtime: RuntimeAsteroid = {
       id,
@@ -144,7 +142,7 @@ export default function AsteroidField({ onDestroy }: AsteroidFieldProps) {
 
     return () => {
       for (const runtime of runtimesRef.current) {
-        removeAsteroidFromSpatialIndex(runtime.entity);
+        
         ECS.remove(runtime.entity);
       }
       runtimesRef.current.length = 0;
@@ -188,7 +186,7 @@ export default function AsteroidField({ onDestroy }: AsteroidFieldProps) {
           continue;
         }
 
-        updateAsteroidSpatialIndex(runtime.entity, runtime.position);
+        
       }
     }
 
