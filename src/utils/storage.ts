@@ -1,22 +1,70 @@
 const SECRET_KEY = 'asteroid-defender-onboarding-salt';
 
-/**
- * A simple XOR-based obfuscation to avoid storing data in plain text in localStorage.
- * While not cryptographically secure against a determined attacker with access to the source code,
- * it prevents casual inspection and improves the security posture for non-sensitive flags.
- */
-const xorProcess = (text: string, key: string): string => {
-    return Array.from(text)
-        .map((char, i) => String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length)))
-        .join('');
+const getLocalStorage = (): Storage | null => {
+    // In browser environments, localStorage is available on `window` (and `globalThis`).
+    // In unit tests or certain runtimes (Node), it may be absent.
+    return typeof globalThis !== 'undefined' ? (globalThis.localStorage as Storage | undefined) ?? null : null;
+};
+
+const toBase64 = (input: string): string => {
+    if (typeof btoa === 'function') {
+        // btoa expects Latin1; encode to UTF-8 bytes first.
+        const bytes = new TextEncoder().encode(input);
+        const binary = Array.from(bytes, (b) => String.fromCharCode(b)).join('');
+        return btoa(binary);
+    }
+
+    if (typeof Buffer !== 'undefined') {
+        return Buffer.from(input, 'utf-8').toString('base64');
+    }
+
+    throw new Error('No base64 encoder available in this environment');
+};
+
+const fromBase64 = (input: string): string => {
+    if (typeof atob === 'function') {
+        const binary = atob(input);
+        const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+        return new TextDecoder().decode(bytes);
+    }
+
+    if (typeof Buffer !== 'undefined') {
+        return Buffer.from(input, 'base64').toString('utf-8');
+    }
+
+    throw new Error('No base64 decoder available in this environment');
+};
+
+const xorBytes = (data: Uint8Array, key: Uint8Array): Uint8Array => {
+    const output = new Uint8Array(data.length);
+    for (let i = 0; i < data.length; i += 1) {
+        output[i] = data[i] ^ key[i % key.length];
+    }
+    return output;
+};
+
+const bytesToBinaryString = (bytes: Uint8Array): string => {
+    // Avoid call-argument limits by chunking.
+    const chunkSize = 0x8000;
+    let result = '';
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        result += String.fromCharCode(...chunk);
+    }
+    return result;
 };
 
 export const setSecureItem = (key: string, value: string): void => {
     try {
-        const processed = xorProcess(value, SECRET_KEY);
-        // Using btoa for a basic base64 encoding of the obfuscated string
-        const encoded = btoa(processed);
-        window.localStorage.setItem(key, encoded);
+        const storage = getLocalStorage();
+        if (!storage) return;
+
+        const secretBytes = new TextEncoder().encode(SECRET_KEY);
+        const valueBytes = new TextEncoder().encode(value);
+        const xored = xorBytes(valueBytes, secretBytes);
+        const encoded = toBase64(bytesToBinaryString(xored));
+
+        storage.setItem(key, encoded);
     } catch (error) {
         console.warn('Failed to save secure item to localStorage:', error);
     }
@@ -24,11 +72,18 @@ export const setSecureItem = (key: string, value: string): void => {
 
 export const getSecureItem = (key: string): string | null => {
     try {
-        const encoded = window.localStorage.getItem(key);
+        const storage = getLocalStorage();
+        if (!storage) return null;
+
+        const encoded = storage.getItem(key);
         if (encoded === null) return null;
 
-        const processed = atob(encoded);
-        return xorProcess(processed, SECRET_KEY);
+        const binary = fromBase64(encoded);
+        const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+        const secretBytes = new TextEncoder().encode(SECRET_KEY);
+        const decoded = xorBytes(bytes, secretBytes);
+
+        return new TextDecoder().decode(decoded);
     } catch (error) {
         console.warn('Failed to retrieve secure item from localStorage:', error);
         return null;

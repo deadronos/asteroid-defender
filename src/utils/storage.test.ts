@@ -1,10 +1,30 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setSecureItem, getSecureItem } from './storage';
 
+const createLocalStorageMock = () => {
+    let store: Record<string, string> = {};
+    return {
+        getItem: (key: string) => (key in store ? store[key] : null),
+        setItem: (key: string, value: string) => {
+            store[key] = value;
+        },
+        removeItem: (key: string) => {
+            delete store[key];
+        },
+        clear: () => {
+            store = {};
+        },
+    };
+};
+
 describe('storage utility', () => {
     beforeEach(() => {
-        // Clear localStorage before each test
-        window.localStorage.clear();
+        // Ensure global localStorage exists in the Node test environment
+        Object.defineProperty(globalThis, 'localStorage', {
+            value: createLocalStorageMock(),
+            configurable: true,
+        });
+
         vi.restoreAllMocks();
     });
 
@@ -14,7 +34,7 @@ describe('storage utility', () => {
 
         setSecureItem(key, value);
 
-        const storedValue = window.localStorage.getItem(key);
+        const storedValue = globalThis.localStorage.getItem(key);
         expect(storedValue).not.toBe(value);
         expect(storedValue).not.toBeNull();
     });
@@ -49,7 +69,7 @@ describe('storage utility', () => {
         const value = 'true';
 
         // Mock setItem to throw
-        const setItemMock = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        const setItemMock = vi.spyOn(globalThis.localStorage, 'setItem').mockImplementation(() => {
             throw new Error('Storage full');
         });
 
@@ -58,6 +78,6 @@ describe('storage utility', () => {
         setSecureItem(key, value);
 
         expect(consoleSpy).toHaveBeenCalled();
-        expect(window.localStorage.getItem(key)).toBeNull();
+        expect(globalThis.localStorage.getItem(key)).toBeNull();
     });
 });
