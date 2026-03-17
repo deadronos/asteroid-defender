@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import useGameStore from '../store/gameStore';
+import { getSecureItem, setSecureItem } from '../utils/storage';
 
 const ONBOARDING_STORAGE_KEY = 'asteroid-defender:onboarding-seen-v1';
 
@@ -53,7 +54,7 @@ export default function HUD() {
 
     useEffect(() => {
         try {
-            const hasSeenOnboarding = window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
+            const hasSeenOnboarding = getSecureItem(ONBOARDING_STORAGE_KEY) === 'true';
             if (!hasSeenOnboarding) {
                 setIsOnboardingOpen(true);
             }
@@ -66,7 +67,7 @@ export default function HUD() {
     const dismissOnboarding = () => {
         setIsOnboardingOpen(false);
         try {
-            window.localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+            setSecureItem(ONBOARDING_STORAGE_KEY, 'true');
         } catch {
             // Ignore storage failures; overlay can still be closed for the current session.
         }
