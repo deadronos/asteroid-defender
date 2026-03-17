@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { asteroidQuery, AsteroidType } from '../ecs/world';
 import { enqueueAsteroidSpawn } from '../ecs/asteroidSpawnQueue';
 import useGameStore from '../store/gameStore';
+import { nextId } from '../utils/id';
 
 function pickAsteroidType(): AsteroidType {
     const roll = Math.random();
@@ -58,7 +58,7 @@ export default function AsteroidSpawner() {
             const y = (radius * Math.sin(theta) * Math.sin(phi)) * 0.5;
             const z = radius * Math.cos(phi);
 
-            enqueueAsteroidSpawn({ id: uuidv4(), pos: [x, y, z], type: pickAsteroidType() });
+            enqueueAsteroidSpawn({ id: nextId(), pos: [x, y, z], type: pickAsteroidType() });
         }
     });
 
