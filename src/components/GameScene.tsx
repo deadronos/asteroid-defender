@@ -8,8 +8,8 @@ import Turret from './Turret';
 import Asteroid from './Asteroid';
 import AsteroidSpawner from './AsteroidSpawner';
 import Explosion from './Explosion';
-import { v4 as uuidv4 } from 'uuid';
 import { clearAsteroidSpawns, drainAsteroidSpawns } from '../ecs/asteroidSpawnQueue';
+import { nextId } from '../utils/id';
 
 // Lazy-load the cosmetic background so core gameplay geometry renders first.
 const SpaceBackground = lazy(() => import('./SpaceBackground'));
@@ -39,7 +39,7 @@ const POOL_SIZE = 60;
 export default function GameScene() {
     const [asteroids, setAsteroids] = useState<PooledAsteroid[]>(() =>
         Array.from({ length: POOL_SIZE }).map(() => ({
-            id: uuidv4(),
+            id: nextId(),
             active: false,
             pos: [0, -1000, 0],
             type: 'swarmer'
@@ -48,7 +48,7 @@ export default function GameScene() {
 
     const [explosions, setExplosions] = useState<PooledExplosion[]>(() =>
         Array.from({ length: POOL_SIZE }).map(() => ({
-            id: uuidv4(),
+            id: nextId(),
             active: false,
             pos: [0, -1000, 0],
             type: 'swarmer'
@@ -150,7 +150,7 @@ export default function GameScene() {
         if (!isBaseHit) {
             incrementDestroyed();
         } else {
-            const impactId = uuidv4();
+            const impactId = nextId();
             setShieldImpacts(prev => [...prev, { id: impactId, pos }]);
             setTimeout(() => {
                 setShieldImpacts(prev => prev.filter(impact => impact.id !== impactId));
