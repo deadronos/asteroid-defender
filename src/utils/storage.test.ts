@@ -64,6 +64,16 @@ describe('storage utility', () => {
         expect(retrievedValue).toBe(value);
     });
 
+    it('should handle unicode strings', () => {
+        const key = 'unicode-key';
+        const value = 'こんにちは世界 🌍';
+
+        setSecureItem(key, value);
+
+        const retrievedValue = getSecureItem(key);
+        expect(retrievedValue).toBe(value);
+    });
+
     it('should handle storage failures gracefully', () => {
         const key = 'test-key';
         const value = 'true';

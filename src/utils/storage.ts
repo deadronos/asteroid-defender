@@ -1,3 +1,6 @@
+// NOTE: This module is intended to prevent casual inspection of stored values,
+// not to provide cryptographic security. The obfuscation strategy here is NOT
+// encryption and should not be treated as a security boundary.
 const SECRET_KEY = 'asteroid-defender-onboarding-salt';
 
 const getLocalStorage = (): Storage | null => {
