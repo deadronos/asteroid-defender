@@ -60,6 +60,12 @@ describe('gameStore gameplay state machine', () => {
     expect(useGameStore.getState().health).toBe(before - 20);
   });
 
+  it('clamps health to a minimum of 0 when damage exceeds current health', () => {
+    useGameStore.getState().startGame();
+    useGameStore.getState().takeDamage(useGameStore.getState().maxHealth + 50);
+    expect(useGameStore.getState().health).toBe(0);
+  });
+
   it('sets gameover when health reaches zero and restart creates fresh run', () => {
     useGameStore.getState().startGame();
     useGameStore.getState().takeDamage(1000);
@@ -135,6 +141,19 @@ describe('gameStore camera settings', () => {
     const state = useGameStore.getState();
     expect(state.cameraMode).toBe('static');
     expect(state.reducedMotion).toBe(true);
+  });
+});
+
+describe('gameStore state updaters', () => {
+  it('incrementDestroyed increases asteroidsDestroyed count', () => {
+    const before = useGameStore.getState().asteroidsDestroyed;
+    useGameStore.getState().incrementDestroyed();
+    expect(useGameStore.getState().asteroidsDestroyed).toBe(before + 1);
+  });
+
+  it('setActiveAsteroids sets the activeAsteroids count', () => {
+    useGameStore.getState().setActiveAsteroids(42);
+    expect(useGameStore.getState().activeAsteroids).toBe(42);
   });
 });
 
