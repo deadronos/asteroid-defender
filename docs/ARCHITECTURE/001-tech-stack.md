@@ -4,7 +4,7 @@
 Building a real-time 3D game in the browser requires a stack that can maintain 60 frames per second while handling complex data flows (physics, input, rendering, and game logic). Traditional React state management inherently causes re-renders, which dramatically impacts the performance of a `requestAnimationFrame` based game loop.
 
 ## Decision
-We elected to use the **React Three Fiber (R3F)** ecosystem coupled with an **Entity Component System (ECS)** and a **Web Worker-driven Physics Engine**.
+We elected to use the **React Three Fiber (R3F)** ecosystem coupled with an **Entity Component System (ECS)** and a **WASM-based Physics Engine**.
 
 ### Core Renderer
 - **`three.js`**: WebGL abstraction for 3D mathematics and scene graph.
@@ -13,7 +13,7 @@ We elected to use the **React Three Fiber (R3F)** ecosystem coupled with an **En
 
 ### Physics Engine
 - **`@react-three/rapier`**: A React wrapper for Rapier3D, a hardware-accelerated physics engine compiled to WebAssembly. 
-- *Why:* It offloads complex collision detection and rigid body physics calculations to a background thread, keeping the main thread free for rendering. We use it to drive Asteroid velocity and handle potential entity collisions.
+- *Why:* It uses Rapier compiled to WebAssembly to perform physics calculations efficiently (running on the main thread in this project). We use it to drive Asteroid velocity and handle potential entity collisions.
 
 ### Game State Management (ECS)
 - **`miniplex` & `miniplex-react`**: A lightweight Entity Component System tailored for React and R3F.

@@ -15,8 +15,8 @@ The origin `[0, 0, 0]` serves as the critical defense point. It is a static mesh
   1. `swarmer`: Fast, low health, low damage.
   2. `tank`: Slow, very high health, massive damage on impact.
   3. `splitter`: Medium speed and health. Upon destruction by a turret, it shatters into multiple `swarmer` fragments.
-- **Movement**: Asteroids are spawned perfectly along the boundary of a 40-unit radius sphere. Upon creation, their `<RigidBody>` is assigned a constant linear velocity directly towards the origin.
-- **Data Structure**: Asteroids write their position back into the ECS on every frame and manage their own `health` integer.
+- **Movement**: Asteroids are spawned roughly along a 40-unit radius shell (with a slight vertical flattening to keep the swarm focused in the play area). Upon creation, their `<RigidBody>` is assigned a constant linear velocity directly towards the origin.
+- **Data Structure**: Asteroids write their position back into the ECS on every frame and manage their own `health` value (which can be fractional due to per-frame damage).
 
 ### 3. The Turret Defenses (Automata)
 There are four turrets rigidly mounted to the top and bottom of the platform.
