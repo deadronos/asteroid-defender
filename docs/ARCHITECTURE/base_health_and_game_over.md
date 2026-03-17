@@ -5,7 +5,7 @@ The application was modified to introduce a lose condition where asteroids that 
 
 ## Components Modified
 
-### 1. Store (`gameStore.js`)
+### 1. Store (`gameStore.ts`)
 - Introduced `health` and `maxHealth` to track platform integrity.
 - Introduced `gameState` to distinguish between `'playing'` and `'gameover'` modes.
 - Added `takeDamage(amount)` action that deducts health and triggers the `'gameover'` state if health reaches 0.
@@ -13,7 +13,7 @@ The application was modified to introduce a lose condition where asteroids that 
 
 ### 2. Collision & Damage Logic (`Asteroid.jsx`)
 - Modifed the movement logic inside `useFrame`.
-- Asteroids continuously compute their distance to the origin `(0,0,0)`. If `currentPos.length() <= 3` (simulating hitting the platform collider), the asteroid is destroyed, triggering the explosion UI and deducting 10 health from the base via the `useGameStore`.
+- Asteroids continuously compute their distance to the origin `(0,0,0)`. If `currentPos.length() <= 3` (simulating hitting the platform collider), the asteroid is destroyed, triggering the explosion UI and deducting health from the base via `useGameStore` based on the asteroid's `damage` stat (e.g. 5 / 10 / 30 depending on class).
 - During `'gameover'` state, the rigid bodies are frozen by setting `linvel` and `angvel` to zero.
 
 ### 3. Destruction Handling (`GameScene.jsx`)
@@ -29,4 +29,4 @@ The application was modified to introduce a lose condition where asteroids that 
 ### 5. UI Layer (`HUD.jsx`)
 - Added a health bar widget to the main HUD showing `Base Integrity`.
 - Added a fullscreen overlay that appears when `gameState === 'gameover'`, showing a "BASE DESTROYED" message, the final score, and a "Restart Protocol" button.
-- The restart button currently calls `window.location.reload()`, which efficiently resets the entire React Three Fiber canvas, Rapier physics world, and custom ECS data.
+- The restart button triggers the `restartGame()` action in the global store, which resets health/score/session state and reinitializes the ECS without requiring a full page reload.
