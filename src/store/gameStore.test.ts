@@ -60,6 +60,12 @@ describe('gameStore gameplay state machine', () => {
     expect(useGameStore.getState().health).toBe(before - 20);
   });
 
+  it('clamps health to a minimum of 0 when damage exceeds current health', () => {
+    useGameStore.getState().startGame();
+    useGameStore.getState().takeDamage(useGameStore.getState().maxHealth + 50);
+    expect(useGameStore.getState().health).toBe(0);
+  });
+
   it('sets gameover when health reaches zero and restart creates fresh run', () => {
     useGameStore.getState().startGame();
     useGameStore.getState().takeDamage(1000);
@@ -79,28 +85,30 @@ describe('gameStore gameplay state machine', () => {
   it('tracks run start and end timestamps across restart', () => {
     const nowSpy = vi.spyOn(Date, 'now');
 
-    nowSpy.mockReturnValue(1000);
-    useGameStore.getState().startGame();
+    try {
+      nowSpy.mockReturnValue(1000);
+      useGameStore.getState().startGame();
 
-    let state = useGameStore.getState();
-    expect(state.runStartedAt).toBe(1000);
-    expect(state.runEndedAt).toBeNull();
+      let state = useGameStore.getState();
+      expect(state.runStartedAt).toBe(1000);
+      expect(state.runEndedAt).toBeNull();
 
-    nowSpy.mockReturnValue(2500);
-    useGameStore.getState().takeDamage(1000);
+      nowSpy.mockReturnValue(2500);
+      useGameStore.getState().takeDamage(1000);
 
-    state = useGameStore.getState();
-    expect(state.gameState).toBe('gameover');
-    expect(state.runEndedAt).toBe(2500);
+      state = useGameStore.getState();
+      expect(state.gameState).toBe('gameover');
+      expect(state.runEndedAt).toBe(2500);
 
-    nowSpy.mockReturnValue(4000);
-    useGameStore.getState().restartGame();
+      nowSpy.mockReturnValue(4000);
+      useGameStore.getState().restartGame();
 
-    state = useGameStore.getState();
-    expect(state.runStartedAt).toBe(4000);
-    expect(state.runEndedAt).toBeNull();
-
-    nowSpy.mockRestore();
+      state = useGameStore.getState();
+      expect(state.runStartedAt).toBe(4000);
+      expect(state.runEndedAt).toBeNull();
+    } finally {
+      nowSpy.mockRestore();
+    }
   });
 });
 
@@ -135,6 +143,19 @@ describe('gameStore camera settings', () => {
     const state = useGameStore.getState();
     expect(state.cameraMode).toBe('static');
     expect(state.reducedMotion).toBe(true);
+  });
+});
+
+describe('gameStore state updaters', () => {
+  it('incrementDestroyed increases asteroidsDestroyed count', () => {
+    const before = useGameStore.getState().asteroidsDestroyed;
+    useGameStore.getState().incrementDestroyed();
+    expect(useGameStore.getState().asteroidsDestroyed).toBe(before + 1);
+  });
+
+  it('setActiveAsteroids sets the activeAsteroids count', () => {
+    useGameStore.getState().setActiveAsteroids(42);
+    expect(useGameStore.getState().activeAsteroids).toBe(42);
   });
 });
 
