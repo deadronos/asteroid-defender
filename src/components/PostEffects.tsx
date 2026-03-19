@@ -15,9 +15,12 @@ function DynamicDepthOfField() {
 
     useFrame((_, delta) => {
         if (dofRef.current) {
-            // Smoothly interpolate current focus distance towards the target distance
-            dofRef.current.target = MathUtils.lerp(
-                dofRef.current.target,
+            // Smoothly interpolate current focus distance towards the target distance.
+            // Note: We interpolate the underlying material's focusDistance property
+            // directly as the library's 'target' property is reserved for Vector3
+            // auto-focus targets.
+            dofRef.current.cocMaterial.focusDistance = MathUtils.lerp(
+                dofRef.current.cocMaterial.focusDistance,
                 dofSettings.focusDistance,
                 delta * 2 // Lerp speed
             );
