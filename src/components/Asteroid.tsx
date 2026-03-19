@@ -29,6 +29,9 @@ import useGameStore from '../store/gameStore';
 const tempVec = new THREE.Vector3();
 const tempDir = new THREE.Vector3();
 
+// Pre-allocated colour scratch to avoid per-frame GC pressure in proximity glow
+const _proxColor = new THREE.Color();
+
 interface AsteroidConfig {
     radius: number;
     speed: number;
@@ -55,6 +58,7 @@ function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
     const rbRef = useRef<RapierRigidBody>(null);
     const entityRef = useRef<GameEntity | null>(null);
     const materialRef = useRef<THREE.MeshStandardMaterial>(null);
+    const dangerRingMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
 
     // Pooling: Instead of re-mounting, randomize values manually
     const tumbleRef = useRef({
@@ -116,6 +120,7 @@ function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
             }
             if (materialRef.current) {
                 materialRef.current.emissive.setHex(0x000000);
+                materialRef.current.emissiveIntensity = 0;
             }
         }
 
@@ -128,7 +133,7 @@ function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [active, id, type, cfg.health]);
 
-    useFrame((_, delta) => {
+    useFrame((state, delta) => {
         if (!rbRef.current || !entityRef.current || !active) return;
 
         // Let the first frame pass to apply translation before moving towards center so Trail starts smooth
@@ -137,7 +142,7 @@ function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
             return;
         }
 
-        const gameState = useGameStore.getState().gameState;
+        const { gameState, reducedMotion } = useGameStore.getState();
         if (gameState !== 'playing') return;
 
         // Hit flash logic
@@ -154,6 +159,7 @@ function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
             }
             if (flashTimerRef.current <= 0 && materialRef.current) {
                 materialRef.current.emissive.setHex(0x000000);
+                materialRef.current.emissiveIntensity = 0;
             }
         }
 
@@ -175,19 +181,78 @@ function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
             onDestroy(id, [translation.x, translation.y, translation.z], true, type);
             return;
         }
+
+        // Proximity danger glow: pulse emissive colour as asteroid closes in on the base.
+        // Activates within 35 units and intensifies toward impact. Respects reduced-motion.
+        const dist = tempVec.length();
+        const imminentRatio = Math.max(0, 1 - dist / 35);
+
+        if (flashTimerRef.current <= 0 && materialRef.current) {
+            if (imminentRatio > 0) {
+                _proxColor.set(cfg.color);
+                materialRef.current.emissive.copy(_proxColor);
+                if (!reducedMotion) {
+                    const pulseSpeed = 3 + imminentRatio * 8;
+                    const pulseFactor = Math.sin(state.clock.elapsedTime * pulseSpeed) * 0.5 + 0.5;
+                    materialRef.current.emissiveIntensity = imminentRatio * 1.2 * pulseFactor;
+                } else {
+                    // Reduced-motion: static dim glow instead of pulsing
+                    materialRef.current.emissiveIntensity = imminentRatio > 0.5 ? imminentRatio * 0.4 : 0;
+                }
+            } else {
+                materialRef.current.emissive.setHex(0x000000);
+                materialRef.current.emissiveIntensity = 0;
+            }
+        }
+
+        // Tank-specific: pulse the outer danger ring opacity
+        if (type === 'tank' && dangerRingMaterialRef.current) {
+            if (!reducedMotion) {
+                const ringPulse = Math.sin(state.clock.elapsedTime * (1.5 + imminentRatio * 3)) * 0.25 + 0.75;
+                dangerRingMaterialRef.current.opacity = ringPulse * (0.25 + imminentRatio * 0.45);
+            } else {
+                dangerRingMaterialRef.current.opacity = 0.3 + imminentRatio * 0.3;
+            }
+        }
     });
 
     return (
         <RigidBody ref={rbRef} position={startPos} type="dynamic" colliders={false} gravityScale={0} friction={0} linearDamping={0}>
             <BallCollider args={[cfg.radius]} />
             {active && (
-                <Trail width={0.7} length={4} decay={1.2} stride={0.2} color={cfg.color} attenuation={(t) => t * t}>
-                    <mesh>
-                        <dodecahedronGeometry args={[cfg.radius, 0]} />
-                        <meshStandardMaterial ref={materialRef} color={cfg.color} flatShading />
-                        <Edges scale={1} threshold={15} color="black" />
-                    </mesh>
-                </Trail>
+                <group>
+                    <Trail width={0.7} length={4} decay={1.2} stride={0.2} color={cfg.color} attenuation={(t) => t * t}>
+                        <mesh>
+                            {type === 'swarmer' && <dodecahedronGeometry args={[cfg.radius, 0]} />}
+                            {type === 'tank' && <octahedronGeometry args={[cfg.radius, 0]} />}
+                            {type === 'splitter' && <icosahedronGeometry args={[cfg.radius, 0]} />}
+                            <meshStandardMaterial ref={materialRef} color={cfg.color} flatShading />
+                            <Edges scale={1} threshold={15} color="black" />
+                        </mesh>
+                    </Trail>
+
+                    {/* Tank: outer danger ring signals its high threat */}
+                    {type === 'tank' && (
+                        <mesh rotation={[Math.PI / 2, 0, 0]}>
+                            <ringGeometry args={[cfg.radius * 1.55, cfg.radius * 1.75, 16]} />
+                            <meshBasicMaterial ref={dangerRingMaterialRef} color="#ff3333" transparent opacity={0.4} side={THREE.DoubleSide} />
+                        </mesh>
+                    )}
+
+                    {/* Splitter: two intersecting rings hint at the split-on-destroy mechanic */}
+                    {type === 'splitter' && (
+                        <>
+                            <mesh rotation={[0, 0, Math.PI / 6]}>
+                                <ringGeometry args={[cfg.radius * 1.3, cfg.radius * 1.45, 12]} />
+                                <meshBasicMaterial color="#c084fc" transparent opacity={0.45} side={THREE.DoubleSide} />
+                            </mesh>
+                            <mesh rotation={[Math.PI / 3, 0, 0]}>
+                                <ringGeometry args={[cfg.radius * 1.3, cfg.radius * 1.45, 12]} />
+                                <meshBasicMaterial color="#c084fc" transparent opacity={0.45} side={THREE.DoubleSide} />
+                            </mesh>
+                        </>
+                    )}
+                </group>
             )}
         </RigidBody>
     );

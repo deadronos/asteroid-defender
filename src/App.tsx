@@ -13,10 +13,8 @@ const PostEffects = lazy(() => import('./components/PostEffects'));
 
 function App() {
   const [dpr, setDpr] = useState(1.5);
-  const { gameState, sessionId } = useGameStore((state) => ({
-    gameState: state.gameState,
-    sessionId: state.sessionId,
-  }));
+  const gameState = useGameStore((state) => state.gameState);
+  const sessionId = useGameStore((state) => state.sessionId);
 
   return (
     <>
