@@ -134,11 +134,22 @@ export default function GameScene() {
             setAsteroids(prev => {
                 const newAsteroids = [...prev];
                 let modified = false;
+                let nextAvailableIdx = 0;
                 for (const ast of spawns) {
-                    const nextIdx = newAsteroids.findIndex(a => !a.active);
-                    if (nextIdx !== -1) {
-                        newAsteroids[nextIdx] = { ...newAsteroids[nextIdx], active: true, pos: ast.pos, type: ast.type };
+                    while (nextAvailableIdx < newAsteroids.length && newAsteroids[nextAvailableIdx].active) {
+                        nextAvailableIdx++;
+                    }
+                    if (nextAvailableIdx < newAsteroids.length) {
+                        newAsteroids[nextAvailableIdx] = {
+                            ...newAsteroids[nextAvailableIdx],
+                            active: true,
+                            pos: ast.pos,
+                            type: ast.type
+                        };
                         modified = true;
+                        nextAvailableIdx++;
+                    } else {
+                        break;
                     }
                 }
                 return modified ? newAsteroids : prev;
