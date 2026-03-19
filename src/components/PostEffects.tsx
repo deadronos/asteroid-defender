@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { EffectComposer, Bloom, DepthOfField } from '@react-three/postprocessing';
+import { DepthOfFieldEffect } from 'postprocessing';
 import { MathUtils } from 'three';
 import { dofSettings } from './CinematicCamera';
 
@@ -10,7 +11,7 @@ import { dofSettings } from './CinematicCamera';
  * instead of snapping instantly to the next focus distance.
  */
 function DynamicDepthOfField() {
-    const dofRef = useRef<any>(null);
+    const dofRef = useRef<DepthOfFieldEffect>(null);
 
     useFrame((_, delta) => {
         if (dofRef.current) {
