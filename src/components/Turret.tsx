@@ -2,6 +2,7 @@ import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Edges, Line } from '@react-three/drei';
 import * as THREE from 'three';
+import { Line2, LineMaterial } from 'three-stdlib';
 import { GameEntity, asteroidQuery } from '../ecs/world';
 import useGameStore from '../store/gameStore';
 
@@ -24,12 +25,12 @@ export default function Turret({ id, position, rotation }: TurretProps) {
     const nextRecalibrationRef = useRef(6 + Math.random() * 5);
     const recalibrationStartRef = useRef<number | null>(null);
     const pulseRef = useRef(0);
-    const laserMaterialRef = useRef<any>(null);
+    const laserMaterialRef = useRef<LineMaterial>(null);
     const impactRef = useRef<THREE.Mesh>(null);
     const coreMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
     const beamLightRef = useRef<THREE.PointLight>(null);
     const impactLightRef = useRef<THREE.PointLight>(null);
-    const lineRef = useRef<any>(null);
+    const lineRef = useRef<Line2>(null);
     const barrelGroupRef = useRef<THREE.Group>(null);
     const hologramRingRef = useRef<THREE.Mesh>(null);
     const hologramRingMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
