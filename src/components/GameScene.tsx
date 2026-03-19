@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useFrame } from '@react-three/fiber';
 import CinematicCamera from './CinematicCamera';
 import useGameStore from '../store/gameStore';
@@ -59,9 +60,13 @@ export default function GameScene() {
 
     const explosionsRef = useRef<PooledExplosion[]>([]);
 
-    const incrementDestroyed = useGameStore((state) => state.incrementDestroyed);
-    const setActiveAsteroids = useGameStore((state) => state.setActiveAsteroids);
-    const sessionId = useGameStore((state) => state.sessionId);
+    const { incrementDestroyed, setActiveAsteroids, sessionId } = useGameStore(
+        useShallow((state) => ({
+            incrementDestroyed: state.incrementDestroyed,
+            setActiveAsteroids: state.setActiveAsteroids,
+            sessionId: state.sessionId,
+        }))
+    );
 
     useEffect(() => {
         explosionsRef.current = explosions;
@@ -134,11 +139,22 @@ export default function GameScene() {
             setAsteroids(prev => {
                 const newAsteroids = [...prev];
                 let modified = false;
+                let nextAvailableIdx = 0;
                 for (const ast of spawns) {
-                    const nextIdx = newAsteroids.findIndex(a => !a.active);
-                    if (nextIdx !== -1) {
-                        newAsteroids[nextIdx] = { ...newAsteroids[nextIdx], active: true, pos: ast.pos, type: ast.type };
+                    while (nextAvailableIdx < newAsteroids.length && newAsteroids[nextAvailableIdx].active) {
+                        nextAvailableIdx++;
+                    }
+                    if (nextAvailableIdx < newAsteroids.length) {
+                        newAsteroids[nextAvailableIdx] = {
+                            ...newAsteroids[nextAvailableIdx],
+                            active: true,
+                            pos: ast.pos,
+                            type: ast.type
+                        };
                         modified = true;
+                        nextAvailableIdx++;
+                    } else {
+                        break;
                     }
                 }
                 return modified ? newAsteroids : prev;
@@ -190,7 +206,10 @@ export default function GameScene() {
 
     // Sync asteroid count with global store to avoid updating during another component's render
     useEffect(() => {
-        const activeCount = asteroids.filter(a => a.active).length;
+        let activeCount = 0;
+        for (let i = 0; i < asteroids.length; i++) {
+            if (asteroids[i].active) activeCount++;
+        }
         setActiveAsteroids(activeCount);
     }, [asteroids, setActiveAsteroids]);
 
