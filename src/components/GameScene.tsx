@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useFrame } from '@react-three/fiber';
 import CinematicCamera from './CinematicCamera';
 import useGameStore from '../store/gameStore';
@@ -59,9 +60,13 @@ export default function GameScene() {
 
     const explosionsRef = useRef<PooledExplosion[]>([]);
 
-    const incrementDestroyed = useGameStore((state) => state.incrementDestroyed);
-    const setActiveAsteroids = useGameStore((state) => state.setActiveAsteroids);
-    const sessionId = useGameStore((state) => state.sessionId);
+    const { incrementDestroyed, setActiveAsteroids, sessionId } = useGameStore(
+        useShallow((state) => ({
+            incrementDestroyed: state.incrementDestroyed,
+            setActiveAsteroids: state.setActiveAsteroids,
+            sessionId: state.sessionId,
+        }))
+    );
 
     useEffect(() => {
         explosionsRef.current = explosions;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import useGameStore from '../store/gameStore';
 import { getSecureItem, setSecureItem } from '../utils/storage';
 
@@ -12,24 +13,47 @@ function formatDuration(milliseconds: number) {
 }
 
 export default function HUD() {
-    const asteroidsDestroyed = useGameStore((state) => state.asteroidsDestroyed);
-    const activeAsteroids = useGameStore((state) => state.activeAsteroids);
-    const health = useGameStore((state) => state.health);
-    const maxHealth = useGameStore((state) => state.maxHealth);
-    const gameState = useGameStore((state) => state.gameState);
-    const runStartedAt = useGameStore((state) => state.runStartedAt);
-    const runEndedAt = useGameStore((state) => state.runEndedAt);
-    const startGame = useGameStore((state) => state.startGame);
-    const togglePause = useGameStore((state) => state.togglePause);
-    const resumeGame = useGameStore((state) => state.resumeGame);
-    const restartGame = useGameStore((state) => state.restartGame);
-    const cameraMode = useGameStore((state) => state.cameraMode);
-    const reducedMotion = useGameStore((state) => state.reducedMotion);
-    const showCinematicIndicator = useGameStore((state) => state.showCinematicIndicator);
-    const inCinematicTransition = useGameStore((state) => state.inCinematicTransition);
-    const toggleCameraMode = useGameStore((state) => state.toggleCameraMode);
-    const toggleReducedMotion = useGameStore((state) => state.toggleReducedMotion);
-    const toggleCinematicIndicator = useGameStore((state) => state.toggleCinematicIndicator);
+    const {
+        asteroidsDestroyed,
+        activeAsteroids,
+        health,
+        maxHealth,
+        gameState,
+        runStartedAt,
+        runEndedAt,
+        startGame,
+        togglePause,
+        resumeGame,
+        restartGame,
+        cameraMode,
+        reducedMotion,
+        showCinematicIndicator,
+        inCinematicTransition,
+        toggleCameraMode,
+        toggleReducedMotion,
+        toggleCinematicIndicator,
+    } = useGameStore(
+        useShallow((state) => ({
+            asteroidsDestroyed: state.asteroidsDestroyed,
+            activeAsteroids: state.activeAsteroids,
+            health: state.health,
+            maxHealth: state.maxHealth,
+            gameState: state.gameState,
+            runStartedAt: state.runStartedAt,
+            runEndedAt: state.runEndedAt,
+            startGame: state.startGame,
+            togglePause: state.togglePause,
+            resumeGame: state.resumeGame,
+            restartGame: state.restartGame,
+            cameraMode: state.cameraMode,
+            reducedMotion: state.reducedMotion,
+            showCinematicIndicator: state.showCinematicIndicator,
+            inCinematicTransition: state.inCinematicTransition,
+            toggleCameraMode: state.toggleCameraMode,
+            toggleReducedMotion: state.toggleReducedMotion,
+            toggleCinematicIndicator: state.toggleCinematicIndicator,
+        }))
+    );
     const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
     // trigger a brief visual pulse when the game state changes
     const [badgePulse, setBadgePulse] = useState(false);
