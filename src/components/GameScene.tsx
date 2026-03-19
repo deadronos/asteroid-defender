@@ -206,7 +206,10 @@ export default function GameScene() {
 
     // Sync asteroid count with global store to avoid updating during another component's render
     useEffect(() => {
-        const activeCount = asteroids.filter(a => a.active).length;
+        let activeCount = 0;
+        for (let i = 0; i < asteroids.length; i++) {
+            if (asteroids[i].active) activeCount++;
+        }
         setActiveAsteroids(activeCount);
     }, [asteroids, setActiveAsteroids]);
 
