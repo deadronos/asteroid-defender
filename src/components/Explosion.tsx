@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { AsteroidType } from '../ecs/world';
 
-export const EXPLOSION_COLORS: Record<AsteroidType, string> = {
+const EXPLOSION_COLORS: Record<AsteroidType, string> = {
     swarmer: '#d4a843',
     tank: '#555555',
     splitter: '#a855f7',

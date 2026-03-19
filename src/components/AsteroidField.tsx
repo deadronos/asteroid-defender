@@ -132,6 +132,9 @@ export default function AsteroidField({ onDestroy }: AsteroidFieldProps) {
   };
 
   useEffect(() => {
+    const runtimes = runtimesRef.current;
+    const runtimeById = runtimeByIdRef.current;
+
     for (const type of ASTEROID_TYPES) {
       const mesh = meshRefs.current[type];
       if (mesh) {
@@ -141,12 +144,12 @@ export default function AsteroidField({ onDestroy }: AsteroidFieldProps) {
     }
 
     return () => {
-      for (const runtime of runtimesRef.current) {
+      for (const runtime of runtimes) {
         
         ECS.remove(runtime.entity);
       }
-      runtimesRef.current.length = 0;
-      runtimeByIdRef.current.clear();
+      runtimes.length = 0;
+      runtimeById.clear();
       runtimeTypeCountsRef.current = { swarmer: 0, tank: 0, splitter: 0 };
       activeCountRef.current = 0;
       useGameStore.getState().setActiveAsteroids(0);

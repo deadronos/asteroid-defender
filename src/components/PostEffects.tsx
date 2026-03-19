@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { EffectComposer, Bloom, DepthOfField } from '@react-three/postprocessing';
 import { DepthOfFieldEffect } from 'postprocessing';
 import { MathUtils } from 'three';
-import { dofSettings } from './CinematicCamera';
+import { dofSettings } from './cinematicCameraDof';
 
 /**
  * Bridges the imperative dofSettings singleton (mutated by CinematicCamera on

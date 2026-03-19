@@ -79,7 +79,7 @@ describe('storage utility', () => {
         const value = 'true';
 
         // Mock setItem to throw
-        const setItemMock = vi.spyOn(globalThis.localStorage, 'setItem').mockImplementation(() => {
+        vi.spyOn(globalThis.localStorage, 'setItem').mockImplementation(() => {
             throw new Error('Storage full');
         });
 

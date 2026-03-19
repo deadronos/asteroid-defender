@@ -158,22 +158,24 @@ function Nebula() {
 
 const DUST_COUNT = 400;
 
+function createSpaceDustData() {
+    const positions = new Float32Array(DUST_COUNT * 3);
+    const velocities = new Float32Array(DUST_COUNT * 3);
+    for (let i = 0; i < DUST_COUNT; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 50;
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 50;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
+        velocities[i * 3] = (Math.random() - 0.5) * 0.25;
+        velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.25;
+        velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.25;
+    }
+
+    return { positions, velocities };
+}
+
 function SpaceDust() {
     const pointsRef = useRef<THREE.Points>(null);
-
-    const { positions, velocities } = useMemo(() => {
-        const positions = new Float32Array(DUST_COUNT * 3);
-        const velocities = new Float32Array(DUST_COUNT * 3);
-        for (let i = 0; i < DUST_COUNT; i++) {
-            positions[i * 3] = (Math.random() - 0.5) * 50;
-            positions[i * 3 + 1] = (Math.random() - 0.5) * 50;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
-            velocities[i * 3] = (Math.random() - 0.5) * 0.25;
-            velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.25;
-            velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.25;
-        }
-        return { positions, velocities };
-    }, []);
+    const [{ positions, velocities }] = useState(createSpaceDustData);
 
     useFrame((_, delta) => {
         if (!pointsRef.current) return;
@@ -217,6 +219,28 @@ interface ShootingStarProps {
 const STREAK_VERT = `void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 const STREAK_FRAG = `uniform float uOpacity; void main() { gl_FragColor = vec4(0.87, 0.93, 1.0, uOpacity); }`;
 
+function createShootingStarTrajectory() {
+    // Place the start point on a background sphere
+    const theta = Math.random() * Math.PI * 2;
+    const phi = (Math.random() * 0.6 + 0.2) * Math.PI;
+    const r = 90;
+    const startPos = new THREE.Vector3(
+        r * Math.sin(phi) * Math.cos(theta),
+        r * Math.sin(phi) * Math.sin(theta),
+        r * Math.cos(phi),
+    );
+    // Velocity tangential to the sphere so the streak crosses the sky
+    const tangent = new THREE.Vector3(-Math.sin(theta), Math.cos(theta), 0).normalize();
+    const speed = 28 + Math.random() * 22;
+    const velocity = tangent.clone().multiplyScalar(speed);
+
+    // Orient the streak mesh along the velocity direction
+    const quaternion = new THREE.Quaternion();
+    quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
+
+    return { startPos, velocity, quaternion };
+}
+
 function ShootingStar({ onComplete }: ShootingStarProps) {
     const meshRef = useRef<THREE.Mesh>(null);
     const matRef = useRef<THREE.ShaderMaterial>(null);
@@ -224,28 +248,7 @@ function ShootingStar({ onComplete }: ShootingStarProps) {
     const doneRef = useRef(false);
     // Shader uniform updated directly each frame — no material property mutation
     const uniforms = useMemo(() => ({ uOpacity: { value: 0 } }), []);
-
-    const { startPos, velocity, quaternion } = useMemo(() => {
-        // Place the start point on a background sphere
-        const theta = Math.random() * Math.PI * 2;
-        const phi = (Math.random() * 0.6 + 0.2) * Math.PI;
-        const r = 90;
-        const startPos = new THREE.Vector3(
-            r * Math.sin(phi) * Math.cos(theta),
-            r * Math.sin(phi) * Math.sin(theta),
-            r * Math.cos(phi),
-        );
-        // Velocity tangential to the sphere so the streak crosses the sky
-        const tangent = new THREE.Vector3(-Math.sin(theta), Math.cos(theta), 0).normalize();
-        const speed = 28 + Math.random() * 22;
-        const velocity = tangent.clone().multiplyScalar(speed);
-
-        // Orient the streak mesh along the velocity direction
-        const quaternion = new THREE.Quaternion();
-        quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
-
-        return { startPos, velocity, quaternion };
-    }, []);
+    const [{ startPos, velocity, quaternion }] = useState(createShootingStarTrajectory);
 
     useFrame((_, delta) => {
         if (!meshRef.current || doneRef.current) return;
@@ -287,8 +290,9 @@ function ShootingStar({ onComplete }: ShootingStarProps) {
 
 function ShootingStars() {
     const [activeStars, setActiveStars] = useState<number[]>([]);
+    const [initialSpawnDelay] = useState(() => 3 + Math.random() * 5);
     const timerRef = useRef(0);
-    const nextSpawnRef = useRef(3 + Math.random() * 5);
+    const nextSpawnRef = useRef(initialSpawnDelay);
     const counterRef = useRef(0);
 
     useFrame((_, delta) => {
