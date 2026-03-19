@@ -1,3 +1,23 @@
+/**
+ * Asteroid rendering strategy: per-asteroid components with physics simulation.
+ *
+ * Each asteroid is a pooled React component backed by a Rapier RigidBody.  Physics
+ * simulation (collision, velocity) is delegated to Rapier, which gives accurate
+ * hit detection and natural tumble without manual matrix math.  A fixed-size pool
+ * (see POOL_SIZE in GameScene.tsx) is pre-allocated at startup; inactive entries
+ * are parked far off-screen so they incur no physics cost.
+ *
+ * Trade-offs vs. a GPU-instanced approach:
+ *  - Per-component overhead is higher at extreme asteroid counts (500+), but the
+ *    current design targets ≤ 60 simultaneous asteroids where per-component cost
+ *    is negligible and Rapier physics are essential for turret targeting via ECS.
+ *  - Visual quality benefits (Trail, Edges, per-asteroid hit-flash) would be
+ *    impossible with pure instancing.
+ *
+ * If future waves require hundreds of simultaneous asteroids, consider a hybrid
+ * where nearby / targeted asteroids keep this path and distant background debris
+ * uses instanced meshes without physics.
+ */
 import { useRef, useEffect, memo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, BallCollider, RapierRigidBody } from '@react-three/rapier';
