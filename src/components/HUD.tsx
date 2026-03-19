@@ -1,9 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useGameStore from '../store/gameStore';
 import { getSecureItem, setSecureItem } from '../utils/storage';
 
 const ONBOARDING_STORAGE_KEY = 'asteroid-defender:onboarding-seen-v1';
+
+function getInitialOnboardingOpen() {
+    try {
+        return getSecureItem(ONBOARDING_STORAGE_KEY) !== 'true';
+    } catch {
+        // If storage is unavailable, default to showing onboarding for accessibility.
+        return true;
+    }
+}
 
 function formatDuration(milliseconds: number) {
     const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
@@ -54,9 +63,7 @@ export default function HUD() {
             toggleCinematicIndicator: state.toggleCinematicIndicator,
         }))
     );
-    const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-    // trigger a brief visual pulse when the game state changes
-    const [badgePulse, setBadgePulse] = useState(false);
+    const [isOnboardingOpen, setIsOnboardingOpen] = useState(getInitialOnboardingOpen);
 
     const healthPercent = maxHealth > 0 ? (health / maxHealth) * 100 : 0;
     const runDuration = runStartedAt > 0 && runEndedAt !== null ? runEndedAt - runStartedAt : 0;
@@ -68,43 +75,24 @@ export default function HUD() {
         paused: { label: 'PAUSED', bg: 'rgba(245,158,11,0.2)', border: 'rgba(251,191,36,0.65)', color: '#fef3c7' },
         gameover: { label: 'GAME OVER', bg: 'rgba(239,68,68,0.2)', border: 'rgba(248,113,113,0.6)', color: '#fee2e2' },
     }[gameState];
-    // animate badge on state transitions
-    useEffect(() => {
-        // pulse the badge then clear after animation duration
-        setBadgePulse(true);
-        const t = setTimeout(() => setBadgePulse(false), 200);
-        return () => clearTimeout(t);
-    }, [gameState]);
 
-    useEffect(() => {
-        try {
-            const hasSeenOnboarding = getSecureItem(ONBOARDING_STORAGE_KEY) === 'true';
-            if (!hasSeenOnboarding) {
-                setIsOnboardingOpen(true);
-            }
-        } catch {
-            // If storage is unavailable, default to showing onboarding for accessibility.
-            setIsOnboardingOpen(true);
-        }
-    }, []);
-
-    const dismissOnboarding = () => {
+    const dismissOnboarding = useCallback(() => {
         setIsOnboardingOpen(false);
         try {
             setSecureItem(ONBOARDING_STORAGE_KEY, 'true');
         } catch {
             // Ignore storage failures; overlay can still be closed for the current session.
         }
-    };
+    }, []);
 
-    const startFromOnboarding = () => {
+    const startFromOnboarding = useCallback(() => {
         dismissOnboarding();
         startGame();
-    };
+    }, [dismissOnboarding, startGame]);
 
-    const openOnboarding = () => {
+    const openOnboarding = useCallback(() => {
         setIsOnboardingOpen(true);
-    };
+    }, []);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -165,6 +153,7 @@ export default function HUD() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <h1 style={{ margin: 0, fontSize: 'clamp(1.25rem, 3.5vw, 2rem)', color: '#fff' }}>Asteroid Defender</h1>
                     <span
+                        key={gameState}
                         aria-label={`Game state: ${stateBadge.label}`}
                         style={{
                             display: 'inline-flex',
@@ -181,8 +170,7 @@ export default function HUD() {
                             background: stateBadge.bg,
                             border: `1px solid ${stateBadge.border}`,
                             boxShadow: '0 3px 8px rgba(0,0,0,0.3)',
-                            transition: 'transform 0.2s ease-out',
-                            transform: badgePulse ? 'scale(1.2)' : 'scale(1)',
+                            animation: 'hud-badge-pulse 0.2s ease-out',
                         }}
                     >
                         {stateBadge.label}

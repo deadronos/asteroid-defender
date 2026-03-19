@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import useGameStore from '../store/gameStore';
+import { dofSettings } from './cinematicCameraDof';
 
 /** Seconds each shot is held before the next transition begins */
 const SHOT_DURATION = 17;
@@ -122,16 +123,7 @@ function findNextSafeShot(currentIdx: number, blockedShots: Set<number>): number
     return currentIdx;
 }
 
-/**
- * Shared mutable object – mutated by CinematicCamera on every shot change,
- * read by DynamicDepthOfField in App.tsx.  Using a plain object avoids the
- * overhead of Zustand or React context for per-shot (not per-frame) updates.
- */
-export const dofSettings = {
-    focusDistance: SHOTS[0].focusDist,
-    focalLength: 0.025,
-    bokehScale: 3,
-};
+const tempShakeOffset = new THREE.Vector3();
 
 /**
  * Cinematic camera manager.
@@ -359,9 +351,12 @@ export default function CinematicCamera() {
             if (timeSinceDamage < 0.5) {
                 const shakeScale = reducedMotion ? 0.3 : 1.0;
                 const shakeIntensity = (0.5 - timeSinceDamage) * 2.0 * shakeScale;
-                camera.position.x += (Math.random() - 0.5) * shakeIntensity;
-                camera.position.y += (Math.random() - 0.5) * shakeIntensity;
-                camera.position.z += (Math.random() - 0.5) * shakeIntensity * 0.5;
+                tempShakeOffset.set(
+                    (Math.random() - 0.5) * shakeIntensity,
+                    (Math.random() - 0.5) * shakeIntensity,
+                    (Math.random() - 0.5) * shakeIntensity * 0.5,
+                );
+                camera.position.add(tempShakeOffset);
             }
         }
     });

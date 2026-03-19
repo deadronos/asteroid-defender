@@ -60,11 +60,10 @@ export default function GameScene() {
 
     const explosionsRef = useRef<PooledExplosion[]>([]);
 
-    const { incrementDestroyed, setActiveAsteroids, sessionId } = useGameStore(
+    const { incrementDestroyed, setActiveAsteroids } = useGameStore(
         useShallow((state) => ({
             incrementDestroyed: state.incrementDestroyed,
             setActiveAsteroids: state.setActiveAsteroids,
-            sessionId: state.sessionId,
         }))
     );
 
@@ -81,32 +80,13 @@ export default function GameScene() {
     }, []);
 
     useEffect(() => {
+        clearAsteroidSpawns();
+
         return () => {
+            clearAsteroidSpawns();
             clearExplosionTimers(explosionsRef.current);
         };
     }, [clearExplosionTimers]);
-
-    useEffect(() => {
-        clearAsteroidSpawns();
-        setShieldImpacts([]);
-        setAsteroids((prev) => prev.map((ast) => ({
-            ...ast,
-            active: false,
-            pos: [0, -1000, 0],
-        })));
-        setExplosions((prev) => prev.map((exp) => {
-            if (exp.timer) {
-                clearTimeout(exp.timer);
-            }
-            return {
-                ...exp,
-                active: false,
-                pos: [0, -1000, 0],
-                timer: undefined,
-            };
-        }));
-        setActiveAsteroids(0);
-    }, [sessionId, setActiveAsteroids]);
 
     const triggerExplosion = useCallback((pos: [number, number, number], type: AsteroidType) => {
         setExplosions(prev => {

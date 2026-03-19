@@ -13,7 +13,10 @@ const PostEffects = lazy(() => import('./components/PostEffects'));
 
 function App() {
   const [dpr, setDpr] = useState(1.5);
-  const gameState = useGameStore((state) => state.gameState);
+  const { gameState, sessionId } = useGameStore((state) => ({
+    gameState: state.gameState,
+    sessionId: state.sessionId,
+  }));
 
   return (
     <>
@@ -28,7 +31,7 @@ function App() {
           <color attach="background" args={['#050510']} />
           <Suspense fallback={null}>
             <Physics paused={gameState !== 'playing'}>
-              <GameScene />
+              <GameScene key={sessionId} />
             </Physics>
           </Suspense>
           <Suspense fallback={null}>
