@@ -8,14 +8,14 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-three': ['three'],
-          'vendor-r3f': ['@react-three/fiber', '@react-three/drei'],
-          'vendor-rapier': ['@react-three/rapier'],
-          'vendor-postprocessing': ['@react-three/postprocessing', 'postprocessing'],
-          'vendor-state': ['zustand', 'miniplex', 'miniplex-react'],
-        },
+        manualChunks(id) {
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) return 'vendor-react';
+          if (id.includes('node_modules/three/')) return 'vendor-three';
+          if (id.includes('node_modules/@react-three/fiber/') || id.includes('node_modules/@react-three/drei/')) return 'vendor-r3f';
+          if (id.includes('node_modules/@react-three/rapier/')) return 'vendor-rapier';
+          if (id.includes('node_modules/@react-three/postprocessing/') || id.includes('node_modules/postprocessing/')) return 'vendor-postprocessing';
+          if (id.includes('node_modules/zustand') || id.includes('node_modules/miniplex')) return 'vendor-state';
+        }
       },
     },
   },
