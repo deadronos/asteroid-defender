@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { asteroidQuery, AsteroidType } from '../ecs/world';
+import { AsteroidType, queryAsteroidsInRange } from '../ecs/world';
 import { enqueueAsteroidSpawn } from '../ecs/asteroidSpawnQueue';
 import useGameStore from '../store/gameStore';
 import { nextId } from '../utils/id';
@@ -33,13 +33,7 @@ export default function AsteroidSpawner() {
             spawnTimer.current = 0; // Reset timer
 
             // 1. Calculate how many asteroids are "in close proximity"
-            let closeCount = 0;
-            for (const entity of asteroidQuery) {
-                // Use distanceToSquared to avoid Math.sqrt in the hot loop
-                if (entity.position && entity.position.distanceToSquared(origin) < 625) {
-                    closeCount++;
-                }
-            }
+            const closeCount = queryAsteroidsInRange(origin, 25).length;
 
             // 2. Adjust the spawnrate for the *next* spawn cycle
             // If < 3 asteroids are close, speed up spawning (lower interval bound to 0.5s)

@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useFrame } from '@react-three/fiber';
 import CinematicCamera from './CinematicCamera';
 import useGameStore from '../store/gameStore';
-import { AsteroidType } from '../ecs/world';
+import { AsteroidType, updateSpatialIndex } from '../ecs/world';
 import Platform from './Platform';
 import Turret from './Turret';
 import Asteroid from './Asteroid';
@@ -116,6 +116,7 @@ export default function GameScene() {
     }, []);
 
     useFrame(() => {
+        updateSpatialIndex();
         if (useGameStore.getState().gameState !== 'playing') return;
 
         const spawns = drainAsteroidSpawns();

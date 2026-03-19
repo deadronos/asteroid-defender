@@ -20,7 +20,7 @@ The origin `[0, 0, 0]` serves as the critical defense point. It is a static mesh
 
 ### 3. The Turret Defenses (Automata)
 There are four turrets rigidly mounted to the top and bottom of the platform.
-- **AI Targeting**: Turrets operate their own `useFrame` logic, scanning the ECS for the closest `isAsteroid=true` entity.
+- **AI Targeting**: Turrets operate their own `useFrame` logic, querying the spatial index grid (`queryAsteroidsInRange`) for nearby `isAsteroid=true` entities to avoid $O(N)$ full-world scans in hot loops.
 - **Hemispheric Restriction**: Turrets only evaluate asteroids in their respective hemisphere (Y > 0 or Y < 0) to prevent firing lasers "through" the platform hull.
 - **Target Distribution**: Turrets utilize collaborative targeting. They observe if an asteroid's `targetedBy` ECS field is populated by a *different* Turret ID. If so, they artificially inflate the distance calculation to that asteroid, encouraging turrets spread their fire across multiple targets to maximize swarm suppression.
 - **Damage Model**: Damage scales linearly based on proximity. A laser deals maximum damage when an asteroid is near the hull, preventing instant-kills at spawn distance and allowing targets to visually close in on the base.
