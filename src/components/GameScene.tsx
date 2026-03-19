@@ -35,6 +35,10 @@ interface ShieldImpactData {
     pos: [number, number, number];
 }
 
+// Pool of pre-mounted Asteroid components. Inactive entries are parked off-screen
+// so Rapier does not simulate them. Increase this value if waves grow beyond 60
+// simultaneous asteroids; see Asteroid.tsx for a full explanation of the chosen
+// per-component rendering strategy.
 const POOL_SIZE = 60;
 
 export default function GameScene() {
