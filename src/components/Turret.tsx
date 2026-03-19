@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Edges, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { Line2, LineMaterial } from 'three-stdlib';
-import { GameEntity, asteroidQuery } from '../ecs/world';
+import { GameEntity, queryAsteroidsInRange } from '../ecs/world';
 import useGameStore from '../store/gameStore';
 
 interface TurretProps {
@@ -57,17 +57,16 @@ export default function Turret({ id, position, rotation }: TurretProps) {
         let nearestDistSq = Infinity;
         let nearestEntity: GameEntity | null = null;
 
-        const rangeSq = TURRET_RANGE * TURRET_RANGE;
         const isTopTurret = turretGroup.current.position.y > 0;
+        const nearbyAsteroids = queryAsteroidsInRange(turretGroup.current.position, TURRET_RANGE);
 
-        for (const entity of asteroidQuery.entities) {
+        for (const entity of nearbyAsteroids) {
             if (entity.position) {
                 // Hemisphere check first - avoid distance calculations for entities on the other side
                 const isTopAsteroid = entity.position.y > 0;
                 if (isTopTurret !== isTopAsteroid) continue;
 
                 let distSq = turretGroup.current.position.distanceToSquared(entity.position);
-                if (distSq > rangeSq) continue;
 
                 // Artificially inflate the distance if this asteroid is already targeted by ANOTHER turret
                 // This encourages turrets to pick unique targets if there is more than 1 in range
