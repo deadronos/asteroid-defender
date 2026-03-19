@@ -3,6 +3,17 @@ import { Edges } from '@react-three/drei';
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import useGameStore from '../store/gameStore';
+
+// Pre-allocated scratch colours to avoid per-frame GC pressure
+const _shieldHealthy = new THREE.Color('#7ec8ff');
+const _shieldCritical = new THREE.Color('#ff2222');
+const _stripHealthy = new THREE.Color('#4f7cff');
+const _stripCritical = new THREE.Color('#ff3322');
+const _stripColorHealthy = new THREE.Color('#7aa2ff');
+const _stripColorCritical = new THREE.Color('#ff5555');
+const _scratch = new THREE.Color();
+const _scratchB = new THREE.Color();
 
 interface ShieldImpactData {
     id: string;
@@ -56,12 +67,43 @@ export default function Platform({ shieldImpacts }: PlatformProps) {
     const stripMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
     const rotatedStripMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
     const coreMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
+    const shieldMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
     const beaconGroupRef = useRef<THREE.Group>(null);
 
     useFrame((state) => {
-        const pulse = Math.sin(state.clock.elapsedTime * 0.8) * 0.5 + 0.5;
-        if (stripMaterialRef.current) stripMaterialRef.current.emissiveIntensity = 0.8 + pulse * 1.4;
-        if (rotatedStripMaterialRef.current) rotatedStripMaterialRef.current.emissiveIntensity = 0.8 + pulse * 1.4;
+        const { health, maxHealth, reducedMotion } = useGameStore.getState();
+        const ratio = maxHealth > 0 ? Math.max(0, health / maxHealth) : 1;
+
+        // Shield sphere: colour and opacity react to hull integrity
+        if (shieldMaterialRef.current) {
+            _scratch.lerpColors(_shieldCritical, _shieldHealthy, ratio);
+            shieldMaterialRef.current.color.copy(_scratch);
+            shieldMaterialRef.current.opacity = 0.03 + (1 - ratio) * 0.15;
+        }
+
+        // At critical integrity (<30 %) add a rapid flicker on strips (skip for reduced-motion)
+        const flicker =
+            !reducedMotion && ratio < 0.3
+                ? (Math.sin(state.clock.elapsedTime * 14) * 0.5 + 0.5) * ((0.3 - ratio) / 0.3)
+                : 0;
+
+        const pulse = !reducedMotion ? Math.sin(state.clock.elapsedTime * 0.8) * 0.5 + 0.5 : 0.5;
+
+        // Energy strips: emissive colour and tint shift blue → red as health drops
+        _scratch.lerpColors(_stripCritical, _stripHealthy, ratio);
+        _scratchB.lerpColors(_stripColorCritical, _stripColorHealthy, ratio);
+        const stripIntensity = 0.8 + pulse * 1.4 + flicker * 2.5;
+
+        if (stripMaterialRef.current) {
+            stripMaterialRef.current.color.copy(_scratchB);
+            stripMaterialRef.current.emissive.copy(_scratch);
+            stripMaterialRef.current.emissiveIntensity = stripIntensity;
+        }
+        if (rotatedStripMaterialRef.current) {
+            rotatedStripMaterialRef.current.color.copy(_scratchB);
+            rotatedStripMaterialRef.current.emissive.copy(_scratch);
+            rotatedStripMaterialRef.current.emissiveIntensity = stripIntensity;
+        }
         if (coreMaterialRef.current) coreMaterialRef.current.emissiveIntensity = 1.5 + pulse * 2.5;
         if (beaconGroupRef.current) beaconGroupRef.current.rotation.y = state.clock.elapsedTime * 0.5;
     });
@@ -79,7 +121,7 @@ export default function Platform({ shieldImpacts }: PlatformProps) {
                 <group position={[0, 1.05, 0]}>
                     <mesh>
                         <sphereGeometry args={[3.15, 24, 24]} />
-                        <meshBasicMaterial color="#7ec8ff" transparent opacity={0.03} side={THREE.DoubleSide} />
+                        <meshBasicMaterial ref={shieldMaterialRef} color="#7ec8ff" transparent opacity={0.03} side={THREE.DoubleSide} />
                     </mesh>
                     <mesh rotation={[0, 0, 0]}>
                         <boxGeometry args={[18, 0.1, 0.35]} />
