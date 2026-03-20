@@ -25,6 +25,8 @@ import { Edges, Trail } from '@react-three/drei';
 import * as THREE from 'three';
 import { ECS, GameEntity, AsteroidType } from '../ecs/world';
 import useGameStore from '../store/gameStore';
+import { getAsteroidVisualProfile } from '../utils/asteroidVisualQuality';
+import type { EffectsQuality } from '../utils/visualQuality';
 
 const tempVec = new THREE.Vector3();
 const tempDir = new THREE.Vector3();
@@ -51,10 +53,11 @@ interface AsteroidProps {
     startPos: [number, number, number];
     type: AsteroidType;
     active: boolean; // Pooling: Object avoids physics/rendering workloads when inactive
+    effectsQuality: EffectsQuality;
     onDestroy: (id: string, pos: [number, number, number], isHit: boolean, type: AsteroidType) => void;
 }
 
-function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
+function Asteroid({ id, startPos, type, active, effectsQuality, onDestroy }: AsteroidProps) {
     const rbRef = useRef<RapierRigidBody>(null);
     const entityRef = useRef<GameEntity | null>(null);
     const materialRef = useRef<THREE.MeshStandardMaterial>(null);
@@ -72,6 +75,7 @@ function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
     const isFirstActiveFrameRef = useRef(false);
 
     const cfg = ASTEROID_CONFIGS[type] || ASTEROID_CONFIGS['swarmer'];
+    const visualProfile = getAsteroidVisualProfile(type, effectsQuality);
 
     useEffect(() => {
         if (active) {
@@ -183,20 +187,20 @@ function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
         }
 
         // Proximity danger glow: pulse emissive colour as asteroid closes in on the base.
-        // Activates within 35 units and intensifies toward impact. Respects reduced-motion.
+        // Quality scaling trims the more expensive animated material updates first.
         const dist = tempVec.length();
         const imminentRatio = Math.max(0, 1 - dist / 35);
 
         if (flashTimerRef.current <= 0 && materialRef.current) {
-            if (imminentRatio > 0) {
+            if (visualProfile.showProximityGlow && imminentRatio > 0) {
                 _proxColor.set(cfg.color);
                 materialRef.current.emissive.copy(_proxColor);
-                if (!reducedMotion) {
+
+                if (visualProfile.animateProximityGlow && !reducedMotion) {
                     const pulseSpeed = 3 + imminentRatio * 8;
                     const pulseFactor = Math.sin(state.clock.elapsedTime * pulseSpeed) * 0.5 + 0.5;
                     materialRef.current.emissiveIntensity = imminentRatio * 1.2 * pulseFactor;
                 } else {
-                    // Reduced-motion: static dim glow instead of pulsing
                     materialRef.current.emissiveIntensity = imminentRatio > 0.5 ? imminentRatio * 0.4 : 0;
                 }
             } else {
@@ -207,7 +211,9 @@ function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
 
         // Tank-specific: pulse the outer danger ring opacity
         if (type === 'tank' && dangerRingMaterialRef.current) {
-            if (!reducedMotion) {
+            if (!visualProfile.showTankRing) {
+                dangerRingMaterialRef.current.opacity = 0;
+            } else if (visualProfile.animateTankRing && !reducedMotion) {
                 const ringPulse = Math.sin(state.clock.elapsedTime * (1.5 + imminentRatio * 3)) * 0.25 + 0.75;
                 dangerRingMaterialRef.current.opacity = ringPulse * (0.25 + imminentRatio * 0.45);
             } else {
@@ -216,23 +222,36 @@ function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
         }
     });
 
+    const asteroidMesh = (
+        <mesh>
+            {type === 'swarmer' && <dodecahedronGeometry args={[cfg.radius, 0]} />}
+            {type === 'tank' && <octahedronGeometry args={[cfg.radius, 0]} />}
+            {type === 'splitter' && <icosahedronGeometry args={[cfg.radius, 0]} />}
+            <meshStandardMaterial ref={materialRef} color={cfg.color} flatShading />
+            {visualProfile.showEdges && <Edges scale={1} threshold={15} color="black" />}
+        </mesh>
+    );
+
     return (
         <RigidBody ref={rbRef} position={startPos} type="dynamic" colliders={false} gravityScale={0} friction={0} linearDamping={0}>
             <BallCollider args={[cfg.radius]} />
             {active && (
                 <group>
-                    <Trail width={0.7} length={4} decay={1.2} stride={0.2} color={cfg.color} attenuation={(t) => t * t}>
-                        <mesh>
-                            {type === 'swarmer' && <dodecahedronGeometry args={[cfg.radius, 0]} />}
-                            {type === 'tank' && <octahedronGeometry args={[cfg.radius, 0]} />}
-                            {type === 'splitter' && <icosahedronGeometry args={[cfg.radius, 0]} />}
-                            <meshStandardMaterial ref={materialRef} color={cfg.color} flatShading />
-                            <Edges scale={1} threshold={15} color="black" />
-                        </mesh>
-                    </Trail>
+                    {visualProfile.showTrail ? (
+                        <Trail
+                            width={visualProfile.trailWidth}
+                            length={visualProfile.trailLength}
+                            decay={visualProfile.trailDecay}
+                            stride={visualProfile.trailStride}
+                            color={cfg.color}
+                            attenuation={(t) => t * t}
+                        >
+                            {asteroidMesh}
+                        </Trail>
+                    ) : asteroidMesh}
 
                     {/* Tank: outer danger ring signals its high threat */}
-                    {type === 'tank' && (
+                    {type === 'tank' && visualProfile.showTankRing && (
                         <mesh rotation={[Math.PI / 2, 0, 0]}>
                             <ringGeometry args={[cfg.radius * 1.55, cfg.radius * 1.75, 16]} />
                             <meshBasicMaterial ref={dangerRingMaterialRef} color="#ff3333" transparent opacity={0.4} side={THREE.DoubleSide} />
@@ -240,7 +259,7 @@ function Asteroid({ id, startPos, type, active, onDestroy }: AsteroidProps) {
                     )}
 
                     {/* Splitter: two intersecting rings hint at the split-on-destroy mechanic */}
-                    {type === 'splitter' && (
+                    {type === 'splitter' && visualProfile.showSplitterRings && (
                         <>
                             <mesh rotation={[0, 0, Math.PI / 6]}>
                                 <ringGeometry args={[cfg.radius * 1.3, cfg.radius * 1.45, 12]} />

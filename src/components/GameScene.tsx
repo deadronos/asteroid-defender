@@ -11,6 +11,7 @@ import AsteroidSpawner from './AsteroidSpawner';
 import Explosion from './Explosion';
 import { clearAsteroidSpawns, drainAsteroidSpawns } from '../ecs/asteroidSpawnQueue';
 import { nextId } from '../utils/id';
+import type { EffectsQuality } from '../utils/visualQuality';
 
 // Lazy-load the cosmetic background so core gameplay geometry renders first.
 const SpaceBackground = lazy(() => import('./SpaceBackground'));
@@ -41,7 +42,11 @@ interface ShieldImpactData {
 // per-component rendering strategy.
 const POOL_SIZE = 60;
 
-export default function GameScene() {
+interface GameSceneProps {
+    asteroidEffectsQuality: EffectsQuality;
+}
+
+export default function GameScene({ asteroidEffectsQuality }: GameSceneProps) {
     const [asteroids, setAsteroids] = useState<PooledAsteroid[]>(() =>
         Array.from({ length: POOL_SIZE }).map(() => ({
             id: nextId(),
@@ -217,7 +222,15 @@ export default function GameScene() {
             <Turret id="t4" position={[-5, -1, 0]} rotation={[Math.PI / 2, 0, 0]} />
 
             {asteroids.map(ast => (
-                <Asteroid key={ast.id} id={ast.id} startPos={ast.pos} type={ast.type} active={ast.active} onDestroy={handleDestroy} />
+                <Asteroid
+                    key={ast.id}
+                    id={ast.id}
+                    startPos={ast.pos}
+                    type={ast.type}
+                    active={ast.active}
+                    effectsQuality={asteroidEffectsQuality}
+                    onDestroy={handleDestroy}
+                />
             ))}
 
             {explosions.map(exp => (
