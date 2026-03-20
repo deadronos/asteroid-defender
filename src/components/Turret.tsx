@@ -102,9 +102,8 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             const minDamage = 0.1;
             // Un-penalize the distance for damage calculations if it was penalized
             const actualDistSq = turretGroup.current.position.distanceToSquared(nearestEntity.position!);
-            // Optimized: Use distance squared for quadratic falloff, avoiding Math.sqrt
-            // Formula: damageVal = maxDamage - (distSq / TURRET_RANGE_SQ) * (maxDamage - minDamage)
-            const damageVal = maxDamage - ((actualDistSq / TURRET_RANGE_SQ) * (maxDamage - minDamage));
+            const actualDist = Math.sqrt(actualDistSq);
+            const damageVal = maxDamage - ((actualDist / TURRET_RANGE) * (maxDamage - minDamage));
 
             nearestEntity.health! -= damageVal;
         } else {
