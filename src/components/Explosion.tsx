@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect, memo } from 'react';
+import { useRef, useEffect, memo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { AsteroidType } from '../ecs/world';
@@ -10,39 +10,37 @@ const EXPLOSION_COLORS: Record<AsteroidType, string> = {
 };
 
 const EMISSIVE_COLOR = new THREE.Color(10, 2, 0);
+const EXPLOSION_FRAGMENT_IDS = Array.from({ length: 8 }, (_, index) => index);
 
 interface ParticleProps {
     startPos: [number, number, number];
     color: string;
-    active: boolean;
 }
 
-const Particle = memo(({ startPos, color, active }: ParticleProps) => {
+const Particle = memo(({ startPos, color }: ParticleProps) => {
     const meshRef = useRef<THREE.Mesh>(null);
     const materialRef = useRef<THREE.MeshStandardMaterial>(null);
     const lifeRef = useRef(1.0);
     const velocityRef = useRef(new THREE.Vector3());
 
     useEffect(() => {
-        if (active) {
-            lifeRef.current = 1.0;
-            velocityRef.current.set(
-                (Math.random() - 0.5) * 15,
-                (Math.random() - 0.5) * 15,
-                (Math.random() - 0.5) * 15
-            );
-            if (meshRef.current) {
-                meshRef.current.position.set(...startPos);
-                meshRef.current.scale.setScalar(1);
-            }
-            if (materialRef.current) {
-                materialRef.current.opacity = 1.0;
-            }
+        lifeRef.current = 1.0;
+        velocityRef.current.set(
+            (Math.random() - 0.5) * 15,
+            (Math.random() - 0.5) * 15,
+            (Math.random() - 0.5) * 15
+        );
+        if (meshRef.current) {
+            meshRef.current.position.set(...startPos);
+            meshRef.current.scale.setScalar(1);
         }
-    }, [active, startPos]);
+        if (materialRef.current) {
+            materialRef.current.opacity = 1.0;
+        }
+    }, [startPos]);
 
     useFrame((_, delta) => {
-        if (!meshRef.current || !active || lifeRef.current <= 0) return;
+        if (!meshRef.current || lifeRef.current <= 0) return;
 
         lifeRef.current -= delta * 1.5;
 
@@ -62,10 +60,46 @@ const Particle = memo(({ startPos, color, active }: ParticleProps) => {
     });
 
     return (
-        <mesh ref={meshRef} position={startPos} visible={active}>
+        <mesh ref={meshRef} position={startPos}>
             <dodecahedronGeometry args={[0.5, 0]} />
             <meshStandardMaterial ref={materialRef} color={color} emissive={EMISSIVE_COLOR} toneMapped={false} flatShading transparent opacity={1} />
         </mesh>
+    );
+});
+
+interface ActiveExplosionEffectProps {
+    position: [number, number, number];
+    color: string;
+}
+
+const ActiveExplosionEffect = memo(({ position, color }: ActiveExplosionEffectProps) => {
+    const blastLightRef = useRef<THREE.PointLight>(null);
+    const lifeRef = useRef(1);
+
+    useEffect(() => {
+        lifeRef.current = 1.0;
+
+        if (blastLightRef.current) {
+            blastLightRef.current.intensity = 7;
+            blastLightRef.current.position.set(...position);
+        }
+    }, [position]);
+
+    useFrame((_, delta) => {
+        lifeRef.current = Math.max(0, lifeRef.current - delta * 1.6);
+
+        if (blastLightRef.current) {
+            blastLightRef.current.intensity = 7 * lifeRef.current;
+        }
+    });
+
+    return (
+        <group>
+            <pointLight ref={blastLightRef} position={position} color={color} intensity={7} distance={18} decay={2} />
+            {EXPLOSION_FRAGMENT_IDS.map((fragmentId) => (
+                <Particle key={fragmentId} startPos={position} color={color} />
+            ))}
+        </group>
     );
 });
 
@@ -76,38 +110,11 @@ interface ExplosionProps {
 }
 
 function Explosion({ position, type, active }: ExplosionProps) {
-    const blastLightRef = useRef<THREE.PointLight>(null);
-    const lifeRef = useRef(1);
-
-    const fragments = useMemo(() => Array.from({ length: 8 }).map((_, i) => ({ id: i })), []);
-
     const color = EXPLOSION_COLORS[type] || '#ff6600';
 
-    useEffect(() => {
-        if (active) {
-            lifeRef.current = 1.0;
-        } else {
-            if (blastLightRef.current) blastLightRef.current.intensity = 0;
-        }
-    }, [active]);
+    if (!active) return null;
 
-    useFrame((_, delta) => {
-        if (!active) return;
-        lifeRef.current = Math.max(0, lifeRef.current - delta * 1.6);
-        if (blastLightRef.current) {
-            blastLightRef.current.intensity = 7 * lifeRef.current;
-            blastLightRef.current.position.set(...position);
-        }
-    });
-
-    return (
-        <group visible={active}>
-            <pointLight ref={blastLightRef} position={position} color={color} intensity={0} distance={18} decay={2} />
-            {fragments.map(frag => (
-                <Particle key={frag.id} startPos={position} color={color} active={active} />
-            ))}
-        </group>
-    );
+    return <ActiveExplosionEffect position={position} color={color} />;
 }
 
 export default memo(Explosion);

@@ -1,4 +1,4 @@
-# Performance Budget
+# Performance Guide
 
 This document tracks Asteroid Defender's front-end performance targets and records the bundle analysis carried out as part of the initial JS payload audit (see [issue #46](https://github.com/deadronos/asteroid-defender/issues/46)).
 
@@ -24,30 +24,35 @@ Three targeted changes were made:
 2. **Lazy-load `PostEffects`** – `EffectComposer`, `Bloom`, and `DepthOfField` were extracted into `src/components/PostEffects.tsx` and imported via `React.lazy()` so the heavy postprocessing chunk is fetched *after* the first frame renders.
 3. **Lazy-load `SpaceBackground`** – The cosmetic nebula/star backdrop is now a `React.lazy` import inside `GameScene`, letting core gameplay geometry render first.
 
-| Chunk | Raw size | Gzip size | Load timing |
-|-------|----------|-----------|-------------|
-| `vendor-rapier-*.js` | 2,260.51 kB | 838.04 kB | Parallel with others (physics required for gameplay) |
-| `vendor-three-*.js` | 724.60 kB | 187.46 kB | Parallel download |
-| `vendor-r3f-*.js` | 391.25 kB | 122.54 kB | Parallel download |
-| `vendor-postprocessing-*.js` | 83.99 kB | 20.05 kB | Deferred – fetched after first render |
-| `index-*.js` | 35.64 kB | 11.02 kB | Entry point |
-| `vendor-state-*.js` | 16.11 kB | 4.34 kB | Parallel download |
-| `SpaceBackground-*.js` | 5.76 kB | 2.43 kB | Deferred – fetched after first render |
-| `PostEffects-*.js` | 0.67 kB | 0.41 kB | Deferred – fetched after first render |
+The current Vite 8 / Rolldown build still preserves those startup wins, but its emitted chunk layout differs from the original issue #46 snapshot. The table below reflects the production build validated on **20 Mar 2026**.
 
-**Total gzip: ~1,186 kB** — the raw transfer bytes are unchanged (same code ships), but the payload is now split into independently-cacheable chunks that the browser downloads in parallel.
+| Chunk | Raw size | Gzip size | Load timing |
+| --- | --- | --- | --- |
+| `vendor-rapier-*.js` | 2,259.28 kB | 850.61 kB | Parallel with others (physics required for gameplay) |
+| `vendor-postprocessing-*.js` | 1,055.76 kB | 323.21 kB | Deferred – fetched after first render |
+| `vendor-react-*.js` | 178.26 kB | 55.95 kB | Parallel download |
+| `index-*.js` | 40.22 kB | 12.02 kB | Entry point |
+| `vendor-r3f-*.js` | 37.72 kB | 10.81 kB | Parallel download |
+| `vendor-state-*.js` | 22.26 kB | 5.42 kB | Parallel download |
+| `SpaceBackground-*.js` | 5.95 kB | 2.42 kB | Deferred – fetched after first render |
+| `rapier-*.js` | 2.68 kB | 1.19 kB | Parallel download |
+| `rolldown-runtime-*.js` | 0.68 kB | 0.41 kB | Runtime bootstrap |
+| `PostEffects-*.js` | 0.65 kB | 0.39 kB | Deferred – fetched after first render |
+
+**Total gzip: ~1,262 kB for emitted JavaScript (~1,263 kB including HTML/CSS)** — the payload remains split into independently-cacheable chunks, with the optional background and postprocessing assets deferred until after the first frame.
 
 ### Key improvements
 
 | Concern | Before | After |
-|---------|--------|-------|
-| Parallel chunk downloads | ❌ Single file, sequential | ✅ 9 chunks downloaded concurrently |
+| --- | --- | --- |
+| Parallel chunk downloads | ❌ Single file, sequential | ✅ 10 JS chunks emitted; optional background/postprocessing chunks defer until after first render |
 | Incremental cache invalidation | ❌ Whole bundle re-fetched on any code change | ✅ Only changed chunks re-fetched |
 | PostEffects blocks first frame | ❌ Bloom/DoF eager-imported | ✅ `React.lazy` defers until after first render |
 | SpaceBackground blocks gameplay | ❌ Eager-imported in GameScene | ✅ `React.lazy` defers cosmetic background |
-| Build warning | ⚠️ "Some chunks are larger than 500 kB" | ✅ Warning is expected/documented for Rapier WASM only |
+| Build warning | ⚠️ "Some chunks are larger than 500 kB" | ⚠️ Warning still fires for `vendor-rapier` and `vendor-postprocessing`; documented and acceptable for now |
 
-> **Note on Rapier:** The 838 kB gzip rapier chunk contains a compiled WebAssembly physics engine. This cannot be tree-shaken further without replacing the physics library. It is fetched in parallel with all other chunks and cached aggressively between sessions.
+- **Note on the current chunk layout:** Rolldown no longer emits the same `vendor-three` split captured in the original audit. The startup deferral strategy still works, but future bundle investigations should use fresh build output rather than assuming the older chunk names and boundaries.
+- **Note on Rapier:** The 851 kB gzip rapier chunk contains a compiled WebAssembly physics engine. This cannot be tree-shaken further without replacing the physics library. It is fetched in parallel with all other required chunks and cached aggressively between sessions.
 
 ---
 
@@ -56,8 +61,8 @@ Three targeted changes were made:
 These are the targets for the production build. Measurements should be taken on a mid-range device over a simulated **Fast 4G** network (40 Mbps down, 20 ms RTT) with the browser cache cleared.
 
 | Metric | Target | Notes |
-|--------|--------|-------|
-| Initial JS transferred (gzip) | < 1,500 kB total; < 500 kB per chunk | Rapier WASM (~838 kB) is the sole documented exception |
+| --- | --- | --- |
+| Initial JS transferred (gzip) | < 1,500 kB total; < 500 kB per chunk | Rapier WASM (~851 kB) is the sole documented exception |
 | Time to Interactive (TTI) | < 5 s | 4× CPU throttle, Fast 4G network |
 | First Contentful Paint (FCP) | < 2 s | Background colour / HUD visible |
 | Steady-state frame rate | ≥ 60 FPS | Device with a dedicated GPU |
@@ -68,6 +73,7 @@ These are the targets for the production build. Measurements should be taken on 
 
 - **`<PerformanceMonitor>`** (from `@react-three/drei`) automatically adjusts the canvas device pixel ratio (`dpr`) between 0.5 and 2 based on measured frame times, with a three-strike flip-flop guard before adjusting.
 - **`<Suspense fallback={null}>`** wraps the physics world, postprocessing, and background so the canvas is presented immediately while heavier assets hydrate in the background.
+- **Explosion effects only mount while active** – `src/components/Explosion.tsx` now mounts the point light and fragment particles only for live detonations, so the pre-allocated explosion pool does not keep hundreds of idle `useFrame` subscribers alive between blasts.
 
 ---
 
@@ -76,6 +82,6 @@ These are the targets for the production build. Measurements should be taken on 
 If the budget needs to be tightened in the future, consider:
 
 1. **WASM streaming compilation** – Serve `rapier_wasm*` assets with `Content-Type: application/wasm` so the browser can compile the WASM module while it downloads, rather than after.
-2. **Three.js tree-shaking** – Replace `import * as THREE from 'three'` with named imports in files that only use a subset of the library (e.g. `import { Vector3, MathUtils } from 'three'`). This can reduce `vendor-three` by 20–40%.
+2. **Three.js tree-shaking** – Replace `import * as THREE from 'three'` with named imports in files that only use a subset of the library (e.g. `import { Vector3, MathUtils } from 'three'`). Even though the current Rolldown build no longer emits a separate `vendor-three` chunk, this can still shrink emitted runtime/vendor code.
 3. **Brotli at the server/CDN layer** – Enable Brotli compression on the hosting platform; Brotli typically achieves 15–20% better compression than gzip on JS payloads at no runtime cost.
 4. **Route-level code splitting** – If a main-menu / settings screen is added in the future, split it into its own route chunk so gameplay code is only loaded when the game actually starts.
