@@ -2,6 +2,8 @@ import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
+import type { EffectsQuality } from '../utils/visualQuality';
+import { getBackgroundVisualProfile } from '../utils/backgroundVisualQuality';
 
 // ─── Nebula Backdrop ────────────────────────────────────────────────────────
 
@@ -156,12 +158,10 @@ function Nebula() {
 
 // ─── Space Dust ─────────────────────────────────────────────────────────────
 
-const DUST_COUNT = 400;
-
-function createSpaceDustData() {
-    const positions = new Float32Array(DUST_COUNT * 3);
-    const velocities = new Float32Array(DUST_COUNT * 3);
-    for (let i = 0; i < DUST_COUNT; i++) {
+function createSpaceDustData(count: number) {
+    const positions = new Float32Array(count * 3);
+    const velocities = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
         positions[i * 3] = (Math.random() - 0.5) * 50;
         positions[i * 3 + 1] = (Math.random() - 0.5) * 50;
         positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
@@ -173,14 +173,28 @@ function createSpaceDustData() {
     return { positions, velocities };
 }
 
-function SpaceDust() {
+interface SpaceDustProps {
+    count: number;
+    animate: boolean;
+}
+
+function SpaceDust({ count, animate }: SpaceDustProps) {
     const pointsRef = useRef<THREE.Points>(null);
-    const [{ positions, velocities }] = useState(createSpaceDustData);
+    const { positions, velocities } = useMemo(() => createSpaceDustData(count), [count]);
+
+    useEffect(() => {
+        if (!pointsRef.current) {
+            return;
+        }
+
+        const geometry = pointsRef.current.geometry;
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    }, [positions]);
 
     useFrame((_, delta) => {
-        if (!pointsRef.current) return;
+        if (!pointsRef.current || !animate) return;
         const pos = pointsRef.current.geometry.attributes.position.array as Float32Array;
-        for (let i = 0; i < DUST_COUNT; i++) {
+        for (let i = 0; i < count; i++) {
             pos[i * 3] += velocities[i * 3] * delta;
             pos[i * 3 + 1] += velocities[i * 3 + 1] * delta;
             pos[i * 3 + 2] += velocities[i * 3 + 2] * delta;
@@ -192,6 +206,10 @@ function SpaceDust() {
         }
         pointsRef.current.geometry.attributes.position.needsUpdate = true;
     });
+
+    if (count === 0) {
+        return null;
+    }
 
     return (
         <points ref={pointsRef}>
@@ -321,17 +339,31 @@ function ShootingStars() {
 
 // ─── Combined export ─────────────────────────────────────────────────────────
 
-export default function SpaceBackground() {
+interface SpaceBackgroundProps {
+    quality: EffectsQuality;
+    reducedMotion: boolean;
+}
+
+export default function SpaceBackground({ quality, reducedMotion }: SpaceBackgroundProps) {
+    const profile = useMemo(
+        () => getBackgroundVisualProfile(quality, reducedMotion),
+        [quality, reducedMotion],
+    );
+
     return (
         <>
-            {/* Dense star field — more stars, slight colour tint vs. original */}
-            <Stars radius={150} depth={80} count={7000} factor={5} saturation={0.15} fade speed={0.5} />
-            {/* Colourful nebula painted on the inside of the skydome */}
-            <Nebula />
-            {/* Slow-drifting dust motes that catch the scene lighting */}
-            <SpaceDust />
-            {/* Occasional comet / shooting-star events in the far background */}
-            <ShootingStars />
+            <Stars
+                radius={150}
+                depth={80}
+                count={profile.starCount}
+                factor={profile.starFactor}
+                saturation={profile.starSaturation}
+                fade
+                speed={profile.starSpeed}
+            />
+            {profile.showNebula && <Nebula />}
+            <SpaceDust count={profile.dustCount} animate={profile.animateDust} />
+            {profile.showShootingStars && <ShootingStars />}
         </>
     );
 }

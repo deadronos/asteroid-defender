@@ -31,10 +31,10 @@ The current Vite 8 / Rolldown build still preserves those startup wins, but its 
 | `vendor-rapier-*.js` | 2,259.28 kB | 850.61 kB | Parallel with others (physics required for gameplay) |
 | `vendor-postprocessing-*.js` | 1,055.76 kB | 323.21 kB | Deferred – fetched after first render |
 | `vendor-react-*.js` | 178.26 kB | 55.95 kB | Parallel download |
-| `index-*.js` | 41.07 kB | 12.30 kB | Entry point |
+| `index-*.js` | 42.57 kB | 12.76 kB | Entry point |
 | `vendor-r3f-*.js` | 37.72 kB | 10.81 kB | Parallel download |
 | `vendor-state-*.js` | 22.26 kB | 5.42 kB | Parallel download |
-| `SpaceBackground-*.js` | 5.95 kB | 2.42 kB | Deferred – fetched after first render |
+| `SpaceBackground-*.js` | 6.72 kB | 2.72 kB | Deferred – fetched after first render |
 | `rapier-*.js` | 2.68 kB | 1.19 kB | Parallel download |
 | `rolldown-runtime-*.js` | 0.68 kB | 0.41 kB | Runtime bootstrap |
 | `PostEffects-*.js` | 0.73 kB | 0.45 kB | Deferred – fetched after first render |
@@ -73,6 +73,7 @@ These are the targets for the production build. Measurements should be taken on 
 
 - **`<PerformanceMonitor>`** (from `@react-three/drei`) now applies adaptive visual-quality tiers based on measured frame times, with a three-strike flip-flop guard before adjusting. On healthy frame times it caps at **full effects + `dpr` 1.25**; under pressure it steps down to **Bloom-only + `dpr` 1.0** (or **`dpr` 0.75** with reduced motion), then **disables postprocessing** before finally dropping to **`dpr` 0.5** on fallback.
 - **Asteroid visuals now follow those same tiers** – on **reduced** quality the busiest asteroid class (`swarmer`) loses its trail, outline edges are removed, splitter rings are hidden, and the remaining trails/ring cues switch to cheaper static presentation. On **off**, asteroids render as bare gameplay meshes with no trails or decorative rings, keeping collision/targeting behavior intact while cutting steady-state render cost.
+- **Background visuals now follow those same tiers** – on **reduced** quality the star field becomes sparser, dust particles are cut roughly in half and stop updating every frame, and reduced-motion disables shooting stars entirely. On **off**, the scene keeps only a sparse static star field and skips the nebula shader, dust system, and shooting-star spawns to preserve readability under fallback mode.
 - **`<Suspense fallback={null}>`** wraps the physics world, postprocessing, and background so the canvas is presented immediately while heavier assets hydrate in the background.
 - **Reduced motion lowers the quality ceiling** – when `reducedMotion` is enabled, the app avoids the expensive Depth of Field tier entirely and clamps the adaptive profile to the cheaper Bloom-only path with lower DPR.
 - **Explosion effects only mount while active** – `src/components/Explosion.tsx` now mounts the point light and fragment particles only for live detonations, so the pre-allocated explosion pool does not keep hundreds of idle `useFrame` subscribers alive between blasts.

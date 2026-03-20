@@ -44,9 +44,11 @@ const POOL_SIZE = 60;
 
 interface GameSceneProps {
     asteroidEffectsQuality: EffectsQuality;
+    backgroundEffectsQuality: EffectsQuality;
+    reducedMotion: boolean;
 }
 
-export default function GameScene({ asteroidEffectsQuality }: GameSceneProps) {
+export default function GameScene({ asteroidEffectsQuality, backgroundEffectsQuality, reducedMotion }: GameSceneProps) {
     const [asteroids, setAsteroids] = useState<PooledAsteroid[]>(() =>
         Array.from({ length: POOL_SIZE }).map(() => ({
             id: nextId(),
@@ -208,7 +210,7 @@ export default function GameScene({ asteroidEffectsQuality }: GameSceneProps) {
             <ambientLight intensity={0.3} />
             <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
             <Suspense fallback={null}>
-                <SpaceBackground />
+                <SpaceBackground quality={backgroundEffectsQuality} reducedMotion={reducedMotion} />
             </Suspense>
             <CinematicCamera />
 
