@@ -31,10 +31,10 @@ The current Vite 8 / Rolldown build still preserves those startup wins, but its 
 | `vendor-rapier-*.js` | 2,259.28 kB | 850.61 kB | Parallel with others (physics required for gameplay) |
 | `vendor-postprocessing-*.js` | 1,055.76 kB | 323.21 kB | Deferred – fetched after first render |
 | `vendor-react-*.js` | 178.26 kB | 55.95 kB | Parallel download |
-| `index-*.js` | 41.07 kB | 12.30 kB | Entry point |
+| `index-*.js` | 42.57 kB | 12.76 kB | Entry point |
 | `vendor-r3f-*.js` | 37.72 kB | 10.81 kB | Parallel download |
 | `vendor-state-*.js` | 22.26 kB | 5.42 kB | Parallel download |
-| `SpaceBackground-*.js` | 5.95 kB | 2.42 kB | Deferred – fetched after first render |
+| `SpaceBackground-*.js` | 6.72 kB | 2.72 kB | Deferred – fetched after first render |
 | `rapier-*.js` | 2.68 kB | 1.19 kB | Parallel download |
 | `rolldown-runtime-*.js` | 0.68 kB | 0.41 kB | Runtime bootstrap |
 | `PostEffects-*.js` | 0.73 kB | 0.45 kB | Deferred – fetched after first render |
