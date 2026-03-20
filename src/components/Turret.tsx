@@ -14,6 +14,7 @@ interface TurretProps {
 
 const LASER_ORIGIN_Z = 3.5;
 const TURRET_RANGE = 50;
+const TURRET_RANGE_SQ = TURRET_RANGE * TURRET_RANGE;
 // Penalty applied to distSq for asteroids already targeted by another turret (20 units * 20 units)
 const TARGETING_PENALTY = 400;
 
@@ -101,8 +102,9 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             const minDamage = 0.1;
             // Un-penalize the distance for damage calculations if it was penalized
             const actualDistSq = turretGroup.current.position.distanceToSquared(nearestEntity.position!);
-            const actualDist = Math.sqrt(actualDistSq);
-            const damageVal = maxDamage - ((actualDist / 50) * (maxDamage - minDamage));
+            // Optimized: Use distance squared for quadratic falloff, avoiding Math.sqrt
+            // Formula: damageVal = maxDamage - (distSq / TURRET_RANGE_SQ) * (maxDamage - minDamage)
+            const damageVal = maxDamage - ((actualDistSq / TURRET_RANGE_SQ) * (maxDamage - minDamage));
 
             nearestEntity.health! -= damageVal;
         } else {
