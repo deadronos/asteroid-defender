@@ -11,7 +11,7 @@ This document tracks Asteroid Defender's front-end performance targets and recor
 Vite produced a **single monolithic chunk** containing all vendor libraries and application code.
 
 | File | Raw size | Gzip size |
-|------|----------|-----------|
+| --- | --- | --- |
 | `index-*.js` (entire app) | 3,521.58 kB | 1,186.58 kB |
 
 All 3.5 MB had to be downloaded, parsed, and executed before the page became interactive. Browsers could not parallelise the download, and any change to application code invalidated the entire cached asset.
@@ -72,6 +72,7 @@ These are the targets for the production build. Measurements should be taken on 
 ### Existing runtime safeguards
 
 - **`<PerformanceMonitor>`** (from `@react-three/drei`) now applies adaptive visual-quality tiers based on measured frame times, with a three-strike flip-flop guard before adjusting. On healthy frame times it caps at **full effects + `dpr` 1.25**; under pressure it steps down to **Bloom-only + `dpr` 1.0** (or **`dpr` 0.75** with reduced motion), then **disables postprocessing** before finally dropping to **`dpr` 0.5** on fallback.
+- **Asteroid visuals now follow those same tiers** – on **reduced** quality the busiest asteroid class (`swarmer`) loses its trail, outline edges are removed, splitter rings are hidden, and the remaining trails/ring cues switch to cheaper static presentation. On **off**, asteroids render as bare gameplay meshes with no trails or decorative rings, keeping collision/targeting behavior intact while cutting steady-state render cost.
 - **`<Suspense fallback={null}>`** wraps the physics world, postprocessing, and background so the canvas is presented immediately while heavier assets hydrate in the background.
 - **Reduced motion lowers the quality ceiling** – when `reducedMotion` is enabled, the app avoids the expensive Depth of Field tier entirely and clamps the adaptive profile to the cheaper Bloom-only path with lower DPR.
 - **Explosion effects only mount while active** – `src/components/Explosion.tsx` now mounts the point light and fragment particles only for live detonations, so the pre-allocated explosion pool does not keep hundreds of idle `useFrame` subscribers alive between blasts.
