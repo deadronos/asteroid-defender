@@ -18,8 +18,6 @@ const TURRET_RANGE_SQ = TURRET_RANGE * TURRET_RANGE;
 // Penalty applied to distSq for asteroids already targeted by another turret (20 units * 20 units)
 const TARGETING_PENALTY = 400;
 
-const tempVec = new THREE.Vector3();
-
 export default function Turret({ id, position, rotation }: TurretProps) {
     const turretGroup = useRef<THREE.Group>(null);
     const [hasTarget, setHasTarget] = useState(false);
@@ -41,7 +39,6 @@ export default function Turret({ id, position, rotation }: TurretProps) {
     const hologramReticleRef = useRef<THREE.Group>(null);
 
     // Keep vectors around instead of full React states to avoid unneeded renders
-    const targetPosRef = useRef(new THREE.Vector3());
     const localTargetRef = useRef(new THREE.Vector3());
     const currentTargetRef = useRef<GameEntity | null>(null);
 
@@ -82,12 +79,13 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             currentTargetRef.current = nearestEntity;
 
             turretGroup.current.lookAt(nearestEntity.position!);
-            targetPosRef.current.copy(nearestEntity.position!);
 
-            // Calculate and maintain localTarget reference since the meshes are nested 
-            turretGroup.current.updateMatrixWorld();
-            const worldToLocal = turretGroup.current.worldToLocal(tempVec.copy(targetPosRef.current));
-            localTargetRef.current.copy(worldToLocal);
+            // Optimized: Since we just called lookAt, the target's local position
+            // is always (0, 0, actualDist). This avoids expensive matrix world
+            // updates and worldToLocal inversions every frame.
+            const actualDistSq = turretGroup.current.position.distanceToSquared(nearestEntity.position!);
+            const actualDist = Math.sqrt(actualDistSq);
+            localTargetRef.current.set(0, 0, actualDist);
 
             nearestEntity.targetedBy = id;
 
@@ -100,10 +98,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             // At dist 0: 5 damage per frame. At dist 50: 0.1 damage per frame.
             const maxDamage = 5;
             const minDamage = 0.1;
-            // Un-penalize the distance for damage calculations if it was penalized
-            const actualDistSq = turretGroup.current.position.distanceToSquared(nearestEntity.position!);
-            const actualDist = Math.sqrt(actualDistSq);
-            const damageVal = maxDamage - ((actualDist / TURRET_RANGE) * (maxDamage - minDamage));
+            const damageVal = maxDamage - ((actualDist / 50) * (maxDamage - minDamage));
 
             nearestEntity.health! -= damageVal;
         } else {
