@@ -3,62 +3,79 @@
 A visually polished, 3D browser-based space defense simulation built with React Three Fiber.
 
 ## Overview
-Asteroid Defender is an interactive idle clicker / automatic defense simulation where a central platform survives endless swarms of incoming space debris and asteroids. The game features an automated targeting system where four dual-barrel turrets continually scan for, track, and destroy enemy space rocks using dynamic laser beams. 
+
+Asteroid Defender is an interactive idle clicker / automatic defense simulation where a central platform survives endless swarms of incoming space debris and asteroids. The game features an automated targeting system where four dual-barrel turrets continually scan for, track, and destroy enemy space rocks using dynamic laser beams.
 
 Built using modern web technologies, the game emphasizes visual fidelity with a procedurally baked nebula skybox, real-time lighting, post-processing bloom, and dynamic particle explosion effects when asteroids are shattered.
 
 ## Features
+
 - **3D Procedural Environment**: A seamless, procedurally generated nebula texture sampled on a skybox representing deep space.
 - **Automated Combat**: Turrets automatically select targets, track them, and fire lasers to defend the central platform.
 - **Dynamic Spawning**: A continuous flow of different asteroid types (Basic, Fast, Heavy, Swarmer, Splitter) with varying behaviors.
 - **Entity Component System**: Built on top of `miniplex` for managing game entities and logic efficiently.
-- **Visual Polish**: 
+- **Visual Polish**:
   - Post-processing bloom for glowing lasers and explosions.
   - Custom shader streaks for shooting stars.
   - Fragmented particle physics for destroyed asteroids.
   - Smooth camera movements and UI overlays.
 
 ## Tech Stack
+
 - **Framework**: [React 19](https://react.dev/)
 - **3D Rendering**: [Three.js](https://threejs.org/) + [@react-three/fiber](https://docs.pmnd.rs/react-three-fiber/)
 - **Utility / Helpers**: [@react-three/drei](https://github.com/pmndrs/drei)
 - **Physics & Effects**: [@react-three/rapier](https://github.com/pmndrs/react-three-rapier) + [@react-three/postprocessing](https://github.com/pmndrs/react-postprocessing)
 - **ECS Engine**: [miniplex](https://miniplex.dev/)
 - **State Management**: [Zustand](https://zustand-demo.pmnd.rs/)
-- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Build Tool**: [Vite+](https://viteplus.dev/) on top of Vite
 
 ## Getting Started
 
 ### Prerequisites
-Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
+
+Install [Vite+ (`vp`)](https://viteplus.dev/guide/) first. Vite+ manages the project runtime, package manager, and frontend toolchain commands.
 
 ### Installation & Running Locally
 
 1. Install dependencies:
+
    ```bash
-   npm install
+   vp install
    ```
 
 2. Start the development server:
+
    ```bash
-   npm run dev
+   vp dev
    ```
 
 3. Open your browser and navigate to the address shown in your terminal (usually `http://localhost:5173`).
 
+### Validation
+
+Run the unified Vite+ checks and build commands:
+
+```bash
+vp check
+vp test
+vp build
+```
+
 ## License
+
 This project is licensed under the [MIT License](LICENSE.md).
 
 ## Performance Budget
 
 These targets guide optimization work and help detect regressions. See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for the full bundle-analysis (before/after breakdown) and further optimization guidance.
 
-| Metric | Target |
-|---|---|
-| Initial JS payload (gzip) | < 500 kB per chunk (see note), < 1.5 MB total |
-| Time to Interactive (TTI) | < 5 s on a mid-range device (4× CPU throttle) |
-| Gameplay frame rate | ≥ 60 FPS on a discrete GPU; ≥ 30 FPS on integrated graphics |
-| Memory (heap) at steady state | < 256 MB |
+| Metric                        | Target                                                      |
+| ----------------------------- | ----------------------------------------------------------- |
+| Initial JS payload (gzip)     | < 500 kB per chunk (see note), < 1.5 MB total               |
+| Time to Interactive (TTI)     | < 5 s on a mid-range device (4× CPU throttle)               |
+| Gameplay frame rate           | ≥ 60 FPS on a discrete GPU; ≥ 30 FPS on integrated graphics |
+| Memory (heap) at steady state | < 256 MB                                                    |
 
 > **Note on chunk size:** `vendor-rapier` (~838 kB gzip) exceeds the per-chunk cap because it contains the compiled Rust/WASM Rapier physics engine — an upstream constraint that cannot be reduced by tree-shaking. All other chunks meet the < 500 kB target.
 
@@ -66,13 +83,13 @@ These targets guide optimization work and help detect regressions. See [docs/PER
 
 The build is split into six vendor chunks so browsers can cache them independently and download them in parallel. Additional lazy-loaded chunks (`PostEffects`, `SpaceBackground`) are only fetched after the first frame renders:
 
-| Chunk | Contents |
-|---|---|
-| `vendor-react` | `react`, `react-dom` |
-| `vendor-three` | `three` |
-| `vendor-r3f` | `@react-three/fiber`, `@react-three/drei` |
-| `vendor-rapier` | `@react-three/rapier` |
+| Chunk                   | Contents                                        |
+| ----------------------- | ----------------------------------------------- |
+| `vendor-react`          | `react`, `react-dom`                            |
+| `vendor-three`          | `three`                                         |
+| `vendor-r3f`            | `@react-three/fiber`, `@react-three/drei`       |
+| `vendor-rapier`         | `@react-three/rapier`                           |
 | `vendor-postprocessing` | `@react-three/postprocessing`, `postprocessing` |
-| `vendor-state` | `zustand`, `miniplex`, `miniplex-react` |
+| `vendor-state`          | `zustand`, `miniplex`, `miniplex-react`         |
 
 Post-processing effects (`EffectComposer`, `Bloom`, `DepthOfField`) and the cosmetic `SpaceBackground` are lazy-loaded so the core game canvas becomes interactive before those chunks finish downloading. Once loaded, the same adaptive quality system also trims the background itself: reduced tiers lower star density, freeze the dust simulation, and eventually fall back to a sparse static star field with no nebula or shooting stars.

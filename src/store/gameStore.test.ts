@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import useGameStore from './gameStore';
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import useGameStore from "./gameStore";
 
 const initialState = useGameStore.getInitialState();
 
@@ -7,18 +7,18 @@ beforeEach(() => {
   useGameStore.setState(initialState, true);
 });
 
-describe('gameStore gameplay state machine', () => {
-  it('starts in menu state', () => {
+describe("gameStore gameplay state machine", () => {
+  it("starts in menu state", () => {
     const state = useGameStore.getState();
 
-    expect(state.gameState).toBe('menu');
+    expect(state.gameState).toBe("menu");
     expect(state.health).toBe(state.maxHealth);
     expect(state.sessionId).toBe(0);
     expect(state.runStartedAt).toBe(0);
     expect(state.runEndedAt).toBeNull();
   });
 
-  it('startGame resets counters and begins a new session', () => {
+  it("startGame resets counters and begins a new session", () => {
     useGameStore.setState({
       asteroidsDestroyed: 12,
       activeAsteroids: 8,
@@ -30,7 +30,7 @@ describe('gameStore gameplay state machine', () => {
     useGameStore.getState().startGame();
     const after = useGameStore.getState();
 
-    expect(after.gameState).toBe('playing');
+    expect(after.gameState).toBe("playing");
     expect(after.asteroidsDestroyed).toBe(0);
     expect(after.activeAsteroids).toBe(0);
     expect(after.health).toBe(after.maxHealth);
@@ -38,16 +38,16 @@ describe('gameStore gameplay state machine', () => {
     expect(after.sessionId).toBe(before + 1);
   });
 
-  it('supports pause and resume transitions', () => {
+  it("supports pause and resume transitions", () => {
     useGameStore.getState().startGame();
     useGameStore.getState().pauseGame();
-    expect(useGameStore.getState().gameState).toBe('paused');
+    expect(useGameStore.getState().gameState).toBe("paused");
 
     useGameStore.getState().resumeGame();
-    expect(useGameStore.getState().gameState).toBe('playing');
+    expect(useGameStore.getState().gameState).toBe("playing");
   });
 
-  it('only applies damage while playing', () => {
+  it("only applies damage while playing", () => {
     useGameStore.getState().startGame();
     useGameStore.getState().pauseGame();
 
@@ -60,30 +60,30 @@ describe('gameStore gameplay state machine', () => {
     expect(useGameStore.getState().health).toBe(before - 20);
   });
 
-  it('clamps health to a minimum of 0 when damage exceeds current health', () => {
+  it("clamps health to a minimum of 0 when damage exceeds current health", () => {
     useGameStore.getState().startGame();
     useGameStore.getState().takeDamage(useGameStore.getState().maxHealth + 50);
     expect(useGameStore.getState().health).toBe(0);
   });
 
-  it('sets gameover when health reaches zero and restart creates fresh run', () => {
+  it("sets gameover when health reaches zero and restart creates fresh run", () => {
     useGameStore.getState().startGame();
     useGameStore.getState().takeDamage(1000);
-    expect(useGameStore.getState().gameState).toBe('gameover');
+    expect(useGameStore.getState().gameState).toBe("gameover");
 
     const before = useGameStore.getState().sessionId;
     useGameStore.getState().restartGame();
 
     const after = useGameStore.getState();
-    expect(after.gameState).toBe('playing');
+    expect(after.gameState).toBe("playing");
     expect(after.health).toBe(after.maxHealth);
     expect(after.asteroidsDestroyed).toBe(0);
     expect(after.activeAsteroids).toBe(0);
     expect(after.sessionId).toBe(before + 1);
   });
 
-  it('tracks run start and end timestamps across restart', () => {
-    const nowSpy = vi.spyOn(Date, 'now');
+  it("tracks run start and end timestamps across restart", () => {
+    const nowSpy = vi.spyOn(Date, "now");
 
     try {
       nowSpy.mockReturnValue(1000);
@@ -97,7 +97,7 @@ describe('gameStore gameplay state machine', () => {
       useGameStore.getState().takeDamage(1000);
 
       state = useGameStore.getState();
-      expect(state.gameState).toBe('gameover');
+      expect(state.gameState).toBe("gameover");
       expect(state.runEndedAt).toBe(2500);
 
       nowSpy.mockReturnValue(4000);
@@ -112,22 +112,22 @@ describe('gameStore gameplay state machine', () => {
   });
 });
 
-describe('gameStore camera settings', () => {
-  it('defaults to cinematic mode and reducedMotion off', () => {
+describe("gameStore camera settings", () => {
+  it("defaults to cinematic mode and reducedMotion off", () => {
     const state = useGameStore.getState();
-    expect(state.cameraMode).toBe('cinematic');
+    expect(state.cameraMode).toBe("cinematic");
     expect(state.reducedMotion).toBe(false);
   });
 
-  it('toggleCameraMode switches between cinematic and static', () => {
+  it("toggleCameraMode switches between cinematic and static", () => {
     useGameStore.getState().toggleCameraMode();
-    expect(useGameStore.getState().cameraMode).toBe('static');
+    expect(useGameStore.getState().cameraMode).toBe("static");
 
     useGameStore.getState().toggleCameraMode();
-    expect(useGameStore.getState().cameraMode).toBe('cinematic');
+    expect(useGameStore.getState().cameraMode).toBe("cinematic");
   });
 
-  it('toggleReducedMotion flips the reducedMotion flag', () => {
+  it("toggleReducedMotion flips the reducedMotion flag", () => {
     useGameStore.getState().toggleReducedMotion();
     expect(useGameStore.getState().reducedMotion).toBe(true);
 
@@ -135,36 +135,36 @@ describe('gameStore camera settings', () => {
     expect(useGameStore.getState().reducedMotion).toBe(false);
   });
 
-  it('camera settings persist across game state changes', () => {
+  it("camera settings persist across game state changes", () => {
     useGameStore.getState().toggleCameraMode();
     useGameStore.getState().toggleReducedMotion();
 
     useGameStore.getState().startGame();
     const state = useGameStore.getState();
-    expect(state.cameraMode).toBe('static');
+    expect(state.cameraMode).toBe("static");
     expect(state.reducedMotion).toBe(true);
   });
 });
 
-describe('gameStore state updaters', () => {
-  it('incrementDestroyed increases asteroidsDestroyed count', () => {
+describe("gameStore state updaters", () => {
+  it("incrementDestroyed increases asteroidsDestroyed count", () => {
     const before = useGameStore.getState().asteroidsDestroyed;
     useGameStore.getState().incrementDestroyed();
     expect(useGameStore.getState().asteroidsDestroyed).toBe(before + 1);
   });
 
-  it('setActiveAsteroids sets the activeAsteroids count', () => {
+  it("setActiveAsteroids sets the activeAsteroids count", () => {
     useGameStore.getState().setActiveAsteroids(42);
     expect(useGameStore.getState().activeAsteroids).toBe(42);
   });
 });
 
-describe('gameStore cinematic indicator', () => {
-  it('defaults showCinematicIndicator to true', () => {
+describe("gameStore cinematic indicator", () => {
+  it("defaults showCinematicIndicator to true", () => {
     expect(useGameStore.getState().showCinematicIndicator).toBe(true);
   });
 
-  it('toggleCinematicIndicator flips the flag', () => {
+  it("toggleCinematicIndicator flips the flag", () => {
     useGameStore.getState().toggleCinematicIndicator();
     expect(useGameStore.getState().showCinematicIndicator).toBe(false);
 
@@ -172,11 +172,11 @@ describe('gameStore cinematic indicator', () => {
     expect(useGameStore.getState().showCinematicIndicator).toBe(true);
   });
 
-  it('inCinematicTransition defaults to false', () => {
+  it("inCinematicTransition defaults to false", () => {
     expect(useGameStore.getState().inCinematicTransition).toBe(false);
   });
 
-  it('setCinematicTransition updates the inCinematicTransition flag', () => {
+  it("setCinematicTransition updates the inCinematicTransition flag", () => {
     useGameStore.getState().setCinematicTransition(true);
     expect(useGameStore.getState().inCinematicTransition).toBe(true);
 
@@ -184,7 +184,7 @@ describe('gameStore cinematic indicator', () => {
     expect(useGameStore.getState().inCinematicTransition).toBe(false);
   });
 
-  it('showCinematicIndicator persists across game state changes', () => {
+  it("showCinematicIndicator persists across game state changes", () => {
     useGameStore.getState().toggleCinematicIndicator();
     expect(useGameStore.getState().showCinematicIndicator).toBe(false);
 

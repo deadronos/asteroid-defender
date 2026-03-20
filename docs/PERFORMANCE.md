@@ -10,8 +10,8 @@ This document tracks Asteroid Defender's front-end performance targets and recor
 
 Vite produced a **single monolithic chunk** containing all vendor libraries and application code.
 
-| File | Raw size | Gzip size |
-| --- | --- | --- |
+| File                      | Raw size    | Gzip size   |
+| ------------------------- | ----------- | ----------- |
 | `index-*.js` (entire app) | 3,521.58 kB | 1,186.58 kB |
 
 All 3.5 MB had to be downloaded, parsed, and executed before the page became interactive. Browsers could not parallelise the download, and any change to application code invalidated the entire cached asset.
@@ -20,36 +20,36 @@ All 3.5 MB had to be downloaded, parsed, and executed before the page became int
 
 Three targeted changes were made:
 
-1. **Manual chunk splitting** – `build.rollupOptions.output.manualChunks` added to `vite.config.js` groups heavy vendor libraries into separate chunks.
-2. **Lazy-load `PostEffects`** – `EffectComposer`, `Bloom`, and `DepthOfField` were extracted into `src/components/PostEffects.tsx` and imported via `React.lazy()` so the heavy postprocessing chunk is fetched *after* the first frame renders.
+1. **Manual chunk splitting** – `build.rollupOptions.output.manualChunks` in `vite.config.ts` groups heavy vendor libraries into separate chunks.
+2. **Lazy-load `PostEffects`** – `EffectComposer`, `Bloom`, and `DepthOfField` were extracted into `src/components/PostEffects.tsx` and imported via `React.lazy()` so the heavy postprocessing chunk is fetched _after_ the first frame renders.
 3. **Lazy-load `SpaceBackground`** – The cosmetic nebula/star backdrop is now a `React.lazy` import inside `GameScene`, letting core gameplay geometry render first.
 
 The current Vite 8 / Rolldown build still preserves those startup wins, but its emitted chunk layout differs from the original issue #46 snapshot. The table below reflects the production build validated on **20 Mar 2026**.
 
-| Chunk | Raw size | Gzip size | Load timing |
-| --- | --- | --- | --- |
-| `vendor-rapier-*.js` | 2,259.28 kB | 850.61 kB | Parallel with others (physics required for gameplay) |
-| `vendor-postprocessing-*.js` | 1,055.76 kB | 323.21 kB | Deferred – fetched after first render |
-| `vendor-react-*.js` | 178.26 kB | 55.95 kB | Parallel download |
-| `index-*.js` | 42.57 kB | 12.76 kB | Entry point |
-| `vendor-r3f-*.js` | 37.72 kB | 10.81 kB | Parallel download |
-| `vendor-state-*.js` | 22.26 kB | 5.42 kB | Parallel download |
-| `SpaceBackground-*.js` | 6.72 kB | 2.72 kB | Deferred – fetched after first render |
-| `rapier-*.js` | 2.68 kB | 1.19 kB | Parallel download |
-| `rolldown-runtime-*.js` | 0.68 kB | 0.41 kB | Runtime bootstrap |
-| `PostEffects-*.js` | 0.73 kB | 0.45 kB | Deferred – fetched after first render |
+| Chunk                        | Raw size    | Gzip size | Load timing                                          |
+| ---------------------------- | ----------- | --------- | ---------------------------------------------------- |
+| `vendor-rapier-*.js`         | 2,259.28 kB | 850.61 kB | Parallel with others (physics required for gameplay) |
+| `vendor-postprocessing-*.js` | 1,055.76 kB | 323.21 kB | Deferred – fetched after first render                |
+| `vendor-react-*.js`          | 178.26 kB   | 55.95 kB  | Parallel download                                    |
+| `index-*.js`                 | 42.57 kB    | 12.76 kB  | Entry point                                          |
+| `vendor-r3f-*.js`            | 37.72 kB    | 10.81 kB  | Parallel download                                    |
+| `vendor-state-*.js`          | 22.26 kB    | 5.42 kB   | Parallel download                                    |
+| `SpaceBackground-*.js`       | 6.72 kB     | 2.72 kB   | Deferred – fetched after first render                |
+| `rapier-*.js`                | 2.68 kB     | 1.19 kB   | Parallel download                                    |
+| `rolldown-runtime-*.js`      | 0.68 kB     | 0.41 kB   | Runtime bootstrap                                    |
+| `PostEffects-*.js`           | 0.73 kB     | 0.45 kB   | Deferred – fetched after first render                |
 
 **Total gzip: ~1,263 kB for emitted JavaScript (~1,264 kB including HTML/CSS)** — the payload remains split into independently-cacheable chunks, with the optional background and postprocessing assets deferred until after the first frame.
 
 ### Key improvements
 
-| Concern | Before | After |
-| --- | --- | --- |
-| Parallel chunk downloads | ❌ Single file, sequential | ✅ 10 JS chunks emitted; optional background/postprocessing chunks defer until after first render |
-| Incremental cache invalidation | ❌ Whole bundle re-fetched on any code change | ✅ Only changed chunks re-fetched |
-| PostEffects blocks first frame | ❌ Bloom/DoF eager-imported | ✅ `React.lazy` defers until after first render |
-| SpaceBackground blocks gameplay | ❌ Eager-imported in GameScene | ✅ `React.lazy` defers cosmetic background |
-| Build warning | ⚠️ "Some chunks are larger than 500 kB" | ⚠️ Warning still fires for `vendor-rapier` and `vendor-postprocessing`; documented and acceptable for now |
+| Concern                         | Before                                        | After                                                                                                     |
+| ------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Parallel chunk downloads        | ❌ Single file, sequential                    | ✅ 10 JS chunks emitted; optional background/postprocessing chunks defer until after first render         |
+| Incremental cache invalidation  | ❌ Whole bundle re-fetched on any code change | ✅ Only changed chunks re-fetched                                                                         |
+| PostEffects blocks first frame  | ❌ Bloom/DoF eager-imported                   | ✅ `React.lazy` defers until after first render                                                           |
+| SpaceBackground blocks gameplay | ❌ Eager-imported in GameScene                | ✅ `React.lazy` defers cosmetic background                                                                |
+| Build warning                   | ⚠️ "Some chunks are larger than 500 kB"       | ⚠️ Warning still fires for `vendor-rapier` and `vendor-postprocessing`; documented and acceptable for now |
 
 - **Note on the current chunk layout:** Rolldown no longer emits the same `vendor-three` split captured in the original audit. The startup deferral strategy still works, but future bundle investigations should use fresh build output rather than assuming the older chunk names and boundaries.
 - **Note on Rapier:** The 851 kB gzip rapier chunk contains a compiled WebAssembly physics engine. This cannot be tree-shaken further without replacing the physics library. It is fetched in parallel with all other required chunks and cached aggressively between sessions.
@@ -60,14 +60,14 @@ The current Vite 8 / Rolldown build still preserves those startup wins, but its 
 
 These are the targets for the production build. Measurements should be taken on a mid-range device over a simulated **Fast 4G** network (40 Mbps down, 20 ms RTT) with the browser cache cleared.
 
-| Metric | Target | Notes |
-| --- | --- | --- |
-| Initial JS transferred (gzip) | < 1,500 kB total; < 500 kB per chunk | Rapier WASM (~851 kB) is the sole documented exception |
-| Time to Interactive (TTI) | < 5 s | 4× CPU throttle, Fast 4G network |
-| First Contentful Paint (FCP) | < 2 s | Background colour / HUD visible |
-| Steady-state frame rate | ≥ 60 FPS | Device with a dedicated GPU |
-| Minimum frame rate (adaptive fallback) | ≥ 30 FPS | `PerformanceMonitor` can step effects down to Bloom-only, disable them entirely, and drop `dpr` to 0.5 if needed |
-| Memory (heap) at steady state | < 256 MB | — |
+| Metric                                 | Target                               | Notes                                                                                                            |
+| -------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Initial JS transferred (gzip)          | < 1,500 kB total; < 500 kB per chunk | Rapier WASM (~851 kB) is the sole documented exception                                                           |
+| Time to Interactive (TTI)              | < 5 s                                | 4× CPU throttle, Fast 4G network                                                                                 |
+| First Contentful Paint (FCP)           | < 2 s                                | Background colour / HUD visible                                                                                  |
+| Steady-state frame rate                | ≥ 60 FPS                             | Device with a dedicated GPU                                                                                      |
+| Minimum frame rate (adaptive fallback) | ≥ 30 FPS                             | `PerformanceMonitor` can step effects down to Bloom-only, disable them entirely, and drop `dpr` to 0.5 if needed |
+| Memory (heap) at steady state          | < 256 MB                             | —                                                                                                                |
 
 ### Existing runtime safeguards
 
