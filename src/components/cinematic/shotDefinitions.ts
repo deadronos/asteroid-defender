@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from "three";
 
 /** Seconds each shot is held before the next transition begins */
 export const SHOT_DURATION = 17;
@@ -34,55 +34,42 @@ export const STATIC_CAMERA_POS = new THREE.Vector3(0, 18, 30);
 export const STATIC_CAMERA_LOOK = new THREE.Vector3(0, 0, 0);
 
 export interface ShotDef {
-    getPos: (angle: number, t: number, target: THREE.Vector3) => THREE.Vector3;
-    getLookAt: () => THREE.Vector3;
-    focusDist: number;
+  getPos: (angle: number, t: number, target: THREE.Vector3) => THREE.Vector3;
+  getLookAt: () => THREE.Vector3;
+  focusDist: number;
 }
 
 export const SHOTS: ShotDef[] = [
-    {
-        getPos: (angle, _, target) => target.set(
-            Math.cos(angle) * 32,
-            18,
-            Math.sin(angle) * 32,
-        ),
-        getLookAt: () => lookZero,
-        focusDist: 0.032,
-    },
-    {
-        getPos: (_, t, target) => target.set(
-            10 + Math.sin(t * 0.25) * 0.35,
-            6 + Math.cos(t * 0.2) * 0.2,
-            10,
-        ),
-        getLookAt: () => turret1LookAt,
-        focusDist: 0.012,
-    },
-    {
-        getPos: (_, t, target) => target.set(
-            10 + Math.cos(t * 0.3) * 0.3,
-            -9,
-            10 + Math.sin(t * 0.2) * 0.3,
-        ),
-        getLookAt: () => lookHigh,
-        focusDist: 0.025,
-    },
-    {
-        getPos: (_, t, target) => target.set(
-            -18 + Math.sin(t * 0.2) * 0.35,
-            8,
-            16 + Math.cos(t * 0.25) * 0.3,
-        ),
-        getLookAt: () => turret2LookAt,
-        focusDist: 0.022,
-    },
+  {
+    getPos: (angle, _, target) => target.set(Math.cos(angle) * 32, 18, Math.sin(angle) * 32),
+    getLookAt: () => lookZero,
+    focusDist: 0.032,
+  },
+  {
+    getPos: (_, t, target) =>
+      target.set(10 + Math.sin(t * 0.25) * 0.35, 6 + Math.cos(t * 0.2) * 0.2, 10),
+    getLookAt: () => turret1LookAt,
+    focusDist: 0.012,
+  },
+  {
+    getPos: (_, t, target) =>
+      target.set(10 + Math.cos(t * 0.3) * 0.3, -9, 10 + Math.sin(t * 0.2) * 0.3),
+    getLookAt: () => lookHigh,
+    focusDist: 0.025,
+  },
+  {
+    getPos: (_, t, target) =>
+      target.set(-18 + Math.sin(t * 0.2) * 0.35, 8, 16 + Math.cos(t * 0.25) * 0.3),
+    getLookAt: () => turret2LookAt,
+    focusDist: 0.022,
+  },
 ];
 
 export function findNextSafeShot(currentIdx: number, blockedShots: Set<number>): number {
-    let candidate = (currentIdx + 1) % SHOTS.length;
-    for (let i = 0; i < SHOTS.length; i++) {
-        if (!blockedShots.has(candidate)) return candidate;
-        candidate = (candidate + 1) % SHOTS.length;
-    }
-    return currentIdx;
+  let candidate = (currentIdx + 1) % SHOTS.length;
+  for (let i = 0; i < SHOTS.length; i++) {
+    if (!blockedShots.has(candidate)) return candidate;
+    candidate = (candidate + 1) % SHOTS.length;
+  }
+  return currentIdx;
 }

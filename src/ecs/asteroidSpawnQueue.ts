@@ -1,4 +1,4 @@
-import { AsteroidType } from './world';
+import { AsteroidType } from "./world";
 
 export interface SpawnData {
   id: string;
