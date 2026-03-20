@@ -75,4 +75,4 @@ The build is split into six vendor chunks so browsers can cache them independent
 | `vendor-postprocessing` | `@react-three/postprocessing`, `postprocessing` |
 | `vendor-state` | `zustand`, `miniplex`, `miniplex-react` |
 
-Post-processing effects (`EffectComposer`, `Bloom`, `DepthOfField`) and the cosmetic `SpaceBackground` are lazy-loaded so the core game canvas becomes interactive before those chunks finish downloading.
+Post-processing effects (`EffectComposer`, `Bloom`, `DepthOfField`) and the cosmetic `SpaceBackground` are lazy-loaded so the core game canvas becomes interactive before those chunks finish downloading. Once loaded, the same adaptive quality system also trims the background itself: reduced tiers lower star density, freeze the dust simulation, and eventually fall back to a sparse static star field with no nebula or shooting stars.

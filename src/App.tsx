@@ -38,7 +38,12 @@ function App() {
           <color attach="background" args={['#050510']} />
           <Suspense fallback={null}>
             <Physics paused={gameState !== 'playing'}>
-              <GameScene key={sessionId} asteroidEffectsQuality={effectiveVisualProfile.effectsQuality} />
+              <GameScene
+                key={sessionId}
+                asteroidEffectsQuality={effectiveVisualProfile.effectsQuality}
+                backgroundEffectsQuality={effectiveVisualProfile.effectsQuality}
+                reducedMotion={reducedMotion}
+              />
             </Physics>
           </Suspense>
           {effectiveVisualProfile.effectsQuality !== 'off' && (
