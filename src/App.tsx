@@ -5,6 +5,13 @@ import { Physics } from '@react-three/rapier';
 import GameScene from './components/GameScene';
 import HUD from './components/HUD';
 import useGameStore from './store/gameStore';
+import {
+  clampVisualProfile,
+  degradeVisualProfile,
+  fallbackVisualProfile,
+  getInitialVisualProfile,
+  improveVisualProfile,
+} from './utils/visualQuality';
 import './index.css';
 
 // Lazy-load the postprocessing pass so the heavy `postprocessing` +
@@ -12,19 +19,21 @@ import './index.css';
 const PostEffects = lazy(() => import('./components/PostEffects'));
 
 function App() {
-  const [dpr, setDpr] = useState(1.5);
   const gameState = useGameStore((state) => state.gameState);
   const sessionId = useGameStore((state) => state.sessionId);
+  const reducedMotion = useGameStore((state) => state.reducedMotion);
+  const [visualProfile, setVisualProfile] = useState(() => getInitialVisualProfile(reducedMotion));
+  const effectiveVisualProfile = clampVisualProfile(visualProfile, reducedMotion);
 
   return (
     <>
       <HUD />
-      <Canvas camera={{ position: [0, 15, 25], fov: 60 }} dpr={dpr}>
+      <Canvas camera={{ position: [0, 15, 25], fov: 60 }} dpr={effectiveVisualProfile.dpr}>
         <PerformanceMonitor
-          onIncline={() => setDpr(2)}
-          onDecline={() => setDpr(1)}
+          onIncline={() => setVisualProfile((current) => improveVisualProfile(current, reducedMotion))}
+          onDecline={() => setVisualProfile((current) => degradeVisualProfile(current, reducedMotion))}
           flipflops={3}
-          onFallback={() => setDpr(0.5)}
+          onFallback={() => setVisualProfile(fallbackVisualProfile())}
         >
           <color attach="background" args={['#050510']} />
           <Suspense fallback={null}>
@@ -32,9 +41,11 @@ function App() {
               <GameScene key={sessionId} />
             </Physics>
           </Suspense>
-          <Suspense fallback={null}>
-            <PostEffects />
-          </Suspense>
+          {effectiveVisualProfile.effectsQuality !== 'off' && (
+            <Suspense fallback={null}>
+              <PostEffects quality={effectiveVisualProfile.effectsQuality} />
+            </Suspense>
+          )}
         </PerformanceMonitor>
       </Canvas>
     </>

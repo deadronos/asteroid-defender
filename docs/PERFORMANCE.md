@@ -31,15 +31,15 @@ The current Vite 8 / Rolldown build still preserves those startup wins, but its 
 | `vendor-rapier-*.js` | 2,259.28 kB | 850.61 kB | Parallel with others (physics required for gameplay) |
 | `vendor-postprocessing-*.js` | 1,055.76 kB | 323.21 kB | Deferred – fetched after first render |
 | `vendor-react-*.js` | 178.26 kB | 55.95 kB | Parallel download |
-| `index-*.js` | 40.22 kB | 12.02 kB | Entry point |
+| `index-*.js` | 41.07 kB | 12.30 kB | Entry point |
 | `vendor-r3f-*.js` | 37.72 kB | 10.81 kB | Parallel download |
 | `vendor-state-*.js` | 22.26 kB | 5.42 kB | Parallel download |
 | `SpaceBackground-*.js` | 5.95 kB | 2.42 kB | Deferred – fetched after first render |
 | `rapier-*.js` | 2.68 kB | 1.19 kB | Parallel download |
 | `rolldown-runtime-*.js` | 0.68 kB | 0.41 kB | Runtime bootstrap |
-| `PostEffects-*.js` | 0.65 kB | 0.39 kB | Deferred – fetched after first render |
+| `PostEffects-*.js` | 0.73 kB | 0.45 kB | Deferred – fetched after first render |
 
-**Total gzip: ~1,262 kB for emitted JavaScript (~1,263 kB including HTML/CSS)** — the payload remains split into independently-cacheable chunks, with the optional background and postprocessing assets deferred until after the first frame.
+**Total gzip: ~1,263 kB for emitted JavaScript (~1,264 kB including HTML/CSS)** — the payload remains split into independently-cacheable chunks, with the optional background and postprocessing assets deferred until after the first frame.
 
 ### Key improvements
 
@@ -66,13 +66,14 @@ These are the targets for the production build. Measurements should be taken on 
 | Time to Interactive (TTI) | < 5 s | 4× CPU throttle, Fast 4G network |
 | First Contentful Paint (FCP) | < 2 s | Background colour / HUD visible |
 | Steady-state frame rate | ≥ 60 FPS | Device with a dedicated GPU |
-| Minimum frame rate (adaptive fallback) | ≥ 30 FPS | `dpr` auto-scaled to 0.5 via `PerformanceMonitor` |
+| Minimum frame rate (adaptive fallback) | ≥ 30 FPS | `PerformanceMonitor` can step effects down to Bloom-only, disable them entirely, and drop `dpr` to 0.5 if needed |
 | Memory (heap) at steady state | < 256 MB | — |
 
 ### Existing runtime safeguards
 
-- **`<PerformanceMonitor>`** (from `@react-three/drei`) automatically adjusts the canvas device pixel ratio (`dpr`) between 0.5 and 2 based on measured frame times, with a three-strike flip-flop guard before adjusting.
+- **`<PerformanceMonitor>`** (from `@react-three/drei`) now applies adaptive visual-quality tiers based on measured frame times, with a three-strike flip-flop guard before adjusting. On healthy frame times it caps at **full effects + `dpr` 1.25**; under pressure it steps down to **Bloom-only + `dpr` 1.0** (or **`dpr` 0.75** with reduced motion), then **disables postprocessing** before finally dropping to **`dpr` 0.5** on fallback.
 - **`<Suspense fallback={null}>`** wraps the physics world, postprocessing, and background so the canvas is presented immediately while heavier assets hydrate in the background.
+- **Reduced motion lowers the quality ceiling** – when `reducedMotion` is enabled, the app avoids the expensive Depth of Field tier entirely and clamps the adaptive profile to the cheaper Bloom-only path with lower DPR.
 - **Explosion effects only mount while active** – `src/components/Explosion.tsx` now mounts the point light and fragment particles only for live detonations, so the pre-allocated explosion pool does not keep hundreds of idle `useFrame` subscribers alive between blasts.
 
 ---
