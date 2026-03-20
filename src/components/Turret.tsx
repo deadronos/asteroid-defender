@@ -14,6 +14,8 @@ interface TurretProps {
 
 const LASER_ORIGIN_Z = 3.5;
 const TURRET_RANGE = 50;
+// Penalty applied to distSq for asteroids already targeted by another turret (20 units * 20 units)
+const TARGETING_PENALTY = 400;
 
 const tempVec = new THREE.Vector3();
 
@@ -65,7 +67,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
                 // Hemisphere check - skip entities on the opposite side
                 if ((entity.position.y > 0) !== isTopTurret) return Infinity;
                 // Inflate distance if already targeted by another turret to encourage unique targets
-                return distSq + (entity.targetedBy && entity.targetedBy !== id ? 400 : 0);
+                return distSq + (entity.targetedBy && entity.targetedBy !== id ? TARGETING_PENALTY : 0);
             }
         );
 
