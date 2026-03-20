@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   ECS,
   asteroidQuery,
+  countAsteroidsInRange,
+  findNearestAsteroidInRange,
   queryAsteroidsInRange,
   updateSpatialIndex,
   type GameEntity,
@@ -84,5 +86,102 @@ describe('asteroid spatial index', () => {
     const results = queryAsteroidsInRange(new THREE.Vector3(0, 0, 0), 20);
     const matches = results.filter((entity) => entity === asteroid);
     expect(matches).toHaveLength(1);
+  });
+});
+
+describe('countAsteroidsInRange', () => {
+  beforeEach(() => {
+    clearWorld();
+    updateSpatialIndex();
+  });
+
+  afterEach(() => {
+    clearWorld();
+    updateSpatialIndex();
+  });
+
+  it('returns zero when no asteroids are present', () => {
+    expect(countAsteroidsInRange(new THREE.Vector3(0, 0, 0), 50)).toBe(0);
+  });
+
+  it('counts asteroids within range', () => {
+    addAsteroid('c-1', new THREE.Vector3(0, 0, 0));
+    addAsteroid('c-2', new THREE.Vector3(5, 0, 0));
+
+    expect(countAsteroidsInRange(new THREE.Vector3(0, 0, 0), 10)).toBe(2);
+  });
+
+  it('does not count asteroids outside the range', () => {
+    addAsteroid('c-3', new THREE.Vector3(0, 0, 0));
+    addAsteroid('c-4', new THREE.Vector3(60, 0, 0));
+
+    expect(countAsteroidsInRange(new THREE.Vector3(0, 0, 0), 50)).toBe(1);
+  });
+
+  it('matches the length of queryAsteroidsInRange for equivalence', () => {
+    addAsteroid('c-5', new THREE.Vector3(10, 0, 0));
+    addAsteroid('c-6', new THREE.Vector3(20, 0, 0));
+    addAsteroid('c-7', new THREE.Vector3(80, 0, 0));
+
+    const origin = new THREE.Vector3(0, 0, 0);
+    const range = 30;
+    expect(countAsteroidsInRange(origin, range)).toBe(queryAsteroidsInRange(origin, range).length);
+  });
+});
+
+describe('findNearestAsteroidInRange', () => {
+  beforeEach(() => {
+    clearWorld();
+    updateSpatialIndex();
+  });
+
+  afterEach(() => {
+    clearWorld();
+    updateSpatialIndex();
+  });
+
+  it('returns null when no asteroids are present', () => {
+    expect(findNearestAsteroidInRange(new THREE.Vector3(0, 0, 0), 50)).toBeNull();
+  });
+
+  it('returns the nearest asteroid within range', () => {
+    const close = addAsteroid('n-1', new THREE.Vector3(5, 0, 0));
+    addAsteroid('n-2', new THREE.Vector3(15, 0, 0));
+
+    expect(findNearestAsteroidInRange(new THREE.Vector3(0, 0, 0), 50)).toBe(close);
+  });
+
+  it('returns null when the only asteroid is out of range', () => {
+    addAsteroid('n-3', new THREE.Vector3(100, 0, 0));
+
+    expect(findNearestAsteroidInRange(new THREE.Vector3(0, 0, 0), 50)).toBeNull();
+  });
+
+  it('applies the scoreFn to select a different candidate', () => {
+    const closer = addAsteroid('n-4', new THREE.Vector3(5, 0, 0));
+    const farther = addAsteroid('n-5', new THREE.Vector3(20, 0, 0));
+
+    // scoreFn heavily penalises the closer asteroid so the farther one wins
+    const result = findNearestAsteroidInRange(
+      new THREE.Vector3(0, 0, 0),
+      50,
+      (entity, distSq) => (entity === closer ? distSq + 10000 : distSq)
+    );
+
+    expect(result).toBe(farther);
+  });
+
+  it('returns Infinity-scored entities as not nearest (scoreFn filter)', () => {
+    addAsteroid('n-6', new THREE.Vector3(5, 1, 0));
+    const preferred = addAsteroid('n-7', new THREE.Vector3(10, -1, 0));
+
+    // Only allow asteroids with y <= 0
+    const result = findNearestAsteroidInRange(
+      new THREE.Vector3(0, 0, 0),
+      50,
+      (entity, distSq) => (entity.position && entity.position.y > 0 ? Infinity : distSq)
+    );
+
+    expect(result).toBe(preferred);
   });
 });

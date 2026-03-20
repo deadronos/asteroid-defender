@@ -69,5 +69,75 @@ export function queryAsteroidsInRange(position: THREE.Vector3, range: number): G
     return asteroids;
 }
 
+export function countAsteroidsInRange(position: THREE.Vector3, range: number): number {
+    const rangeSq = range * range;
+    let count = 0;
+
+    const minX = Math.floor((position.x - range) / CELL_SIZE);
+    const maxX = Math.floor((position.x + range) / CELL_SIZE);
+    const minY = Math.floor((position.y - range) / CELL_SIZE);
+    const maxY = Math.floor((position.y + range) / CELL_SIZE);
+    const minZ = Math.floor((position.z - range) / CELL_SIZE);
+    const maxZ = Math.floor((position.z + range) / CELL_SIZE);
+
+    for (let x = minX; x <= maxX; x++) {
+        for (let y = minY; y <= maxY; y++) {
+            for (let z = minZ; z <= maxZ; z++) {
+                const key = `${x},${y},${z}`;
+                const cell = asteroidCells.get(key);
+                if (cell && cell.length > 0) {
+                    for (let i = 0; i < cell.length; i++) {
+                        const entity = cell[i];
+                        if (entity.position && position.distanceToSquared(entity.position) <= rangeSq) {
+                            count++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return count;
+}
+
+export function findNearestAsteroidInRange(
+    position: THREE.Vector3,
+    range: number,
+    scoreFn?: (entity: GameEntity, distSq: number) => number
+): GameEntity | null {
+    const rangeSq = range * range;
+    let nearestScore = Infinity;
+    let nearest: GameEntity | null = null;
+
+    const minX = Math.floor((position.x - range) / CELL_SIZE);
+    const maxX = Math.floor((position.x + range) / CELL_SIZE);
+    const minY = Math.floor((position.y - range) / CELL_SIZE);
+    const maxY = Math.floor((position.y + range) / CELL_SIZE);
+    const minZ = Math.floor((position.z - range) / CELL_SIZE);
+    const maxZ = Math.floor((position.z + range) / CELL_SIZE);
+
+    for (let x = minX; x <= maxX; x++) {
+        for (let y = minY; y <= maxY; y++) {
+            for (let z = minZ; z <= maxZ; z++) {
+                const key = `${x},${y},${z}`;
+                const cell = asteroidCells.get(key);
+                if (cell && cell.length > 0) {
+                    for (let i = 0; i < cell.length; i++) {
+                        const entity = cell[i];
+                        if (!entity.position) continue;
+                        const distSq = position.distanceToSquared(entity.position);
+                        if (distSq > rangeSq) continue;
+                        const score = scoreFn ? scoreFn(entity, distSq) : distSq;
+                        if (score < nearestScore) {
+                            nearestScore = score;
+                            nearest = entity;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return nearest;
+}
+
 // Create the React bindings
 export const { Entity, Component } = createReactAPI(ECS);
