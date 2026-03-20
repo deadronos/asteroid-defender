@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useFrame } from '@react-three/fiber';
 import CinematicCamera from './CinematicCamera';
@@ -10,31 +10,20 @@ import Asteroid from './Asteroid';
 import AsteroidSpawner from './AsteroidSpawner';
 import Explosion from './Explosion';
 import { clearAsteroidSpawns, drainAsteroidSpawns } from '../ecs/asteroidSpawnQueue';
-import { nextId } from '../utils/id';
 import type { EffectsQuality } from '../utils/visualQuality';
+import {
+    activateQueuedAsteroids,
+    countActiveItems,
+    createAsteroidPool,
+    deactivateAsteroid,
+    type PooledAsteroid,
+    spawnSplitterFragments,
+} from './gameScene/pools';
+import { useExplosionPool } from './gameScene/useExplosionPool';
+import { useShieldImpacts } from './gameScene/useShieldImpacts';
 
 // Lazy-load the cosmetic background so core gameplay geometry renders first.
 const SpaceBackground = lazy(() => import('./SpaceBackground'));
-
-interface PooledAsteroid {
-    id: string;
-    active: boolean;
-    pos: [number, number, number];
-    type: AsteroidType;
-}
-
-interface PooledExplosion {
-    id: string;
-    active: boolean;
-    pos: [number, number, number];
-    type: AsteroidType;
-    timer?: ReturnType<typeof setTimeout>;
-}
-
-interface ShieldImpactData {
-    id: string;
-    pos: [number, number, number];
-}
 
 // Pool of pre-mounted Asteroid components. Inactive entries are parked off-screen
 // so Rapier does not simulate them. Increase this value if waves grow beyond 60
@@ -49,27 +38,9 @@ interface GameSceneProps {
 }
 
 export default function GameScene({ asteroidEffectsQuality, backgroundEffectsQuality, reducedMotion }: GameSceneProps) {
-    const [asteroids, setAsteroids] = useState<PooledAsteroid[]>(() =>
-        Array.from({ length: POOL_SIZE }).map(() => ({
-            id: nextId(),
-            active: false,
-            pos: [0, -1000, 0],
-            type: 'swarmer'
-        }))
-    );
-
-    const [explosions, setExplosions] = useState<PooledExplosion[]>(() =>
-        Array.from({ length: POOL_SIZE }).map(() => ({
-            id: nextId(),
-            active: false,
-            pos: [0, -1000, 0],
-            type: 'swarmer'
-        }))
-    );
-
-    const [shieldImpacts, setShieldImpacts] = useState<ShieldImpactData[]>([]);
-
-    const explosionsRef = useRef<PooledExplosion[]>([]);
+    const [asteroids, setAsteroids] = useState<PooledAsteroid[]>(() => createAsteroidPool(POOL_SIZE));
+    const { explosions, triggerExplosion } = useExplosionPool(POOL_SIZE);
+    const { shieldImpacts, addShieldImpact } = useShieldImpacts();
 
     const { incrementDestroyed, setActiveAsteroids } = useGameStore(
         useShallow((state) => ({
@@ -79,47 +50,11 @@ export default function GameScene({ asteroidEffectsQuality, backgroundEffectsQua
     );
 
     useEffect(() => {
-        explosionsRef.current = explosions;
-    }, [explosions]);
-
-    const clearExplosionTimers = useCallback((pool: PooledExplosion[]) => {
-        for (const explosion of pool) {
-            if (explosion.timer) {
-                clearTimeout(explosion.timer);
-            }
-        }
-    }, []);
-
-    useEffect(() => {
         clearAsteroidSpawns();
 
         return () => {
             clearAsteroidSpawns();
-            clearExplosionTimers(explosionsRef.current);
         };
-    }, [clearExplosionTimers]);
-
-    const triggerExplosion = useCallback((pos: [number, number, number], type: AsteroidType) => {
-        setExplosions(prev => {
-            const nextIdx = prev.findIndex(e => !e.active);
-            if (nextIdx === -1) return prev;
-
-            const newExplosions = [...prev];
-            const e = newExplosions[nextIdx];
-
-            if (e.timer) clearTimeout(e.timer);
-
-            newExplosions[nextIdx] = {
-                ...e,
-                active: true,
-                pos,
-                type,
-                timer: setTimeout(() => {
-                    setExplosions(curr => curr.map((x, i) => i === nextIdx ? { ...x, active: false } : x));
-                }, 1000)
-            };
-            return newExplosions;
-        });
     }, []);
 
     useFrame(() => {
@@ -128,29 +63,7 @@ export default function GameScene({ asteroidEffectsQuality, backgroundEffectsQua
 
         const spawns = drainAsteroidSpawns();
         if (spawns.length > 0) {
-            setAsteroids(prev => {
-                const newAsteroids = [...prev];
-                let modified = false;
-                let nextAvailableIdx = 0;
-                for (const ast of spawns) {
-                    while (nextAvailableIdx < newAsteroids.length && newAsteroids[nextAvailableIdx].active) {
-                        nextAvailableIdx++;
-                    }
-                    if (nextAvailableIdx < newAsteroids.length) {
-                        newAsteroids[nextAvailableIdx] = {
-                            ...newAsteroids[nextAvailableIdx],
-                            active: true,
-                            pos: ast.pos,
-                            type: ast.type
-                        };
-                        modified = true;
-                        nextAvailableIdx++;
-                    } else {
-                        break;
-                    }
-                }
-                return modified ? newAsteroids : prev;
-            });
+            setAsteroids((prev) => activateQueuedAsteroids(prev, spawns));
         }
     });
 
@@ -158,51 +71,24 @@ export default function GameScene({ asteroidEffectsQuality, backgroundEffectsQua
         if (!isBaseHit) {
             incrementDestroyed();
         } else {
-            const impactId = nextId();
-            setShieldImpacts(prev => [...prev, { id: impactId, pos }]);
-            setTimeout(() => {
-                setShieldImpacts(prev => prev.filter(impact => impact.id !== impactId));
-            }, 900);
+            addShieldImpact(pos);
         }
 
-        setAsteroids(prev => {
-            const nextAsteroids = [...prev];
-
-            const idx = nextAsteroids.findIndex(ast => ast.id === id);
-            if (idx !== -1) {
-                nextAsteroids[idx] = { ...nextAsteroids[idx], active: false };
-            }
-
-            // Splitters spawn two swarmer fragments when destroyed by turrets
+        setAsteroids((prev) => {
+            const withoutDestroyed = deactivateAsteroid(prev, id);
             if (type === 'splitter' && !isBaseHit) {
-                const offset = 2.0;
-                let splitsLeft = 2;
-                for (let i = 0; i < nextAsteroids.length && splitsLeft > 0; i++) {
-                    if (!nextAsteroids[i].active) {
-                        nextAsteroids[i] = {
-                            ...nextAsteroids[i],
-                            active: true,
-                            type: 'swarmer',
-                            pos: [pos[0] + (splitsLeft === 2 ? offset : -offset), pos[1], pos[2]]
-                        };
-                        splitsLeft--;
-                    }
-                }
+                return spawnSplitterFragments(withoutDestroyed, pos);
             }
 
-            return nextAsteroids;
+            return withoutDestroyed;
         });
 
         triggerExplosion(pos, type);
-    }, [incrementDestroyed, triggerExplosion]);
+    }, [addShieldImpact, incrementDestroyed, triggerExplosion]);
 
     // Sync asteroid count with global store to avoid updating during another component's render
     useEffect(() => {
-        let activeCount = 0;
-        for (let i = 0; i < asteroids.length; i++) {
-            if (asteroids[i].active) activeCount++;
-        }
-        setActiveAsteroids(activeCount);
+        setActiveAsteroids(countActiveItems(asteroids));
     }, [asteroids, setActiveAsteroids]);
 
     return (
