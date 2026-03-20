@@ -14,10 +14,9 @@ interface TurretProps {
 
 const LASER_ORIGIN_Z = 3.5;
 const TURRET_RANGE = 50;
+const TURRET_RANGE_SQ = TURRET_RANGE * TURRET_RANGE;
 // Penalty applied to distSq for asteroids already targeted by another turret (20 units * 20 units)
 const TARGETING_PENALTY = 400;
-
-
 
 export default function Turret({ id, position, rotation }: TurretProps) {
     const turretGroup = useRef<THREE.Group>(null);
@@ -79,14 +78,13 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             }
             currentTargetRef.current = nearestEntity;
 
-            const actualDistSq = turretGroup.current.position.distanceToSquared(nearestEntity.position!);
-            const actualDist = Math.sqrt(actualDistSq);
-
             turretGroup.current.lookAt(nearestEntity.position!);
 
             // Optimized: Since we just called lookAt, the target's local position
             // is always (0, 0, actualDist). This avoids expensive matrix world
             // updates and worldToLocal inversions every frame.
+            const actualDistSq = turretGroup.current.position.distanceToSquared(nearestEntity.position!);
+            const actualDist = Math.sqrt(actualDistSq);
             localTargetRef.current.set(0, 0, actualDist);
 
             nearestEntity.targetedBy = id;
