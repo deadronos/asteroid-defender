@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Edges, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { Line2, LineMaterial } from 'three-stdlib';
-import { GameEntity, queryAsteroidsInRange } from '../ecs/world';
+import { GameEntity, findNearestAsteroidInRange } from '../ecs/world';
 import useGameStore from '../store/gameStore';
 
 interface TurretProps {
@@ -14,6 +14,8 @@ interface TurretProps {
 
 const LASER_ORIGIN_Z = 3.5;
 const TURRET_RANGE = 50;
+// Penalty applied to distSq for asteroids already targeted by another turret (20 units * 20 units)
+const TARGETING_PENALTY = 400;
 
 const tempVec = new THREE.Vector3();
 
@@ -54,32 +56,20 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             return;
         }
 
-        let nearestDistSq = Infinity;
         let nearestEntity: GameEntity | null = null;
 
         const isTopTurret = turretGroup.current.position.y > 0;
-        const nearbyAsteroids = queryAsteroidsInRange(turretGroup.current.position, TURRET_RANGE);
-
-        for (const entity of nearbyAsteroids) {
-            if (entity.position) {
-                // Hemisphere check first - avoid distance calculations for entities on the other side
-                const isTopAsteroid = entity.position.y > 0;
-                if (isTopTurret !== isTopAsteroid) continue;
-
-                let distSq = turretGroup.current.position.distanceToSquared(entity.position);
-
-                // Artificially inflate the distance if this asteroid is already targeted by ANOTHER turret
-                // This encourages turrets to pick unique targets if there is more than 1 in range
-                if (entity.targetedBy && entity.targetedBy !== id) {
-                    distSq += 400; // 20 units penalty
-                }
-
-                if (distSq < nearestDistSq) {
-                    nearestDistSq = distSq;
-                    nearestEntity = entity;
-                }
+        nearestEntity = findNearestAsteroidInRange(
+            turretGroup.current.position,
+            TURRET_RANGE,
+            (entity, distSq) => {
+                if (!entity.position) return Infinity;
+                // Hemisphere check - skip entities on the opposite side
+                if ((entity.position.y > 0) !== isTopTurret) return Infinity;
+                // Inflate distance if already targeted by another turret to encourage unique targets
+                return distSq + (entity.targetedBy && entity.targetedBy !== id ? TARGETING_PENALTY : 0);
             }
-        }
+        );
 
         if (nearestEntity) {
             // Un-mark previous target if we switched
