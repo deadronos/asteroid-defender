@@ -4,6 +4,7 @@ import { EffectComposer, Bloom, DepthOfField } from '@react-three/postprocessing
 import { DepthOfFieldEffect } from 'postprocessing';
 import { MathUtils } from 'three';
 import { dofSettings } from './cinematicCameraDof';
+import type { EffectsQuality } from '../utils/visualQuality';
 
 /**
  * Bridges the imperative dofSettings singleton (mutated by CinematicCamera on
@@ -36,11 +37,26 @@ function DynamicDepthOfField() {
     );
 }
 
-export default function PostEffects() {
+interface PostEffectsProps {
+    quality: EffectsQuality;
+}
+
+export default function PostEffects({ quality }: PostEffectsProps) {
+    if (quality === 'off') {
+        return null;
+    }
+
+    const bloomOnly = quality === 'reduced';
+
     return (
         <EffectComposer>
-            <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.75} intensity={3.2} mipmapBlur />
-            <DynamicDepthOfField />
+            <Bloom
+                luminanceThreshold={bloomOnly ? 0.32 : 0.2}
+                luminanceSmoothing={bloomOnly ? 0.82 : 0.75}
+                intensity={bloomOnly ? 1.8 : 3.2}
+                mipmapBlur={!bloomOnly}
+            />
+            {!bloomOnly && <DynamicDepthOfField />}
         </EffectComposer>
     );
 }
