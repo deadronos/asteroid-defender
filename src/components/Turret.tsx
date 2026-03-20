@@ -3,20 +3,21 @@ import { useFrame } from '@react-three/fiber';
 import { Edges, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { Line2, LineMaterial } from 'three-stdlib';
-import { GameEntity, findNearestAsteroidInRange } from '../ecs/world';
+import { GameEntity } from '../ecs/world';
 import useGameStore from '../store/gameStore';
+import {
+    applyIdleTurretRotation,
+    calculateTurretDamage,
+    findTurretTarget,
+    LASER_ORIGIN_Z,
+    releaseTarget,
+} from './turret/helpers';
 
 interface TurretProps {
     id: string;
     position: [number, number, number];
     rotation: [number, number, number];
 }
-
-const LASER_ORIGIN_Z = 3.5;
-const TURRET_RANGE = 50;
-const TURRET_RANGE_SQ = TURRET_RANGE * TURRET_RANGE;
-// Penalty applied to distSq for asteroids already targeted by another turret (20 units * 20 units)
-const TARGETING_PENALTY = 400;
 
 export default function Turret({ id, position, rotation }: TurretProps) {
     const turretGroup = useRef<THREE.Group>(null);
@@ -46,35 +47,18 @@ export default function Turret({ id, position, rotation }: TurretProps) {
         if (!turretGroup.current) return;
 
         if (useGameStore.getState().gameState !== 'playing') {
-            if (currentTargetRef.current?.targetedBy === id) {
-                currentTargetRef.current.targetedBy = null;
-            }
+            releaseTarget(currentTargetRef.current, id);
             currentTargetRef.current = null;
             if (hasTarget) setHasTarget(false);
             return;
         }
 
-        let nearestEntity: GameEntity | null = null;
-
-        const isTopTurret = turretGroup.current.position.y > 0;
-        nearestEntity = findNearestAsteroidInRange(
-            turretGroup.current.position,
-            TURRET_RANGE,
-            (entity, distSq) => {
-                if (!entity.position) return Infinity;
-                // Hemisphere check - skip entities on the opposite side
-                if ((entity.position.y > 0) !== isTopTurret) return Infinity;
-                // Inflate distance if already targeted by another turret to encourage unique targets
-                return distSq + (entity.targetedBy && entity.targetedBy !== id ? TARGETING_PENALTY : 0);
-            }
-        );
+        const nearestEntity: GameEntity | null = findTurretTarget(turretGroup.current, id);
 
         if (nearestEntity) {
             // Un-mark previous target if we switched
             if (currentTargetRef.current && currentTargetRef.current !== nearestEntity) {
-                if (currentTargetRef.current.targetedBy === id) {
-                    currentTargetRef.current.targetedBy = null;
-                }
+                releaseTarget(currentTargetRef.current, id);
             }
             currentTargetRef.current = nearestEntity;
 
@@ -93,30 +77,16 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             recalibrationStartRef.current = null;
             if (barrelGroupRef.current) barrelGroupRef.current.rotation.set(0, 0, 0);
 
-            // Calculate damage falloff
-            // Max distance is 50. Closer = more damage.
-            // At dist 0: 5 damage per frame. At dist 50: 0.1 damage per frame.
-            const maxDamage = 5;
-            const minDamage = 0.1;
-            const damageVal = maxDamage - ((actualDist / 50) * (maxDamage - minDamage));
-
-            nearestEntity.health! -= damageVal;
+            nearestEntity.health! -= calculateTurretDamage(actualDist);
         } else {
             // Clear our lock if no target
             if (currentTargetRef.current) {
-                if (currentTargetRef.current.targetedBy === id) {
-                    currentTargetRef.current.targetedBy = null;
-                }
+                releaseTarget(currentTargetRef.current, id);
                 currentTargetRef.current = null;
             }
             if (hasTarget) setHasTarget(false);
 
-            const idleTime = state.clock.elapsedTime + idleOffsetRef.current;
-            turretGroup.current.rotation.set(
-                baseRotation.x + Math.sin(idleTime * 0.6) * 0.04,
-                baseRotation.y + Math.sin(idleTime * 0.35) * 0.65,
-                baseRotation.z
-            );
+            applyIdleTurretRotation(turretGroup.current, baseRotation, state.clock.elapsedTime, idleOffsetRef.current);
 
             if (state.clock.elapsedTime >= nextRecalibrationRef.current && recalibrationStartRef.current === null) {
                 recalibrationStartRef.current = state.clock.elapsedTime;

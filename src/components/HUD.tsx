@@ -1,8 +1,7 @@
-import { useCallback, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useGameStore from '../store/gameStore';
-import { getSecureItem, setSecureItem } from '../utils/storage';
 import { useKeyboardShortcuts } from './hud/useKeyboardShortcuts';
+import { formatDuration } from './hud/formatDuration';
 import HUDStats from './hud/HUDStats';
 import HUDControls from './hud/HUDControls';
 import MenuOverlay from './hud/MenuOverlay';
@@ -10,24 +9,7 @@ import PauseOverlay from './hud/PauseOverlay';
 import GameOverOverlay from './hud/GameOverOverlay';
 import OnboardingDialog from './hud/OnboardingDialog';
 import CinematicIndicator from './hud/CinematicIndicator';
-
-const ONBOARDING_STORAGE_KEY = 'asteroid-defender:onboarding-seen-v1';
-
-function getInitialOnboardingOpen() {
-    try {
-        return getSecureItem(ONBOARDING_STORAGE_KEY) !== 'true';
-    } catch {
-        // If storage is unavailable, default to showing onboarding for accessibility.
-        return true;
-    }
-}
-
-function formatDuration(milliseconds: number) {
-    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-}
+import { useOnboardingState } from './hud/useOnboardingState';
 
 export default function HUD() {
     const {
@@ -72,25 +54,12 @@ export default function HUD() {
         }))
     );
 
-    const [isOnboardingOpen, setIsOnboardingOpen] = useState(getInitialOnboardingOpen);
-
-    const dismissOnboarding = useCallback(() => {
-        setIsOnboardingOpen(false);
-        try {
-            setSecureItem(ONBOARDING_STORAGE_KEY, 'true');
-        } catch {
-            // Ignore storage failures; overlay can still be closed for the current session.
-        }
-    }, []);
-
-    const startFromOnboarding = useCallback(() => {
-        dismissOnboarding();
-        startGame();
-    }, [dismissOnboarding, startGame]);
-
-    const openOnboarding = useCallback(() => {
-        setIsOnboardingOpen(true);
-    }, []);
+    const {
+        isOnboardingOpen,
+        dismissOnboarding,
+        startFromOnboarding,
+        openOnboarding,
+    } = useOnboardingState(startGame);
 
     useKeyboardShortcuts({
         isOnboardingOpen,

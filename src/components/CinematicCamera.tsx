@@ -3,127 +3,19 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import useGameStore from '../store/gameStore';
 import { dofSettings } from './cinematicCameraDof';
-
-/** Seconds each shot is held before the next transition begins */
-const SHOT_DURATION = 17;
-/** Seconds the smooth transition between shots takes */
-const TRANSITION_DURATION = 2.5;
-/** Orbit angular speed for the wide-orbit shot (radians / second) */
-const ORBIT_SPEED = 0.035;
-/**
- * Minimum seconds to hold a shot after a transition completes before
- * allowing the next cut (target-lock hysteresis).
- */
-const POST_TRANSITION_MIN_HOLD = 3;
-/**
- * Maximum transition duration (seconds) enforced during active combat.
- * Keeps occlusion periods below the ~1.5 s threshold specified in the
- * readability requirements.
- */
-const COMBAT_MAX_TRANSITION_DURATION = 1.5;
-/**
- * Shot indices that are skipped during active combat because they obstruct
- * readability (e.g. occlusion of the base center or low-angle that puts
- * turrets/asteroids mostly off-screen).
- *
- * Shot 2 – low-angle from the platform edge (camera y = -9) – is excluded
- * because the base platform is fully off-screen below the camera and the
- * incoming asteroid swarm appears too far in the background.
- */
-const COMBAT_BLOCKED_SHOTS = new Set([2]);
-
-// Read dynamic turret positions avoiding hardcodes. This is acceptable for simple
-// visual polling of existing fixed-position entities. If these were moving we
-// would use function getters that check ECS
-const t1 = new THREE.Vector3(5, 1, 0);
-const getTurret1 = () => t1;
-const t2 = new THREE.Vector3(-5, 1, 0);
-const getTurret2 = () => t2;
-
-const lookZero = new THREE.Vector3(0, 0, 0);
-const lookHigh = new THREE.Vector3(0, 12, 0);
-
-/** Fixed camera position and look-at used in static (non-cinematic) mode */
-const STATIC_CAMERA_POS = new THREE.Vector3(0, 18, 30);
-const STATIC_CAMERA_LOOK = new THREE.Vector3(0, 0, 0);
-
-interface ShotDef {
-    /** Camera world position; receives the running orbit angle, elapsed shot time, and target vector */
-    getPos: (angle: number, t: number, target: THREE.Vector3) => THREE.Vector3;
-    /** World-space look-at target */
-    getLookAt: () => THREE.Vector3;
-    /**
-     * Normalized focus distance for the Depth-of-Field effect.
-     * Approximate formula: worldDistance / camera.far (far = 1000 default).
-     */
-    focusDist: number;
-}
-
-const SHOTS: ShotDef[] = [
-    {
-        // 0 – Wide cinematic orbit: slow 360° sweep high above the battle
-        getPos: (angle, _, target) => target.set(
-            Math.cos(angle) * 32,
-            18,
-            Math.sin(angle) * 32,
-        ),
-        getLookAt: () => lookZero,
-        focusDist: 0.032, // focus ~32 units away (platform centre)
-    },
-    {
-        // 1 – Tight close-up of turret #1 tracking an incoming asteroid
-        getPos: (_, t, target) => target.set(
-            10 + Math.sin(t * 0.25) * 0.35,
-            6 + Math.cos(t * 0.2) * 0.2,
-            10,
-        ),
-        getLookAt: getTurret1,
-        focusDist: 0.012, // focus ~12 units away (turret)
-    },
-    {
-        // 2 – Low-angle shot from the platform edge looking up at the swarm
-        getPos: (_, t, target) => target.set(
-            10 + Math.cos(t * 0.3) * 0.3,
-            -9,
-            10 + Math.sin(t * 0.2) * 0.3,
-        ),
-        getLookAt: () => lookHigh,
-        focusDist: 0.025, // focus ~25 units away (mid-swarm)
-    },
-    {
-        // 3 – Diagonal side view featuring turret #2
-        getPos: (_, t, target) => target.set(
-            -18 + Math.sin(t * 0.2) * 0.35,
-            8,
-            16 + Math.cos(t * 0.25) * 0.3,
-        ),
-        getLookAt: getTurret2,
-        focusDist: 0.022, // focus ~22 units away (turret)
-    },
-];
-
-/** Smoothstep easing: smooth start and stop for camera transitions */
-function smoothstep(t: number): number {
-    return t * t * (3 - 2 * t);
-}
-
-/**
- * Returns the next shot index that is not in the blocked set, starting from
- * `currentIdx + 1` and wrapping around.  Falls back to `currentIdx` if every
- * shot is blocked (should never happen with the current SHOTS definition, but
- * keeps the camera moving rather than crashing).
- */
-function findNextSafeShot(currentIdx: number, blockedShots: Set<number>): number {
-    let candidate = (currentIdx + 1) % SHOTS.length;
-    for (let i = 0; i < SHOTS.length; i++) {
-        if (!blockedShots.has(candidate)) return candidate;
-        candidate = (candidate + 1) % SHOTS.length;
-    }
-    // All shots are blocked – return current so behaviour is well-defined.
-    return currentIdx;
-}
-
-const tempShakeOffset = new THREE.Vector3();
+import { applyDamageCameraShake, smoothstep } from './cinematic/cameraEffects';
+import {
+    COMBAT_BLOCKED_SHOTS,
+    COMBAT_MAX_TRANSITION_DURATION,
+    findNextSafeShot,
+    ORBIT_SPEED,
+    POST_TRANSITION_MIN_HOLD,
+    SHOTS,
+    SHOT_DURATION,
+    STATIC_CAMERA_LOOK,
+    STATIC_CAMERA_POS,
+    TRANSITION_DURATION,
+} from './cinematic/shotDefinitions';
 
 /**
  * Cinematic camera manager.
@@ -344,21 +236,7 @@ export default function CinematicCamera() {
             useGameStore.getState().setCinematicTransition(nowTransitioning);
         }
 
-        // Apply Camera Shake on Impact (attenuated in reduced-motion mode)
-        const lastDamageTime = useGameStore.getState().lastDamageTime;
-        if (lastDamageTime > 0) {
-            const timeSinceDamage = (Date.now() - lastDamageTime) / 1000;
-            if (timeSinceDamage < 0.5) {
-                const shakeScale = reducedMotion ? 0.3 : 1.0;
-                const shakeIntensity = (0.5 - timeSinceDamage) * 2.0 * shakeScale;
-                tempShakeOffset.set(
-                    (Math.random() - 0.5) * shakeIntensity,
-                    (Math.random() - 0.5) * shakeIntensity,
-                    (Math.random() - 0.5) * shakeIntensity * 0.5,
-                );
-                camera.position.add(tempShakeOffset);
-            }
-        }
+        applyDamageCameraShake(camera, reducedMotion, useGameStore.getState().lastDamageTime);
     });
 
     return null;

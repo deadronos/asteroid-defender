@@ -1,3 +1,6 @@
+import OverlayBackdrop from './OverlayBackdrop';
+import { dialogCard, iconButton, primaryButton } from './hudStyles';
+
 interface OnboardingDialogProps {
     canStartFromOverlay: boolean;
     onDismiss: () => void;
@@ -7,54 +10,20 @@ interface OnboardingDialogProps {
 /** Help / mission-brief dialog shown on first load and via Help button. */
 export default function OnboardingDialog({ canStartFromOverlay, onDismiss, onStart }: OnboardingDialogProps) {
     return (
-        <div
-            onClick={onDismiss}
-            style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 130,
-                background: 'rgba(2, 4, 12, 0.82)',
-                backdropFilter: 'blur(6px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '24px',
-            }}
-        >
+        <OverlayBackdrop backgroundColor="rgba(2, 4, 12, 0.82)" zIndex={130} onClick={onDismiss}>
             <div
                 role="dialog"
                 aria-modal="true"
                 aria-label="How to play"
                 onClick={(event) => event.stopPropagation()}
-                style={{
-                    width: 'min(560px, 100%)',
-                    background: 'linear-gradient(145deg, rgba(13,17,33,0.96), rgba(8,12,24,0.96))',
-                    border: '1px solid rgba(126, 200, 255, 0.35)',
-                    borderRadius: '14px',
-                    boxShadow: '0 16px 34px rgba(0,0,0,0.5)',
-                    padding: '20px 20px 18px',
-                    color: '#dbeafe',
-                    lineHeight: 1.45,
-                }}
+                style={dialogCard}
             >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                     <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#fff' }}>Mission Brief</h2>
                     <button
                         onClick={onDismiss}
                         aria-label="Close help"
-                        style={{
-                            border: 'none',
-                            borderRadius: '8px',
-                            width: 36,
-                            height: 36,
-                            background: 'rgba(255,255,255,0.1)',
-                            color: '#fff',
-                            fontSize: '1.1rem',
-                            cursor: 'pointer',
-                        }}
+                        style={iconButton}
                     >
                         ✕
                     </button>
@@ -83,20 +52,16 @@ export default function OnboardingDialog({ canStartFromOverlay, onDismiss, onSta
                 <button
                     onClick={canStartFromOverlay ? onStart : onDismiss}
                     style={{
+                        ...primaryButton,
                         width: '100%',
                         padding: '12px 16px',
-                        border: 'none',
                         borderRadius: '10px',
-                        background: '#3b82f6',
-                        color: '#fff',
                         fontSize: '1rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
                     }}
                 >
                     {canStartFromOverlay ? 'Start Defense (Enter)' : 'Close Help'}
                 </button>
             </div>
-        </div>
+        </OverlayBackdrop>
     );
 }

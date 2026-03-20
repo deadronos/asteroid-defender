@@ -47,6 +47,27 @@ function freshRoundState() {
     };
 }
 
+function createFreshRun(sessionId: number, runStartedAt = Date.now()) {
+    return {
+        ...freshRoundState(),
+        gameState: 'playing' as const,
+        sessionId: sessionId + 1,
+        runStartedAt,
+    };
+}
+
+function togglePausedState(gameState: GameplayState): GameplayState {
+    if (gameState === 'playing') {
+        return 'paused';
+    }
+
+    if (gameState === 'paused') {
+        return 'playing';
+    }
+
+    return gameState;
+}
+
 const useGameStore = create<GameState>((set) => ({
     ...freshRoundState(),
     maxHealth: MAX_HEALTH,
@@ -76,12 +97,7 @@ const useGameStore = create<GameState>((set) => ({
         };
     }),
 
-    startGame: () => set((state) => ({
-        ...freshRoundState(),
-        gameState: 'playing',
-        sessionId: state.sessionId + 1,
-        runStartedAt: Date.now(),
-    })),
+    startGame: () => set((state) => createFreshRun(state.sessionId)),
 
     pauseGame: () => set((state) => {
         if (state.gameState !== 'playing') return state;
@@ -94,24 +110,17 @@ const useGameStore = create<GameState>((set) => ({
     }),
 
     togglePause: () => set((state) => {
-        if (state.gameState === 'playing') return { gameState: 'paused' };
-        if (state.gameState === 'paused') return { gameState: 'playing' };
-        return state;
+        const nextGameState = togglePausedState(state.gameState);
+        if (nextGameState === state.gameState) {
+            return state;
+        }
+
+        return { gameState: nextGameState };
     }),
 
-    restartGame: () => set((state) => ({
-        ...freshRoundState(),
-        gameState: 'playing',
-        sessionId: state.sessionId + 1,
-        runStartedAt: Date.now(),
-    })),
+    restartGame: () => set((state) => createFreshRun(state.sessionId)),
 
-    resetGame: () => set((state) => ({
-        ...freshRoundState(),
-        gameState: 'playing',
-        sessionId: state.sessionId + 1,
-        runStartedAt: Date.now(),
-    })),
+    resetGame: () => set((state) => createFreshRun(state.sessionId)),
 
     toggleCameraMode: () => set((state) => ({
         cameraMode: state.cameraMode === 'cinematic' ? 'static' : 'cinematic',

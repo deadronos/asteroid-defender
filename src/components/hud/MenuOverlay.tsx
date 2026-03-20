@@ -1,4 +1,5 @@
-import { fullscreenOverlay, primaryButton } from './hudStyles';
+import OverlayBackdrop from './OverlayBackdrop';
+import { overlayText, overlayTitle, primaryButton } from './hudStyles';
 
 interface MenuOverlayProps {
     startGame: () => void;
@@ -7,15 +8,11 @@ interface MenuOverlayProps {
 /** Full-screen menu shown before the first run. */
 export default function MenuOverlay({ startGame }: MenuOverlayProps) {
     return (
-        <div style={{
-            ...fullscreenOverlay,
-            backgroundColor: 'rgba(2, 4, 12, 0.84)',
-            zIndex: 125,
-        }}>
-            <h1 style={{ color: '#fff', fontSize: 'clamp(1.8rem, 5vw, 3.2rem)', margin: '0 0 0.8rem 0', textShadow: '0 0 20px rgba(126,200,255,0.35)' }}>
+        <OverlayBackdrop backgroundColor="rgba(2, 4, 12, 0.84)" zIndex={125}>
+            <h1 style={{ ...overlayTitle, textShadow: '0 0 20px rgba(126,200,255,0.35)' }}>
                 Asteroid Defender
             </h1>
-            <p style={{ color: '#bfdbfe', fontSize: 'clamp(0.9rem, 2vw, 1.15rem)', maxWidth: 620, margin: '0 0 1.8rem 0' }}>
+            <p style={{ ...overlayText, maxWidth: 620 }}>
                 Command online. Start the defense cycle when ready, pause at any time with <strong>Esc</strong>, and hold the platform.
             </p>
             <button
@@ -31,6 +28,6 @@ export default function MenuOverlay({ startGame }: MenuOverlayProps) {
             >
                 Start Defense
             </button>
-        </div>
+        </OverlayBackdrop>
     );
 }
