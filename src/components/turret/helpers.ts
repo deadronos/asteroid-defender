@@ -35,8 +35,8 @@ export function applyIdleTurretRotation(
   );
 }
 
-export function calculateTurretDamage(actualDist: number) {
+export function calculateTurretDamage(actualDistSq: number) {
   const maxDamage = 5;
   const minDamage = 0.1;
-  return maxDamage - (actualDist / TURRET_RANGE) * (maxDamage - minDamage);
+  return maxDamage - (actualDistSq / (TURRET_RANGE * TURRET_RANGE)) * (maxDamage - minDamage);
 }
