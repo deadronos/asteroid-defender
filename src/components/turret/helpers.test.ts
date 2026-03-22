@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { describe, expect, it, beforeEach, afterEach } from "vite-plus/test";
-import { ECS, asteroidQuery, updateSpatialIndex } from "../../ecs/world";
+import { ECS, asteroidQuery, updateSpatialIndex, type GameEntity } from "../../ecs/world";
 import {
   releaseTarget,
   calculateTurretDamage,
@@ -26,6 +26,10 @@ function addAsteroid(id: string, position: THREE.Vector3) {
   return entity;
 }
 
+function createTarget(id: string, targetedBy: string | null): GameEntity {
+  return { id, targetedBy };
+}
+
 describe("Turret Helpers", () => {
   beforeEach(() => {
     clearWorld();
@@ -39,13 +43,13 @@ describe("Turret Helpers", () => {
 
   describe("releaseTarget", () => {
     it("should clear targetedBy if it matches the turretId", () => {
-      const target = { targetedBy: "turret-1" } as any;
+      const target = createTarget("target-1", "turret-1");
       releaseTarget(target, "turret-1");
       expect(target.targetedBy).toBeNull();
     });
 
     it("should not clear targetedBy if it does not match the turretId", () => {
-      const target = { targetedBy: "turret-2" } as any;
+      const target = createTarget("target-1", "turret-2");
       releaseTarget(target, "turret-1");
       expect(target.targetedBy).toBe("turret-2");
     });
@@ -78,8 +82,8 @@ describe("Turret Helpers", () => {
       const bottomTurret = new THREE.Group();
       bottomTurret.position.set(0, -10, 0);
 
-      const asteroidTop = addAsteroid("a-top", new THREE.Vector3(0, 5, 10));
-      const asteroidBottom = addAsteroid("a-bottom", new THREE.Vector3(0, -5, 10));
+      addAsteroid("a-top", new THREE.Vector3(0, 5, 10));
+      addAsteroid("a-bottom", new THREE.Vector3(0, -5, 10));
 
       const targetTop = findTurretTarget(topTurret, "t-top");
       const targetBottom = findTurretTarget(bottomTurret, "t-bottom");
@@ -109,9 +113,12 @@ describe("Turret Helpers", () => {
       // Untargeted asteroid is slightly further
       const asteroid2 = addAsteroid("a-2", new THREE.Vector3(0, 10, 25)); // distSq = 625
 
-      // 100 + 400 (penalty) = 500
+      const targetedScore = 100 + TARGETING_PENALTY;
+
+      // 100 + TARGETING_PENALTY = 500
       // 625 (no penalty)
       // So it should still pick asteroid1 because 500 < 625
+      expect(targetedScore).toBe(500);
 
       const target1 = findTurretTarget(turret, "t-1");
       expect(target1?.id).toBe("a-1");
