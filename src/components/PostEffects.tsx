@@ -3,13 +3,16 @@ import { useFrame } from "@react-three/fiber";
 import { EffectComposer, Bloom, DepthOfField } from "@react-three/postprocessing";
 import { DepthOfFieldEffect } from "postprocessing";
 import { MathUtils } from "three";
-import { dofSettings } from "./cinematicCameraDof";
+import useGameStore from "../store/gameStore";
 import type { EffectsQuality } from "../utils/visualQuality";
 
+const DOF_FOCAL_LENGTH = 0.025;
+const DOF_BOKEH_SCALE = 3;
+
 /**
- * Bridges the imperative dofSettings singleton (mutated by CinematicCamera on
- * each shot change) into the scene so DepthOfField interpolates smoothly
- * instead of snapping instantly to the next focus distance.
+ * Bridges the target dofFocusDistance from the store (mutated by
+ * CinematicCamera on each shot change) into the scene so DepthOfField
+ * interpolates smoothly instead of snapping instantly to the next focus distance.
  */
 function DynamicDepthOfField() {
   const dofRef = useRef<DepthOfFieldEffect>(null);
@@ -21,7 +24,7 @@ function DynamicDepthOfField() {
       // top-level target is reserved for Vector3 auto-focus targets.
       dofRef.current.cocMaterial.focusDistance = MathUtils.lerp(
         dofRef.current.cocMaterial.focusDistance,
-        dofSettings.focusDistance,
+        useGameStore.getState().dofFocusDistance,
         delta * 2, // Lerp speed
       );
     }
@@ -30,9 +33,9 @@ function DynamicDepthOfField() {
   return (
     <DepthOfField
       ref={dofRef}
-      focusDistance={dofSettings.focusDistance} // Initial state
-      focalLength={dofSettings.focalLength}
-      bokehScale={dofSettings.bokehScale}
+      focusDistance={useGameStore.getState().dofFocusDistance} // Initial state
+      focalLength={DOF_FOCAL_LENGTH}
+      bokehScale={DOF_BOKEH_SCALE}
     />
   );
 }

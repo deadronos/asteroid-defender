@@ -2,7 +2,6 @@ import { useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import useGameStore from "../store/gameStore";
-import { dofSettings } from "./cinematicCameraDof";
 import { applyDamageCameraShake, smoothstep } from "./cinematic/cameraEffects";
 import {
   COMBAT_BLOCKED_SHOTS,
@@ -107,7 +106,7 @@ export default function CinematicCamera() {
       transitionT.current = 0;
       shotTimer.current = 0;
       postTransitionHold.current = 0;
-      dofSettings.focusDistance = shot.focusDist;
+      useGameStore.getState().setDofFocusDistance(shot.focusDist);
     }
 
     // ── Detect runtime camera-mode switch and start a smooth transition ──
@@ -124,7 +123,7 @@ export default function CinematicCamera() {
         toLook.current.copy(shot.getLookAt());
         shotTimer.current = 0;
         postTransitionHold.current = 0;
-        dofSettings.focusDistance = shot.focusDist;
+        useGameStore.getState().setDofFocusDistance(shot.focusDist);
       }
       inTransition.current = true;
       transitionT.current = 0;
@@ -169,7 +168,7 @@ export default function CinematicCamera() {
       transitionT.current = 0;
       shotTimer.current = 0;
       postTransitionHold.current = 0;
-      dofSettings.focusDistance = safeShot.focusDist;
+      useGameStore.getState().setDofFocusDistance(safeShot.focusDist);
     }
 
     // Trigger transition to next shot only after the shot duration AND the
@@ -196,7 +195,7 @@ export default function CinematicCamera() {
       transitionT.current = 0;
       shotTimer.current = 0;
       postTransitionHold.current = 0;
-      dofSettings.focusDistance = next.focusDist;
+      useGameStore.getState().setDofFocusDistance(next.focusDist);
     }
 
     // ── Animate camera this frame ────────────────────────────────────────

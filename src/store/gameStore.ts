@@ -19,6 +19,8 @@ interface GameState {
   showCinematicIndicator: boolean;
   /** True while the cinematic camera is mid-transition between shots */
   inCinematicTransition: boolean;
+  /** The target focus distance for the Depth of Field effect */
+  dofFocusDistance: number;
   incrementDestroyed: () => void;
   setActiveAsteroids: (count: number) => void;
   takeDamage: (amount: number) => void;
@@ -32,9 +34,11 @@ interface GameState {
   toggleReducedMotion: () => void;
   toggleCinematicIndicator: () => void;
   setCinematicTransition: (active: boolean) => void;
+  setDofFocusDistance: (dist: number) => void;
 }
 
 const MAX_HEALTH = 100;
+const DEFAULT_DOF_FOCUS_DISTANCE = 0.032;
 
 function freshRoundState() {
   return {
@@ -44,6 +48,7 @@ function freshRoundState() {
     runStartedAt: 0,
     runEndedAt: null,
     lastDamageTime: 0,
+    dofFocusDistance: DEFAULT_DOF_FOCUS_DISTANCE,
   };
 }
 
@@ -78,6 +83,7 @@ const useGameStore = create<GameState>((set) => ({
   reducedMotion: false,
   showCinematicIndicator: true,
   inCinematicTransition: false,
+  dofFocusDistance: DEFAULT_DOF_FOCUS_DISTANCE,
 
   incrementDestroyed: () =>
     set((state) => ({
@@ -143,6 +149,8 @@ const useGameStore = create<GameState>((set) => ({
     })),
 
   setCinematicTransition: (active) => set({ inCinematicTransition: active }),
+
+  setDofFocusDistance: (dist) => set({ dofFocusDistance: dist }),
 }));
 
 export default useGameStore;

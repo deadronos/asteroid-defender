@@ -144,6 +144,14 @@ describe("gameStore camera settings", () => {
     expect(state.cameraMode).toBe("static");
     expect(state.reducedMotion).toBe(true);
   });
+
+  it("startGame resets the DoF focus distance to the default value", () => {
+    useGameStore.setState({ dofFocusDistance: 0.12 });
+
+    useGameStore.getState().startGame();
+
+    expect(useGameStore.getState().dofFocusDistance).toBe(0.032);
+  });
 });
 
 describe("gameStore state updaters", () => {
