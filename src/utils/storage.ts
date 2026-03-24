@@ -1,7 +1,19 @@
 // NOTE: This module is intended to prevent casual inspection of stored values,
 // not to provide cryptographic security. The obfuscation strategy here is NOT
 // encryption and should not be treated as a security boundary.
-const SECRET_KEY = "asteroid-defender-onboarding-salt";
+
+// Retrieve the secret key from environment variables (Vite-specific).
+// If missing, use a generic fallback for non-critical obfuscation.
+const getSecretKey = (): string => {
+  try {
+    // Safely access import.meta.env to avoid crashes in non-Vite environments.
+    return import.meta.env?.VITE_STORAGE_SECRET || "default-obfuscation-key";
+  } catch {
+    return "default-obfuscation-key";
+  }
+};
+
+const SECRET_KEY = getSecretKey();
 
 const getLocalStorage = (): Storage | null => {
   // In browser environments, localStorage is available on `window` (and `globalThis`).
