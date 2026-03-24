@@ -67,7 +67,7 @@ describe("Pools Utility Functions", () => {
     });
 
     it("should return the same pool reference when the pool is full", () => {
-      const pool = createAsteroidPool(2).map(a => ({ ...a, active: true }));
+      const pool = createAsteroidPool(2).map((a) => ({ ...a, active: true }));
       const spawns = [{ pos: [10, 0, 0] as [number, number, number], type: "swarmer" as const }];
 
       const nextPool = activateQueuedAsteroids(pool, spawns);
@@ -131,12 +131,12 @@ describe("Pools Utility Functions", () => {
 
       const nextPool = spawnSplitterFragments(pool, pos);
 
-      const activeItems = nextPool.filter(a => a.active);
+      const activeItems = nextPool.filter((a) => a.active);
       expect(activeItems.length).toBe(2);
-      expect(activeItems.every(a => a.type === "swarmer")).toBe(true);
+      expect(activeItems.every((a) => a.type === "swarmer")).toBe(true);
 
       // Check positions: [pos[0] + 2.0, pos[1], pos[2]] and [pos[0] - 2.0, pos[1], pos[2]]
-      const positions = activeItems.map(a => a.pos[0]);
+      const positions = activeItems.map((a) => a.pos[0]);
       expect(positions).toContain(12.0);
       expect(positions).toContain(8.0);
     });

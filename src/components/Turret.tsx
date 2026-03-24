@@ -226,20 +226,8 @@ export default function Turret({ id, position, rotation }: TurretProps) {
             depthWrite={false}
           />
         </mesh>
-        <Line
-          points={HOLOGRAM_POINTS_X}
-          color="#7ec8ff"
-          lineWidth={1}
-          transparent
-          opacity={0.45}
-        />
-        <Line
-          points={HOLOGRAM_POINTS_Y}
-          color="#7ec8ff"
-          lineWidth={1}
-          transparent
-          opacity={0.45}
-        />
+        <Line points={HOLOGRAM_POINTS_X} color="#7ec8ff" lineWidth={1} transparent opacity={0.45} />
+        <Line points={HOLOGRAM_POINTS_Y} color="#7ec8ff" lineWidth={1} transparent opacity={0.45} />
       </group>
 
       {hasTarget && (
@@ -252,12 +240,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
           />
           <mesh ref={impactRef} position={[0, 0, 0]}>
             <sphereGeometry args={[0.6, 8, 8]} />
-            <meshBasicMaterial
-              color={LASER_COLOR}
-              toneMapped={false}
-              transparent
-              opacity={0.9}
-            />
+            <meshBasicMaterial color={LASER_COLOR} toneMapped={false} transparent opacity={0.9} />
           </mesh>
           <pointLight
             ref={beamLightRef}
