@@ -38,6 +38,7 @@ interface GameState {
 }
 
 const MAX_HEALTH = 100;
+const DEFAULT_DOF_FOCUS_DISTANCE = 0.032;
 
 function freshRoundState() {
   return {
@@ -47,6 +48,7 @@ function freshRoundState() {
     runStartedAt: 0,
     runEndedAt: null,
     lastDamageTime: 0,
+    dofFocusDistance: DEFAULT_DOF_FOCUS_DISTANCE,
   };
 }
 
@@ -81,7 +83,7 @@ const useGameStore = create<GameState>((set) => ({
   reducedMotion: false,
   showCinematicIndicator: true,
   inCinematicTransition: false,
-  dofFocusDistance: 0.032,
+  dofFocusDistance: DEFAULT_DOF_FOCUS_DISTANCE,
 
   incrementDestroyed: () =>
     set((state) => ({

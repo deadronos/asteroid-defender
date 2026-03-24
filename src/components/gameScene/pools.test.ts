@@ -154,13 +154,13 @@ describe("Pools Utility Functions", () => {
 
   describe("countActiveItems", () => {
     it("should return the correct count for mixed active/inactive pools", () => {
-      const pool = [
-        { active: true },
-        { active: false },
-        { active: true },
-        { active: false },
-        { active: true },
-      ] as any[];
+      const pool: PooledAsteroid[] = [
+        { id: "1", active: true, pos: [0, 0, 0], type: "swarmer" },
+        { id: "2", active: false, pos: [0, 0, 0], type: "swarmer" },
+        { id: "3", active: true, pos: [0, 0, 0], type: "swarmer" },
+        { id: "4", active: false, pos: [0, 0, 0], type: "swarmer" },
+        { id: "5", active: true, pos: [0, 0, 0], type: "swarmer" },
+      ];
 
       expect(countActiveItems(pool)).toBe(3);
     });
@@ -177,8 +177,20 @@ describe("Pools Utility Functions", () => {
 
     it("should call clearTimeout for each item that has a timer", () => {
       const pool: PooledExplosion[] = [
-        { id: "1", active: true, pos: [0, 0, 0], type: "swarmer", timer: 123 as any },
-        { id: "2", active: true, pos: [0, 0, 0], type: "swarmer", timer: 456 as any },
+        {
+          id: "1",
+          active: true,
+          pos: [0, 0, 0],
+          type: "swarmer",
+          timer: 123 as ReturnType<typeof setTimeout>,
+        },
+        {
+          id: "2",
+          active: true,
+          pos: [0, 0, 0],
+          type: "swarmer",
+          timer: 456 as ReturnType<typeof setTimeout>,
+        },
         { id: "3", active: true, pos: [0, 0, 0], type: "swarmer" }, // No timer
       ];
 
