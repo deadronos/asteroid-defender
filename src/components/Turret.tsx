@@ -13,6 +13,20 @@ import {
   releaseTarget,
 } from "./turret/helpers";
 
+const LASER_COLOR = new THREE.Color(10, 2, 2);
+const HOLOGRAM_POINTS_X: [number, number, number][] = [
+  [-1.55, 0, 0],
+  [1.55, 0, 0],
+];
+const HOLOGRAM_POINTS_Y: [number, number, number][] = [
+  [0, -1.55, 0],
+  [0, 1.55, 0],
+];
+const INITIAL_LASER_POINTS: [number, number, number][] = [
+  [0, 0, LASER_ORIGIN_Z],
+  [0, 0, LASER_ORIGIN_Z],
+];
+
 interface TurretProps {
   id: string;
   position: [number, number, number];
@@ -197,7 +211,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
         </mesh>
         <mesh position={[0, 0, 3.9]}>
           <sphereGeometry args={[0.22, 10, 10]} />
-          <meshBasicMaterial color={new THREE.Color(10, 2, 2)} toneMapped={false} />
+          <meshBasicMaterial color={LASER_COLOR} toneMapped={false} />
         </mesh>
       </group>
       <group position={[0, 0, 2.3]} ref={hologramReticleRef}>
@@ -213,20 +227,14 @@ export default function Turret({ id, position, rotation }: TurretProps) {
           />
         </mesh>
         <Line
-          points={[
-            [-1.55, 0, 0],
-            [1.55, 0, 0],
-          ]}
+          points={HOLOGRAM_POINTS_X}
           color="#7ec8ff"
           lineWidth={1}
           transparent
           opacity={0.45}
         />
         <Line
-          points={[
-            [0, -1.55, 0],
-            [0, 1.55, 0],
-          ]}
+          points={HOLOGRAM_POINTS_Y}
           color="#7ec8ff"
           lineWidth={1}
           transparent
@@ -238,17 +246,14 @@ export default function Turret({ id, position, rotation }: TurretProps) {
         <>
           <Line
             ref={lineRef}
-            points={[
-              [0, 0, LASER_ORIGIN_Z],
-              [0, 0, LASER_ORIGIN_Z],
-            ]} // Initialized coords, replaced in useFrame
-            color={new THREE.Color(10, 2, 2)}
+            points={INITIAL_LASER_POINTS} // Initialized coords, replaced in useFrame
+            color={LASER_COLOR}
             lineWidth={3}
           />
           <mesh ref={impactRef} position={[0, 0, 0]}>
             <sphereGeometry args={[0.6, 8, 8]} />
             <meshBasicMaterial
-              color={new THREE.Color(10, 2, 2)}
+              color={LASER_COLOR}
               toneMapped={false}
               transparent
               opacity={0.9}
