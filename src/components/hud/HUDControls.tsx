@@ -25,17 +25,27 @@ export default function HUDControls({
   openOnboarding,
 }: HUDControlsProps) {
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: "max(16px, env(safe-area-inset-top, 16px))",
-        right: "max(16px, env(safe-area-inset-right, 16px))",
-        zIndex: 120,
-        display: "flex",
-        gap: 10,
-        alignItems: "center",
-      }}
-    >
+    <>
+      <style>{`
+        .hud-controls-container {
+          position: fixed;
+          top: max(16px, env(safe-area-inset-top, 16px));
+          right: max(16px, env(safe-area-inset-right, 16px));
+          z-index: 120;
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          max-width: calc(100vw - 32px);
+          justify-content: flex-end;
+          flex-wrap: wrap;
+        }
+        @media (max-width: 768px) {
+          .hud-controls-container {
+            max-width: calc(100vw - 240px);
+          }
+        }
+      `}</style>
+      <div className="hud-controls-container">
       {(gameState === "playing" || gameState === "paused") && (
         <button
           onClick={togglePause}
@@ -136,6 +146,7 @@ export default function HUDControls({
       >
         Help
       </button>
-    </div>
+      </div>
+    </>
   );
 }
