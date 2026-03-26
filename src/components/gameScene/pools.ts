@@ -60,6 +60,7 @@ export function activateQueuedAsteroids(
     }
 
     if (nextAvailableIdx >= nextPool.length) {
+      console.warn("Asteroid pool starved! Dropping spawn.");
       break;
     }
 

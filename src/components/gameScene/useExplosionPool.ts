@@ -38,11 +38,11 @@ export function useExplosionPool(poolSize: number) {
         pos,
         type,
         timer: setTimeout(() => {
-          setExplosions((current) =>
-            current.map((item, index) =>
-              index === nextIdx ? { ...item, active: false, timer: undefined } : item,
-            ),
-          );
+          setExplosions((current) => {
+            const next = [...current];
+            next[nextIdx] = { ...next[nextIdx], active: false, timer: undefined };
+            return next;
+          });
         }, EXPLOSION_DURATION_MS),
       };
       return nextExplosions;

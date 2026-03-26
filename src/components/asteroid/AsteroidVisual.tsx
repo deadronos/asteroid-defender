@@ -3,7 +3,13 @@ import { Edges, Trail } from "@react-three/drei";
 import * as THREE from "three";
 import type { AsteroidType } from "../../ecs/world";
 import type { AsteroidVisualProfile } from "../../utils/asteroidVisualQuality";
-import type { AsteroidConfig } from "./config";
+import { ASTEROID_CONFIGS, type AsteroidConfig } from "./config";
+
+const geometries: Record<AsteroidType, THREE.BufferGeometry> = {
+  swarmer: new THREE.DodecahedronGeometry(ASTEROID_CONFIGS.swarmer.radius, 0),
+  tank: new THREE.OctahedronGeometry(ASTEROID_CONFIGS.tank.radius, 0),
+  splitter: new THREE.IcosahedronGeometry(ASTEROID_CONFIGS.splitter.radius, 0),
+};
 
 interface AsteroidVisualProps {
   type: AsteroidType;
@@ -21,10 +27,7 @@ export default function AsteroidVisual({
   dangerRingMaterialRef,
 }: AsteroidVisualProps) {
   const asteroidMesh = (
-    <mesh>
-      {type === "swarmer" && <dodecahedronGeometry args={[cfg.radius, 0]} />}
-      {type === "tank" && <octahedronGeometry args={[cfg.radius, 0]} />}
-      {type === "splitter" && <icosahedronGeometry args={[cfg.radius, 0]} />}
+    <mesh geometry={geometries[type]}>
       <meshStandardMaterial ref={materialRef} color={cfg.color} flatShading />
       {visualProfile.showEdges && <Edges scale={1} threshold={15} color="black" />}
     </mesh>

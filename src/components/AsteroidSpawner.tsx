@@ -41,7 +41,7 @@ export default function AsteroidSpawner() {
       if (closeCount < 3) {
         currentInterval.current = Math.max(0.5, currentInterval.current - 0.2);
       } else {
-        currentInterval.current = Math.min(5.0, currentInterval.current + 1.0);
+        currentInterval.current = Math.min(5.0, currentInterval.current + 0.2);
       }
 
       // 3. Actually spawn the next asteroid
