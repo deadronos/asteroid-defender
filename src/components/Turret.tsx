@@ -59,7 +59,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
   const localTargetRef = useRef(new THREE.Vector3());
   const currentTargetRef = useRef<GameEntity | null>(null);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!turretGroup.current) return;
 
     if (useGameStore.getState().gameState !== "playing") {
@@ -132,7 +132,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
     }
 
     // Pulse Animation for Laser & Impact
-    pulseRef.current += 0.5;
+    pulseRef.current += delta * 30;
     const pulse = Math.sin(pulseRef.current) * 0.5 + 0.5;
 
     if (coreMaterialRef.current) {
