@@ -18,7 +18,16 @@ export const ECS = new World<GameEntity>();
 export const asteroidQuery = ECS.with("isAsteroid");
 
 const CELL_SIZE = 25;
-export const asteroidCells = new Map<string, GameEntity[]>();
+
+/**
+ * Packs 3 integer coordinates into a single numeric key for the spatial index.
+ * Uses offset arithmetic to ensure a unique positive integer for common coordinate ranges.
+ */
+export function getCellKey(x: number, y: number, z: number): number {
+  return (x + 32768) + (y + 32768) * 65536 + (z + 32768) * 4294967296;
+}
+
+export const asteroidCells = new Map<number, GameEntity[]>();
 
 interface CellBounds {
   minX: number;
@@ -51,7 +60,7 @@ function visitAsteroidsInRange(
   for (let x = minX; x <= maxX; x++) {
     for (let y = minY; y <= maxY; y++) {
       for (let z = minZ; z <= maxZ; z++) {
-        const key = `${x},${y},${z}`;
+        const key = getCellKey(x, y, z);
         const cell = asteroidCells.get(key);
         if (!cell || cell.length === 0) {
           continue;
@@ -82,7 +91,7 @@ export function updateSpatialIndex() {
     const x = Math.floor(entity.position.x / CELL_SIZE);
     const y = Math.floor(entity.position.y / CELL_SIZE);
     const z = Math.floor(entity.position.z / CELL_SIZE);
-    const key = `${x},${y},${z}`;
+    const key = getCellKey(x, y, z);
     let arr = asteroidCells.get(key);
     if (!arr) {
       arr = [];
