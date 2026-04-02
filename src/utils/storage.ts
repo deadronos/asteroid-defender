@@ -3,14 +3,36 @@
 // encryption and should not be treated as a security boundary.
 
 // Retrieve the secret key from environment variables (Vite-specific).
-// If missing, use a generic fallback for non-critical obfuscation.
+// If missing, generate a random session key for non-critical obfuscation.
 const getSecretKey = (): string => {
   try {
     // Safely access import.meta.env to avoid crashes in non-Vite environments.
-    return import.meta.env?.VITE_STORAGE_SECRET || "default-obfuscation-key";
+    const envSecret = import.meta.env?.VITE_STORAGE_SECRET;
+    if (envSecret) return envSecret;
   } catch {
-    return "default-obfuscation-key";
+    // Fall back to random key if environment access fails
   }
+
+  // Generate a random key for the current session to avoid hardcoded secrets.
+  // Note: This means data will NOT persist across reloads if VITE_STORAGE_SECRET is missing.
+  if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
+    console.warn(
+      "VITE_STORAGE_SECRET is missing. Using a random session key. " +
+        "Data in localStorage will not persist across reloads.",
+    );
+  }
+
+  const randomBytes = new Uint8Array(32);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(randomBytes);
+  } else {
+    // Basic fallback for environments without crypto.getRandomValues (e.g. some test runners)
+    for (let i = 0; i < randomBytes.length; i++) {
+      randomBytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+
+  return Array.from(randomBytes, (b) => b.toString(16).padStart(2, "0")).join("");
 };
 
 const SECRET_KEY = getSecretKey();
