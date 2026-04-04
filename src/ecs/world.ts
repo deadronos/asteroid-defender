@@ -24,7 +24,7 @@ const CELL_SIZE = 25;
  * Uses offset arithmetic to ensure a unique positive integer for common coordinate ranges.
  */
 export function getCellKey(x: number, y: number, z: number): number {
-  return (x + 32768) + (y + 32768) * 65536 + (z + 32768) * 4294967296;
+  return x + 32768 + (y + 32768) * 65536 + (z + 32768) * 4294967296;
 }
 
 export const asteroidCells = new Map<number, GameEntity[]>();

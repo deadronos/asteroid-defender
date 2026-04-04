@@ -48,7 +48,7 @@ That said, the current code is still straightforward and type-safe. If you keep 
 - `src/ecs/world.ts`
 
 **Observations:**
-The spatial indexing logic uses a `visitAsteroidsInRange` higher-order function, which is a *good* example of avoiding duplication. `queryAsteroidsInRange`, `countAsteroidsInRange`, and `findNearestAsteroidInRange` all correctly leverage this visitor.
+The spatial indexing logic uses a `visitAsteroidsInRange` higher-order function, which is a _good_ example of avoiding duplication. `queryAsteroidsInRange`, `countAsteroidsInRange`, and `findNearestAsteroidInRange` all correctly leverage this visitor.
 
 **Refactoring Suggestion:**
 The implementation is solid, but the logic is intentionally specialized to "Asteroids" (`asteroidCells`, `visitAsteroidsInRange`). If the ECS later needs the same range-query pattern for other entity kinds, then a generic `SpatialIndex<T>` abstraction would make sense. At the current scale, the specialized implementation reads well and avoids abstraction overhead.

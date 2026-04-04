@@ -15,7 +15,7 @@ const getSecretKey = (): string => {
 
   // Generate a random key for the current session to avoid hardcoded secrets.
   // Note: This means data will NOT persist across reloads if VITE_STORAGE_SECRET is missing.
-  if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
+  if (import.meta.env.DEV) {
     console.warn(
       "VITE_STORAGE_SECRET is missing. Using a random session key. " +
         "Data in localStorage will not persist across reloads.",
