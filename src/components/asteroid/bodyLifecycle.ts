@@ -1,6 +1,8 @@
 import type { RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 
+import { getRandomAngularVelocity } from "../../utils/math";
+
 const tempVec = new THREE.Vector3();
 const tempDir = new THREE.Vector3();
 
@@ -18,14 +20,7 @@ export function activateAsteroidBody(
   tempVec.set(startPos[0], startPos[1], startPos[2]);
   tempDir.copy(tempVec).negate().normalize();
   body.setLinvel({ x: tempDir.x * speed, y: tempDir.y * speed, z: tempDir.z * speed }, true);
-  body.setAngvel(
-    {
-      x: (Math.random() - 0.5) * 0.9,
-      y: (Math.random() - 0.5) * 0.9,
-      z: (Math.random() - 0.5) * 0.9,
-    },
-    true,
-  );
+  body.setAngvel(getRandomAngularVelocity(), true);
 }
 
 export function deactivateAsteroidBody(body: RapierRigidBody | null) {

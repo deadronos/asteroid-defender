@@ -1,26 +1,14 @@
-import { useState, useCallback, useEffect, lazy, Suspense } from "react";
-import { useShallow } from "zustand/react/shallow";
-import { useFrame } from "@react-three/fiber";
+import { lazy, Suspense } from "react";
 import CinematicCamera from "./CinematicCamera";
-import useGameStore from "../store/gameStore";
-import { AsteroidType, updateSpatialIndex } from "../ecs/world";
 import Platform from "./Platform";
 import Turret from "./Turret";
 import Asteroid from "./Asteroid";
 import AsteroidSpawner from "./AsteroidSpawner";
 import Explosion from "./Explosion";
-import { clearAsteroidSpawns, drainAsteroidSpawns } from "../ecs/asteroidSpawnQueue";
 import type { EffectsQuality } from "../utils/visualQuality";
-import {
-  activateQueuedAsteroids,
-  countActiveItems,
-  createAsteroidPool,
-  deactivateAsteroid,
-  type PooledAsteroid,
-  spawnSplitterFragments,
-} from "./gameScene/pools";
 import { useExplosionPool } from "./gameScene/useExplosionPool";
 import { useShieldImpacts } from "./gameScene/useShieldImpacts";
+import { useAsteroidManager } from "./gameScene/useAsteroidManager";
 
 // Lazy-load the cosmetic background so core gameplay geometry renders first.
 const SpaceBackground = lazy(() => import("./SpaceBackground"));
@@ -37,66 +25,42 @@ interface GameSceneProps {
   reducedMotion: boolean;
 }
 
+const TURRET_CONFIGS = [
+  {
+    id: "t1",
+    position: [5, 1, 0] as [number, number, number],
+    rotation: [-Math.PI / 2, 0, 0] as [number, number, number],
+  },
+  {
+    id: "t2",
+    position: [-5, 1, 0] as [number, number, number],
+    rotation: [-Math.PI / 2, 0, 0] as [number, number, number],
+  },
+  {
+    id: "t3",
+    position: [5, -1, 0] as [number, number, number],
+    rotation: [Math.PI / 2, 0, 0] as [number, number, number],
+  },
+  {
+    id: "t4",
+    position: [-5, -1, 0] as [number, number, number],
+    rotation: [Math.PI / 2, 0, 0] as [number, number, number],
+  },
+];
+
 export default function GameScene({
   asteroidEffectsQuality,
   backgroundEffectsQuality,
   reducedMotion,
 }: GameSceneProps) {
-  const [asteroids, setAsteroids] = useState<PooledAsteroid[]>(() => createAsteroidPool(POOL_SIZE));
   const { explosions, triggerExplosion } = useExplosionPool(POOL_SIZE);
   const { shieldImpacts, addShieldImpact } = useShieldImpacts();
 
-  const { incrementDestroyed, setActiveAsteroids } = useGameStore(
-    useShallow((state) => ({
-      incrementDestroyed: state.incrementDestroyed,
-      setActiveAsteroids: state.setActiveAsteroids,
-    })),
-  );
-
-  useEffect(() => {
-    clearAsteroidSpawns();
-
-    return () => {
-      clearAsteroidSpawns();
-    };
-  }, []);
-
-  useFrame(() => {
-    updateSpatialIndex();
-    if (useGameStore.getState().gameState !== "playing") return;
-
-    const spawns = drainAsteroidSpawns();
-    if (spawns.length > 0) {
-      setAsteroids((prev) => activateQueuedAsteroids(prev, spawns));
-    }
+  const { asteroids, handleDestroy } = useAsteroidManager({
+    poolSize: POOL_SIZE,
+    onShieldImpact: addShieldImpact,
+    onAsteroidDestroyed: (pos, type) => triggerExplosion(pos, type),
   });
-
-  const handleDestroy = useCallback(
-    (id: string, pos: [number, number, number], isBaseHit = false, type: AsteroidType) => {
-      if (!isBaseHit) {
-        incrementDestroyed();
-      } else {
-        addShieldImpact(pos);
-      }
-
-      setAsteroids((prev) => {
-        const withoutDestroyed = deactivateAsteroid(prev, id);
-        if (type === "splitter" && !isBaseHit) {
-          return spawnSplitterFragments(withoutDestroyed, pos);
-        }
-
-        return withoutDestroyed;
-      });
-
-      triggerExplosion(pos, type);
-    },
-    [addShieldImpact, incrementDestroyed, triggerExplosion],
-  );
-
-  // Sync asteroid count with global store to avoid updating during another component's render
-  useEffect(() => {
-    setActiveAsteroids(countActiveItems(asteroids));
-  }, [asteroids, setActiveAsteroids]);
 
   return (
     <>
@@ -111,10 +75,9 @@ export default function GameScene({
 
       <Platform shieldImpacts={shieldImpacts} />
 
-      <Turret id="t1" position={[5, 1, 0]} rotation={[-Math.PI / 2, 0, 0]} />
-      <Turret id="t2" position={[-5, 1, 0]} rotation={[-Math.PI / 2, 0, 0]} />
-      <Turret id="t3" position={[5, -1, 0]} rotation={[Math.PI / 2, 0, 0]} />
-      <Turret id="t4" position={[-5, -1, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      {TURRET_CONFIGS.map((config) => (
+        <Turret key={config.id} {...config} />
+      ))}
 
       {asteroids.map((ast) => (
         <Asteroid
