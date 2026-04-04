@@ -5,6 +5,7 @@ import { AsteroidType, countAsteroidsInRange } from "../ecs/world";
 import { enqueueAsteroidSpawn } from "../ecs/asteroidSpawnQueue";
 import useGameStore from "../store/gameStore";
 import { nextId } from "../utils/id";
+import { clamp, getRandomSpherePosition } from "../utils/math";
 
 function pickAsteroidType(): AsteroidType {
   const roll = Math.random();
@@ -13,16 +14,22 @@ function pickAsteroidType(): AsteroidType {
   return "splitter";
 }
 
+const INITIAL_SPAWN_INTERVAL = 2.0;
+const MIN_SPAWN_INTERVAL = 0.5;
+const MAX_SPAWN_INTERVAL = 5.0;
+const SPAWN_ADJUSTMENT = 0.2;
+const SPAWN_RADIUS = 40;
+const PROXIMITY_THRESHOLD = 3;
+
 export default function AsteroidSpawner() {
   const origin = new THREE.Vector3(0, 0, 0);
   const spawnTimer = useRef(0);
-  // Base spawn interval in seconds
-  const currentInterval = useRef(2.0);
+  const currentInterval = useRef(INITIAL_SPAWN_INTERVAL);
   const sessionId = useGameStore((state) => state.sessionId);
 
   useEffect(() => {
     spawnTimer.current = 0;
-    currentInterval.current = 2.0;
+    currentInterval.current = INITIAL_SPAWN_INTERVAL;
   }, [sessionId]);
 
   useFrame((_, delta) => {
@@ -30,29 +37,22 @@ export default function AsteroidSpawner() {
     spawnTimer.current += delta;
 
     if (spawnTimer.current >= currentInterval.current) {
-      spawnTimer.current = 0; // Reset timer
+      spawnTimer.current = 0;
 
-      // 1. Calculate how many asteroids are "in close proximity"
       const closeCount = countAsteroidsInRange(origin, 25);
 
-      // 2. Adjust the spawnrate for the *next* spawn cycle
-      // If < 3 asteroids are close, speed up spawning (lower interval bound to 0.5s)
-      // If >= 3 asteroids are close, slow down spawning (higher interval up to 5s)
-      if (closeCount < 3) {
-        currentInterval.current = Math.max(0.5, currentInterval.current - 0.2);
+      // Adjust spawn rate based on proximity count
+      if (closeCount < PROXIMITY_THRESHOLD) {
+        currentInterval.current = clamp(currentInterval.current - SPAWN_ADJUSTMENT, MIN_SPAWN_INTERVAL, MAX_SPAWN_INTERVAL);
       } else {
-        currentInterval.current = Math.min(5.0, currentInterval.current + 0.2);
+        currentInterval.current = clamp(currentInterval.current + SPAWN_ADJUSTMENT, MIN_SPAWN_INTERVAL, MAX_SPAWN_INTERVAL);
       }
 
-      // 3. Actually spawn the next asteroid
-      const radius = 40;
-      const phi = Math.acos(-1 + 2 * Math.random());
-      const theta = Math.sqrt(radius * Math.PI) * phi;
-      const x = radius * Math.cos(theta) * Math.sin(phi);
-      const y = radius * Math.sin(theta) * Math.sin(phi) * 0.5;
-      const z = radius * Math.cos(phi);
-
-      enqueueAsteroidSpawn({ id: nextId(), pos: [x, y, z], type: pickAsteroidType() });
+      enqueueAsteroidSpawn({
+        id: nextId(),
+        pos: getRandomSpherePosition(SPAWN_RADIUS),
+        type: pickAsteroidType(),
+      });
     }
   });
 
