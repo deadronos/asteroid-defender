@@ -15,7 +15,11 @@ import {
 
 export interface AsteroidManagerOptions {
   poolSize: number;
-  onAsteroidDestroyed?: (pos: [number, number, number], type: AsteroidType, isBaseHit: boolean) => void;
+  onAsteroidDestroyed?: (
+    pos: [number, number, number],
+    type: AsteroidType,
+    isBaseHit: boolean,
+  ) => void;
   onShieldImpact?: (pos: [number, number, number]) => void;
 }
 
@@ -74,7 +78,7 @@ export function useAsteroidManager({
         if (type === "splitter" && !isBaseHit) {
           next = spawnSplitterFragments(next, pos);
         }
-        
+
         // Update active count in global store
         setActiveAsteroids(countActiveItems(next));
         return next;

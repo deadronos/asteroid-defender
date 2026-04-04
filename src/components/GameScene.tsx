@@ -26,10 +26,26 @@ interface GameSceneProps {
 }
 
 const TURRET_CONFIGS = [
-  { id: "t1", position: [5, 1, 0] as [number, number, number], rotation: [-Math.PI / 2, 0, 0] as [number, number, number] },
-  { id: "t2", position: [-5, 1, 0] as [number, number, number], rotation: [-Math.PI / 2, 0, 0] as [number, number, number] },
-  { id: "t3", position: [5, -1, 0] as [number, number, number], rotation: [Math.PI / 2, 0, 0] as [number, number, number] },
-  { id: "t4", position: [-5, -1, 0] as [number, number, number], rotation: [Math.PI / 2, 0, 0] as [number, number, number] },
+  {
+    id: "t1",
+    position: [5, 1, 0] as [number, number, number],
+    rotation: [-Math.PI / 2, 0, 0] as [number, number, number],
+  },
+  {
+    id: "t2",
+    position: [-5, 1, 0] as [number, number, number],
+    rotation: [-Math.PI / 2, 0, 0] as [number, number, number],
+  },
+  {
+    id: "t3",
+    position: [5, -1, 0] as [number, number, number],
+    rotation: [Math.PI / 2, 0, 0] as [number, number, number],
+  },
+  {
+    id: "t4",
+    position: [-5, -1, 0] as [number, number, number],
+    rotation: [Math.PI / 2, 0, 0] as [number, number, number],
+  },
 ];
 
 export default function GameScene({

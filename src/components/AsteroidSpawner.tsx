@@ -43,9 +43,17 @@ export default function AsteroidSpawner() {
 
       // Adjust spawn rate based on proximity count
       if (closeCount < PROXIMITY_THRESHOLD) {
-        currentInterval.current = clamp(currentInterval.current - SPAWN_ADJUSTMENT, MIN_SPAWN_INTERVAL, MAX_SPAWN_INTERVAL);
+        currentInterval.current = clamp(
+          currentInterval.current - SPAWN_ADJUSTMENT,
+          MIN_SPAWN_INTERVAL,
+          MAX_SPAWN_INTERVAL,
+        );
       } else {
-        currentInterval.current = clamp(currentInterval.current + SPAWN_ADJUSTMENT, MIN_SPAWN_INTERVAL, MAX_SPAWN_INTERVAL);
+        currentInterval.current = clamp(
+          currentInterval.current + SPAWN_ADJUSTMENT,
+          MIN_SPAWN_INTERVAL,
+          MAX_SPAWN_INTERVAL,
+        );
       }
 
       enqueueAsteroidSpawn({
