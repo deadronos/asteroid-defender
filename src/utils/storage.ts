@@ -23,14 +23,13 @@ const getSecretKey = (): string => {
   }
 
   const randomBytes = new Uint8Array(32);
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    crypto.getRandomValues(randomBytes);
-  } else {
-    // Basic fallback for environments without crypto.getRandomValues (e.g. some test runners)
-    for (let i = 0; i < randomBytes.length; i++) {
-      randomBytes[i] = Math.floor(Math.random() * 256);
-    }
+  if (typeof crypto === "undefined" || !crypto.getRandomValues) {
+    throw new Error(
+      "Cryptographically secure random number generation is not available. " +
+        "A secure session key cannot be generated.",
+    );
   }
+  crypto.getRandomValues(randomBytes);
 
   return Array.from(randomBytes, (b) => b.toString(16).padStart(2, "0")).join("");
 };
