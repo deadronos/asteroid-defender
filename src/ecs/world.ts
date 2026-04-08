@@ -49,6 +49,25 @@ function getRangeCellBounds(position: THREE.Vector3, range: number): CellBounds 
   };
 }
 
+function visitAsteroidsInCell(
+  cell: GameEntity[],
+  position: THREE.Vector3,
+  rangeSq: number,
+  visitor: (entity: GameEntity, distSq: number) => void,
+) {
+  for (let i = 0; i < cell.length; i++) {
+    const entity = cell[i];
+    if (!entity.position) {
+      continue;
+    }
+
+    const distSq = position.distanceToSquared(entity.position);
+    if (distSq <= rangeSq) {
+      visitor(entity, distSq);
+    }
+  }
+}
+
 function visitAsteroidsInRange(
   position: THREE.Vector3,
   range: number,
@@ -62,20 +81,8 @@ function visitAsteroidsInRange(
       for (let z = minZ; z <= maxZ; z++) {
         const key = getCellKey(x, y, z);
         const cell = asteroidCells.get(key);
-        if (!cell || cell.length === 0) {
-          continue;
-        }
-
-        for (let i = 0; i < cell.length; i++) {
-          const entity = cell[i];
-          if (!entity.position) {
-            continue;
-          }
-
-          const distSq = position.distanceToSquared(entity.position);
-          if (distSq <= rangeSq) {
-            visitor(entity, distSq);
-          }
+        if (cell && cell.length > 0) {
+          visitAsteroidsInCell(cell, position, rangeSq, visitor);
         }
       }
     }
