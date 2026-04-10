@@ -79,7 +79,7 @@ export function activateQueuedAsteroids(
 
 export function deactivateAsteroid(pool: PooledAsteroid[], id: string): PooledAsteroid[] {
   const idx = pool.findIndex((asteroid) => asteroid.id === id);
-  if (idx === -1) {
+  if (idx === -1 || !pool[idx].active) {
     return pool;
   }
 
@@ -95,6 +95,7 @@ export function spawnSplitterFragments(
   const nextPool = [...pool];
   const offset = 2.0;
   let splitsLeft = 2;
+  let spawnedCount = 0;
 
   for (let i = 0; i < nextPool.length && splitsLeft > 0; i++) {
     if (!nextPool[i].active) {
@@ -105,10 +106,11 @@ export function spawnSplitterFragments(
         pos: [pos[0] + (splitsLeft === 2 ? offset : -offset), pos[1], pos[2]],
       };
       splitsLeft--;
+      spawnedCount++;
     }
   }
 
-  return nextPool;
+  return spawnedCount > 0 ? nextPool : pool;
 }
 
 export function countActiveItems<T extends { active: boolean }>(items: T[]): number {
