@@ -44,14 +44,6 @@ export function clearExplosionTimers(pool: PooledExplosion[]) {
       clearTimeout(explosion.timer);
     }
   }
-  // Invalidate cache since items might have been modified to inactive elsewhere,
-  // or this function might be used in a way that clears active state.
-  Object.defineProperty(pool, "activeCount", {
-    value: undefined,
-    writable: true,
-    configurable: true,
-    enumerable: false,
-  });
 }
 
 export function activateQueuedAsteroids(
@@ -59,7 +51,7 @@ export function activateQueuedAsteroids(
   spawns: Array<{ pos: [number, number, number]; type: AsteroidType }>,
 ): PooledAsteroid[] {
   const nextPool = [...pool];
-  let modifiedCount = 0;
+  let modified = false;
   let nextAvailableIdx = 0;
 
   for (const spawn of spawns) {
@@ -78,20 +70,11 @@ export function activateQueuedAsteroids(
       pos: spawn.pos,
       type: spawn.type,
     };
-    modifiedCount++;
+    modified = true;
     nextAvailableIdx++;
   }
 
-  if (modifiedCount > 0) {
-    Object.defineProperty(nextPool, "activeCount", {
-      value: countActiveItems(pool) + modifiedCount,
-      writable: true,
-      configurable: true,
-      enumerable: false,
-    });
-    return nextPool;
-  }
-  return pool;
+  return modified ? nextPool : pool;
 }
 
 export function deactivateAsteroid(pool: PooledAsteroid[], id: string): PooledAsteroid[] {
@@ -102,12 +85,6 @@ export function deactivateAsteroid(pool: PooledAsteroid[], id: string): PooledAs
 
   const nextPool = [...pool];
   nextPool[idx] = { ...nextPool[idx], active: false };
-  Object.defineProperty(nextPool, "activeCount", {
-    value: Math.max(0, countActiveItems(pool) - 1),
-    writable: true,
-    configurable: true,
-    enumerable: false,
-  });
   return nextPool;
 }
 
@@ -133,39 +110,15 @@ export function spawnSplitterFragments(
     }
   }
 
-  if (spawnedCount > 0) {
-    Object.defineProperty(nextPool, "activeCount", {
-      value: countActiveItems(pool) + spawnedCount,
-      writable: true,
-      configurable: true,
-      enumerable: false,
-    });
-    return nextPool;
-  }
-
-  return pool;
+  return spawnedCount > 0 ? nextPool : pool;
 }
 
 export function countActiveItems<T extends { active: boolean }>(items: T[]): number {
-  const cached = (items as any).activeCount;
-  if (typeof cached === "number") {
-    return cached;
-  }
-
   let activeCount = 0;
   for (let i = 0; i < items.length; i++) {
     if (items[i].active) {
       activeCount++;
     }
   }
-
-  // Non-enumerable to avoid showing up in console/spreads
-  Object.defineProperty(items, "activeCount", {
-    value: activeCount,
-    writable: true,
-    configurable: true,
-    enumerable: false,
-  });
-
   return activeCount;
 }
