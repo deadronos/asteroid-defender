@@ -23,6 +23,11 @@ export interface AsteroidManagerOptions {
   onShieldImpact?: (pos: [number, number, number]) => void;
 }
 
+export interface AsteroidPoolState {
+  items: PooledAsteroid[];
+  activeCount: number;
+}
+
 /**
  * Manages the lifecycle of asteroids in the game scene, including spawning,
  * destruction, and synchronization with the global game store.
@@ -32,7 +37,10 @@ export function useAsteroidManager({
   onAsteroidDestroyed,
   onShieldImpact,
 }: AsteroidManagerOptions) {
-  const [asteroids, setAsteroids] = useState<PooledAsteroid[]>(() => createAsteroidPool(poolSize));
+  const [asteroidState, setAsteroidState] = useState<AsteroidPoolState>(() => ({
+    items: createAsteroidPool(poolSize),
+    activeCount: 0,
+  }));
 
   const { incrementDestroyed, setActiveAsteroids } = useGameStore(
     useShallow((state) => ({
@@ -54,13 +62,15 @@ export function useAsteroidManager({
 
     const spawns = drainAsteroidSpawns();
     if (spawns.length > 0) {
-      setAsteroids((prev) => {
-        const next = activateQueuedAsteroids(prev, spawns);
+      setAsteroidState((prev) => {
+        const nextItems = activateQueuedAsteroids(prev.items, spawns);
         // Optimization: Update store count immediately if changed
-        if (next !== prev) {
-          setActiveAsteroids(countActiveItems(next));
+        if (nextItems !== prev.items) {
+          const nextCount = countActiveItems(nextItems);
+          setActiveAsteroids(nextCount);
+          return { items: nextItems, activeCount: nextCount };
         }
-        return next;
+        return prev;
       });
     }
   });
@@ -73,15 +83,19 @@ export function useAsteroidManager({
         onShieldImpact(pos);
       }
 
-      setAsteroids((prev) => {
-        let next = deactivateAsteroid(prev, id);
+      setAsteroidState((prev) => {
+        let nextItems = deactivateAsteroid(prev.items, id);
         if (type === "splitter" && !isBaseHit) {
-          next = spawnSplitterFragments(next, pos);
+          nextItems = spawnSplitterFragments(nextItems, pos);
         }
 
-        // Update active count in global store
-        setActiveAsteroids(countActiveItems(next));
-        return next;
+        if (nextItems !== prev.items) {
+          const nextCount = countActiveItems(nextItems);
+          // Update active count in global store
+          setActiveAsteroids(nextCount);
+          return { items: nextItems, activeCount: nextCount };
+        }
+        return prev;
       });
 
       // Notify external listeners (e.g., for explosions)
@@ -91,7 +105,7 @@ export function useAsteroidManager({
   );
 
   return {
-    asteroids,
+    asteroids: asteroidState.items,
     handleDestroy,
   };
 }
