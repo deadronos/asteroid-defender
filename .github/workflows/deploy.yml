@@ -30,7 +30,7 @@ jobs:
           node-version: "24"
           cache: true
       - name: Install dependencies
-        run: vp install
+        run: vp install --legacy-peer-deps
       - name: Check
         run: vp check
       - name: Test
