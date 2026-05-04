@@ -1,4 +1,6 @@
 import { toolbarButtonBase } from "./hudStyles";
+import Tooltip from "../ui/Tooltip";
+import "./HUDControls.css";
 
 interface HUDControlsProps {
   gameState: string;
@@ -11,6 +13,110 @@ interface HUDControlsProps {
   toggleCinematicIndicator: () => void;
   openOnboarding: () => void;
 }
+
+// Sub-components
+const PauseButton = ({ gameState, togglePause }: { gameState: string, togglePause: () => void }) => {
+  if (gameState !== "playing" && gameState !== "paused") return null;
+  
+  return (
+    <button
+      onClick={togglePause}
+      aria-label={gameState === "playing" ? "Pause game" : "Resume game"}
+      style={toolbarButtonBase}
+      className="hud-button-pause"
+    >
+      {gameState === "playing" ? "Pause (Esc)" : "Resume (Esc)"}
+    </button>
+  );
+};
+
+const CameraModeButton = ({ cameraMode, toggleCameraMode }: { cameraMode: string, toggleCameraMode: () => void }) => {
+  const isCinematic = cameraMode === "cinematic";
+  return (
+    <Tooltip 
+      content={
+        <span>
+          {isCinematic ? "Cinematic" : "Static"} (click to toggle)
+        </span>
+      }
+    >
+      <button
+        onClick={toggleCameraMode}
+        aria-label={isCinematic ? "Switch to static camera" : "Switch to cinematic camera"}
+        aria-pressed={isCinematic}
+        style={toolbarButtonBase}
+        className="hud-button-camera"
+      >
+        {isCinematic ? "🎬 Cinematic" : "📷 Static"}
+      </button>
+    </Tooltip>
+  );
+};
+
+const ReducedMotionButton = ({ reducedMotion, toggleReducedMotion }: { reducedMotion: boolean, toggleReducedMotion: () => void }) => {
+  return (
+    <Tooltip 
+      content={
+        <span>
+          Reduced Motion {reducedMotion ? "ON" : "OFF"} (click to toggle)
+        </span>
+      }
+    >
+      <button
+        onClick={toggleReducedMotion}
+        aria-label={reducedMotion ? "Disable reduced motion" : "Enable reduced motion"}
+        aria-pressed={reducedMotion}
+        style={toolbarButtonBase}
+        className="hud-button-reduced-motion"
+      >
+        ♿
+      </button>
+    </Tooltip>
+  );
+};
+
+const CinematicIndicatorButton = ({ showCinematicIndicator, toggleCinematicIndicator }: { showCinematicIndicator: boolean, toggleCinematicIndicator: () => void }) => {
+  return (
+    <Tooltip 
+      content={
+        <span>
+          Sweep label {showCinematicIndicator ? "ON" : "OFF"} (click to toggle)
+        </span>
+      }
+    >
+      <button
+        onClick={toggleCinematicIndicator}
+        aria-label={showCinematicIndicator ? "Hide cinematic sweep label" : "Show cinematic sweep label"}
+        aria-pressed={showCinematicIndicator}
+        style={toolbarButtonBase}
+        className="hud-button-cinematic"
+      >
+        🎥
+      </button>
+    </Tooltip>
+  );
+};
+
+const HelpButton = ({ openOnboarding }: { openOnboarding: () => void }) => {
+  return (
+    <Tooltip 
+      content={
+        <span>
+          Help (<kbd>?</kbd> / <kbd>H</kbd>)
+        </span>
+      }
+    >
+      <button
+        onClick={openOnboarding}
+        aria-label="Open help"
+        style={toolbarButtonBase}
+        className="hud-button-help"
+      >
+        Help
+      </button>
+    </Tooltip>
+  );
+};
 
 /** Top-right toolbar: pause, camera mode, reduced motion, cinematic indicator, help. */
 export default function HUDControls({
@@ -25,130 +131,19 @@ export default function HUDControls({
   openOnboarding,
 }: HUDControlsProps) {
   return (
-    <>
-      <style>{`
-        .hud-controls-container {
-          position: fixed;
-          top: max(16px, env(safe-area-inset-top, 16px));
-          right: max(16px, env(safe-area-inset-right, 16px));
-          z-index: 120;
-          display: flex;
-          gap: 10px;
-          align-items: center;
-          max-width: calc(100vw - 32px);
-          justify-content: flex-end;
-          flex-wrap: wrap;
-        }
-        @media (max-width: 768px) {
-          .hud-controls-container {
-            max-width: calc(100vw - 240px);
-          }
-        }
-      `}</style>
-      <div className="hud-controls-container">
-        {(gameState === "playing" || gameState === "paused") && (
-          <button
-            onClick={togglePause}
-            aria-label={gameState === "playing" ? "Pause game" : "Resume game"}
-            style={{
-              ...toolbarButtonBase,
-              minWidth: 108,
-              fontSize: "0.95rem",
-            }}
-          >
-            {gameState === "playing" ? "Pause (Esc)" : "Resume (Esc)"}
-          </button>
-        )}
-
-        <button
-          onClick={toggleCameraMode}
-          aria-label={
-            cameraMode === "cinematic" ? "Switch to static camera" : "Switch to cinematic camera"
-          }
-          title={
-            cameraMode === "cinematic"
-              ? "Cinematic (click for Static)"
-              : "Static (click for Cinematic)"
-          }
-          style={{
-            ...toolbarButtonBase,
-            padding: "0 14px",
-            border: `1px solid ${cameraMode === "cinematic" ? "rgba(167,139,250,0.55)" : "rgba(255,255,255,0.25)"}`,
-            background:
-              cameraMode === "cinematic" ? "rgba(109,40,217,0.28)" : "rgba(8, 12, 24, 0.86)",
-            color: cameraMode === "cinematic" ? "#ddd6fe" : "#9ca3af",
-            fontSize: "0.88rem",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {cameraMode === "cinematic" ? "🎬 Cinematic" : "📷 Static"}
-        </button>
-
-        <button
-          onClick={toggleReducedMotion}
-          aria-label={reducedMotion ? "Disable reduced motion" : "Enable reduced motion"}
-          title={
-            reducedMotion
-              ? "Reduced Motion ON (click to disable)"
-              : "Reduced Motion OFF (click to enable)"
-          }
-          style={{
-            ...toolbarButtonBase,
-            width: 44,
-            border: `1px solid ${reducedMotion ? "rgba(52,211,153,0.55)" : "rgba(255,255,255,0.25)"}`,
-            background: reducedMotion ? "rgba(6,78,59,0.4)" : "rgba(8, 12, 24, 0.86)",
-            color: reducedMotion ? "#6ee7b7" : "#9ca3af",
-            fontSize: "1.1rem",
-          }}
-        >
-          ♿
-        </button>
-
-        {cameraMode === "cinematic" && (
-          <button
-            onClick={toggleCinematicIndicator}
-            aria-label={
-              showCinematicIndicator ? "Hide cinematic sweep label" : "Show cinematic sweep label"
-            }
-            title={
-              showCinematicIndicator
-                ? "Sweep label ON (click to hide)"
-                : "Sweep label OFF (click to show)"
-            }
-            style={{
-              ...toolbarButtonBase,
-              width: 44,
-              border: `1px solid ${showCinematicIndicator ? "rgba(167,139,250,0.55)" : "rgba(255,255,255,0.25)"}`,
-              background: showCinematicIndicator
-                ? "rgba(109,40,217,0.28)"
-                : "rgba(8, 12, 24, 0.86)",
-              color: showCinematicIndicator ? "#ddd6fe" : "#9ca3af",
-              fontSize: "1.1rem",
-            }}
-          >
-            🎥
-          </button>
-        )}
-
-        <button
-          onClick={openOnboarding}
-          aria-label="Open help"
-          title="Help (? / H)"
-          style={{
-            ...toolbarButtonBase,
-            padding: "0 16px",
-            minWidth: 74,
-            height: 48,
-            borderRadius: "999px",
-            border: "1px solid rgba(255,255,255,0.35)",
-            background: "rgba(8, 12, 24, 0.8)",
-            color: "#fff",
-            fontSize: "0.95rem",
-          }}
-        >
-          Help
-        </button>
-      </div>
-    </>
+    <div className="hud-controls-container">
+      <PauseButton gameState={gameState} togglePause={togglePause} />
+      <CameraModeButton cameraMode={cameraMode} toggleCameraMode={toggleCameraMode} />
+      <ReducedMotionButton reducedMotion={reducedMotion} toggleReducedMotion={toggleReducedMotion} />
+      
+      {cameraMode === "cinematic" && (
+        <CinematicIndicatorButton 
+          showCinematicIndicator={showCinematicIndicator} 
+          toggleCinematicIndicator={toggleCinematicIndicator} 
+        />
+      )}
+      
+      <HelpButton openOnboarding={openOnboarding} />
+    </div>
   );
 }
