@@ -182,14 +182,14 @@ describe("Pools Utility Functions", () => {
           active: true,
           pos: [0, 0, 0],
           type: "swarmer",
-          timer: 123 as ReturnType<typeof setTimeout>,
+          timer: 123 as unknown as ReturnType<typeof setTimeout>,
         },
         {
           id: "2",
           active: true,
           pos: [0, 0, 0],
           type: "swarmer",
-          timer: 456 as ReturnType<typeof setTimeout>,
+          timer: 456 as unknown as ReturnType<typeof setTimeout>,
         },
         { id: "3", active: true, pos: [0, 0, 0], type: "swarmer" }, // No timer
       ];
