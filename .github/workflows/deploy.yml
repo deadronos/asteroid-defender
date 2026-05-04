@@ -29,6 +29,7 @@ jobs:
         with:
           node-version: "24"
           cache: true
+          run-install: false
       - name: Install dependencies
         run: vp install --legacy-peer-deps
       - name: Check
