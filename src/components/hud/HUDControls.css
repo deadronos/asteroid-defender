@@ -1,0 +1,63 @@
+.hud-controls-container {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top, 16px));
+  right: max(16px, env(safe-area-inset-right, 16px));
+  z-index: 120;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  max-width: calc(100vw - 32px);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .hud-controls-container {
+    max-width: calc(100vw - 240px);
+  }
+}
+
+.hud-button-pause {
+  min-width: 108px;
+  font-size: 0.95rem;
+}
+
+.hud-button-camera {
+  padding: 0 14px;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.hud-button-camera[aria-pressed="true"],
+.hud-button-cinematic[aria-pressed="true"] {
+  border: 1px solid var(--color-primary-border) !important;
+  background: var(--color-primary-bg) !important;
+  color: var(--color-primary-text) !important;
+}
+
+.hud-button-reduced-motion {
+  width: 44px;
+  font-size: 1.1rem;
+}
+
+.hud-button-reduced-motion[aria-pressed="true"] {
+  border: 1px solid var(--color-success-border) !important;
+  background: var(--color-success-bg) !important;
+  color: var(--color-success-text) !important;
+}
+
+.hud-button-cinematic {
+  width: 44px;
+  font-size: 1.1rem;
+}
+
+.hud-button-help {
+  padding: 0 16px !important;
+  min-width: 74px !important;
+  height: 48px !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--color-hud-border-strong) !important;
+  background: var(--color-hud-bg-alpha) !important;
+  color: #fff !important;
+  font-size: 0.95rem !important;
+}
