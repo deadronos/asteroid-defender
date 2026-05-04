@@ -31,7 +31,7 @@ jobs:
           cache: true
           run-install: false
       - name: Install dependencies
-        run: vp install --legacy-peer-deps
+        run: vp install -- --legacy-peer-deps
       - name: Check
         run: vp check
       - name: Test
