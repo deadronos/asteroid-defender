@@ -1,17 +1,17 @@
-import { useState, ReactNode, ReactElement } from 'react';
-import './Tooltip.css';
+import { useState, ReactNode, ReactElement } from "react";
+import "./Tooltip.css";
 
 interface TooltipProps {
   content: ReactNode;
   children: ReactElement;
-  position?: 'top' | 'bottom' | 'left' | 'right';
+  position?: "top" | "bottom" | "left" | "right";
 }
 
-export default function Tooltip({ content, children, position = 'bottom' }: TooltipProps) {
+export default function Tooltip({ content, children, position = "bottom" }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   return (
-    <div 
+    <div
       className="tooltip-wrapper"
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}

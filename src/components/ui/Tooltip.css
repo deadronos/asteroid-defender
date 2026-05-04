@@ -14,7 +14,7 @@
   font-size: 0.85rem;
   white-space: nowrap;
   pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(8px);
   animation: tooltip-fade-in 0.15s ease-out forwards;
 }
@@ -60,5 +60,5 @@
   font-family: inherit;
   font-size: 0.85em;
   margin: 0 2px;
-  box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
 }

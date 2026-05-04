@@ -15,9 +15,15 @@ interface HUDControlsProps {
 }
 
 // Sub-components
-const PauseButton = ({ gameState, togglePause }: { gameState: string, togglePause: () => void }) => {
+const PauseButton = ({
+  gameState,
+  togglePause,
+}: {
+  gameState: string;
+  togglePause: () => void;
+}) => {
   if (gameState !== "playing" && gameState !== "paused") return null;
-  
+
   return (
     <button
       onClick={togglePause}
@@ -30,16 +36,16 @@ const PauseButton = ({ gameState, togglePause }: { gameState: string, togglePaus
   );
 };
 
-const CameraModeButton = ({ cameraMode, toggleCameraMode }: { cameraMode: string, toggleCameraMode: () => void }) => {
+const CameraModeButton = ({
+  cameraMode,
+  toggleCameraMode,
+}: {
+  cameraMode: string;
+  toggleCameraMode: () => void;
+}) => {
   const isCinematic = cameraMode === "cinematic";
   return (
-    <Tooltip 
-      content={
-        <span>
-          {isCinematic ? "Cinematic" : "Static"} (click to toggle)
-        </span>
-      }
-    >
+    <Tooltip content={<span>{isCinematic ? "Cinematic" : "Static"} (click to toggle)</span>}>
       <button
         onClick={toggleCameraMode}
         aria-label={isCinematic ? "Switch to static camera" : "Switch to cinematic camera"}
@@ -53,15 +59,15 @@ const CameraModeButton = ({ cameraMode, toggleCameraMode }: { cameraMode: string
   );
 };
 
-const ReducedMotionButton = ({ reducedMotion, toggleReducedMotion }: { reducedMotion: boolean, toggleReducedMotion: () => void }) => {
+const ReducedMotionButton = ({
+  reducedMotion,
+  toggleReducedMotion,
+}: {
+  reducedMotion: boolean;
+  toggleReducedMotion: () => void;
+}) => {
   return (
-    <Tooltip 
-      content={
-        <span>
-          Reduced Motion {reducedMotion ? "ON" : "OFF"} (click to toggle)
-        </span>
-      }
-    >
+    <Tooltip content={<span>Reduced Motion {reducedMotion ? "ON" : "OFF"} (click to toggle)</span>}>
       <button
         onClick={toggleReducedMotion}
         aria-label={reducedMotion ? "Disable reduced motion" : "Enable reduced motion"}
@@ -75,18 +81,22 @@ const ReducedMotionButton = ({ reducedMotion, toggleReducedMotion }: { reducedMo
   );
 };
 
-const CinematicIndicatorButton = ({ showCinematicIndicator, toggleCinematicIndicator }: { showCinematicIndicator: boolean, toggleCinematicIndicator: () => void }) => {
+const CinematicIndicatorButton = ({
+  showCinematicIndicator,
+  toggleCinematicIndicator,
+}: {
+  showCinematicIndicator: boolean;
+  toggleCinematicIndicator: () => void;
+}) => {
   return (
-    <Tooltip 
-      content={
-        <span>
-          Sweep label {showCinematicIndicator ? "ON" : "OFF"} (click to toggle)
-        </span>
-      }
+    <Tooltip
+      content={<span>Sweep label {showCinematicIndicator ? "ON" : "OFF"} (click to toggle)</span>}
     >
       <button
         onClick={toggleCinematicIndicator}
-        aria-label={showCinematicIndicator ? "Hide cinematic sweep label" : "Show cinematic sweep label"}
+        aria-label={
+          showCinematicIndicator ? "Hide cinematic sweep label" : "Show cinematic sweep label"
+        }
         aria-pressed={showCinematicIndicator}
         style={toolbarButtonBase}
         className="hud-button-cinematic"
@@ -99,7 +109,7 @@ const CinematicIndicatorButton = ({ showCinematicIndicator, toggleCinematicIndic
 
 const HelpButton = ({ openOnboarding }: { openOnboarding: () => void }) => {
   return (
-    <Tooltip 
+    <Tooltip
       content={
         <span>
           Help (<kbd>?</kbd> / <kbd>H</kbd>)
@@ -134,15 +144,18 @@ export default function HUDControls({
     <div className="hud-controls-container">
       <PauseButton gameState={gameState} togglePause={togglePause} />
       <CameraModeButton cameraMode={cameraMode} toggleCameraMode={toggleCameraMode} />
-      <ReducedMotionButton reducedMotion={reducedMotion} toggleReducedMotion={toggleReducedMotion} />
-      
+      <ReducedMotionButton
+        reducedMotion={reducedMotion}
+        toggleReducedMotion={toggleReducedMotion}
+      />
+
       {cameraMode === "cinematic" && (
-        <CinematicIndicatorButton 
-          showCinematicIndicator={showCinematicIndicator} 
-          toggleCinematicIndicator={toggleCinematicIndicator} 
+        <CinematicIndicatorButton
+          showCinematicIndicator={showCinematicIndicator}
+          toggleCinematicIndicator={toggleCinematicIndicator}
         />
       )}
-      
+
       <HelpButton openOnboarding={openOnboarding} />
     </div>
   );
