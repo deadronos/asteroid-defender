@@ -78,58 +78,69 @@ const Particle = memo(({ startPos, color }: ParticleProps) => {
 interface ActiveExplosionEffectProps {
   position: [number, number, number];
   color: string;
+  onComplete: () => void;
 }
 
-const ActiveExplosionEffect = memo(({ position, color }: ActiveExplosionEffectProps) => {
-  const blastLightRef = useRef<THREE.PointLight>(null);
-  const lifeRef = useRef(1);
+const ActiveExplosionEffect = memo(
+  ({ position, color, onComplete }: ActiveExplosionEffectProps) => {
+    const blastLightRef = useRef<THREE.PointLight>(null);
+    const lifeRef = useRef(1);
+    const completedRef = useRef(false);
 
-  useEffect(() => {
-    lifeRef.current = 1.0;
+    useEffect(() => {
+      lifeRef.current = 1.0;
+      completedRef.current = false;
 
-    if (blastLightRef.current) {
-      blastLightRef.current.intensity = 7;
-      blastLightRef.current.position.set(...position);
-    }
-  }, [position]);
+      if (blastLightRef.current) {
+        blastLightRef.current.intensity = 7;
+        blastLightRef.current.position.set(...position);
+      }
+    }, [position]);
 
-  useFrame((_, delta) => {
-    lifeRef.current = Math.max(0, lifeRef.current - delta * 1.6);
+    useFrame((_, delta) => {
+      lifeRef.current = Math.max(0, lifeRef.current - delta * 1.6);
 
-    if (blastLightRef.current) {
-      blastLightRef.current.intensity = 7 * lifeRef.current;
-    }
-  });
+      if (blastLightRef.current) {
+        blastLightRef.current.intensity = 7 * lifeRef.current;
+      }
 
-  return (
-    <group>
-      <pointLight
-        ref={blastLightRef}
-        position={position}
-        color={color}
-        intensity={7}
-        distance={18}
-        decay={2}
-      />
-      {EXPLOSION_FRAGMENT_IDS.map((fragmentId) => (
-        <Particle key={fragmentId} startPos={position} color={color} />
-      ))}
-    </group>
-  );
-});
+      if (lifeRef.current <= 0 && !completedRef.current) {
+        completedRef.current = true;
+        onComplete();
+      }
+    });
+
+    return (
+      <group>
+        <pointLight
+          ref={blastLightRef}
+          position={position}
+          color={color}
+          intensity={7}
+          distance={18}
+          decay={2}
+        />
+        {EXPLOSION_FRAGMENT_IDS.map((fragmentId) => (
+          <Particle key={fragmentId} startPos={position} color={color} />
+        ))}
+      </group>
+    );
+  },
+);
 
 interface ExplosionProps {
   position: [number, number, number];
   type: AsteroidType;
   active: boolean;
+  onComplete: () => void;
 }
 
-function Explosion({ position, type, active }: ExplosionProps) {
+function Explosion({ position, type, active, onComplete }: ExplosionProps) {
   const color = EXPLOSION_COLORS[type] || "#ff6600";
 
   if (!active) return null;
 
-  return <ActiveExplosionEffect position={position} color={color} />;
+  return <ActiveExplosionEffect position={position} color={color} onComplete={onComplete} />;
 }
 
 export default memo(Explosion);

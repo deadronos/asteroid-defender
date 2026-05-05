@@ -53,7 +53,7 @@ export default function GameScene({
   backgroundEffectsQuality,
   reducedMotion,
 }: GameSceneProps) {
-  const { explosions, triggerExplosion } = useExplosionPool(POOL_SIZE);
+  const { explosions, triggerExplosion, handleExplosionComplete } = useExplosionPool(POOL_SIZE);
   const { shieldImpacts, addShieldImpact } = useShieldImpacts();
 
   const { asteroids, handleDestroy } = useAsteroidManager({
@@ -92,7 +92,13 @@ export default function GameScene({
       ))}
 
       {explosions.map((exp) => (
-        <Explosion key={exp.id} position={exp.pos} type={exp.type} active={exp.active} />
+        <Explosion
+          key={exp.id}
+          position={exp.pos}
+          type={exp.type}
+          active={exp.active}
+          onComplete={() => handleExplosionComplete(exp.id)}
+        />
       ))}
     </>
   );

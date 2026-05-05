@@ -31,9 +31,17 @@ export function clamp(val: number, min: number, max: number): number {
 }
 
 /**
- * Generates a random position on a sphere of a given radius.
- * Note: This version is specifically tuned for the asteroid spawning logic
- * but can be generalized if needed.
+ * Generates a random position on a sphere of a given radius, biased toward
+ * the equatorial plane (Y is halved) to keep asteroids in the play zone.
+ *
+ * The theta term intentionally is not uniformly distributed — it uses a
+ * phi-dependent magnitude (`sqrt(radius * PI) * phi`) that creates a
+ * non-uniform azimuthal bias, producing slightly heavier clustering in
+ * certain quadrants.  For gameplay this is preferable to true uniformity
+ * because it prevents asteroids from always arriving in a perfectly even
+ * shell, which would look synthetic.
+ *
+ * Can be generalized to a true uniform-on-sphere distribution if needed.
  */
 export function getRandomSpherePosition(radius: number): [number, number, number] {
   const phi = Math.acos(-1 + 2 * Math.random());

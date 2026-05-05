@@ -1,14 +1,13 @@
-import { describe, expect, it, vi, beforeEach } from "vite-plus/test";
+import { describe, expect, it } from "vite-plus/test";
 import {
   createAsteroidPool,
   createExplosionPool,
-  clearExplosionTimers,
   activateQueuedAsteroids,
   deactivateAsteroid,
+  deactivateExplosion,
   spawnSplitterFragments,
   countActiveItems,
   type PooledAsteroid,
-  type PooledExplosion,
 } from "./pools";
 
 describe("Pools Utility Functions", () => {
@@ -170,35 +169,29 @@ describe("Pools Utility Functions", () => {
     });
   });
 
-  describe("clearExplosionTimers", () => {
-    beforeEach(() => {
-      vi.stubGlobal("clearTimeout", vi.fn());
+  describe("deactivateExplosion", () => {
+    it("should deactivate an explosion by ID", () => {
+      const pool = createExplosionPool(2);
+      pool[0].active = true;
+      const idToDeactivate = pool[0].id;
+
+      const nextPool = deactivateExplosion(pool, idToDeactivate);
+
+      expect(nextPool[0].active).toBe(false);
+      expect(nextPool !== pool).toBe(true);
     });
 
-    it("should call clearTimeout for each item that has a timer", () => {
-      const pool: PooledExplosion[] = [
-        {
-          id: "1",
-          active: true,
-          pos: [0, 0, 0],
-          type: "swarmer",
-          timer: 123 as unknown as ReturnType<typeof setTimeout>,
-        },
-        {
-          id: "2",
-          active: true,
-          pos: [0, 0, 0],
-          type: "swarmer",
-          timer: 456 as unknown as ReturnType<typeof setTimeout>,
-        },
-        { id: "3", active: true, pos: [0, 0, 0], type: "swarmer" }, // No timer
-      ];
+    it("should return the original pool if the ID is not found", () => {
+      const pool = createExplosionPool(2);
+      const nextPool = deactivateExplosion(pool, "non-existent-id");
+      expect(nextPool).toBe(pool);
+    });
 
-      clearExplosionTimers(pool);
-
-      expect(clearTimeout).toHaveBeenCalledTimes(2);
-      expect(clearTimeout).toHaveBeenCalledWith(123);
-      expect(clearTimeout).toHaveBeenCalledWith(456);
+    it("should not change an already-inactive explosion", () => {
+      const pool = createExplosionPool(2);
+      // Both entries are inactive by default
+      const nextPool = deactivateExplosion(pool, pool[0].id);
+      expect(nextPool).toBe(pool);
     });
   });
 });

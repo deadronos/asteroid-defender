@@ -13,7 +13,6 @@ export interface PooledExplosion {
   active: boolean;
   pos: [number, number, number];
   type: AsteroidType;
-  timer?: ReturnType<typeof setTimeout>;
 }
 
 function getStoragePosition(): [number, number, number] {
@@ -38,12 +37,15 @@ export function createExplosionPool(size: number): PooledExplosion[] {
   }));
 }
 
-export function clearExplosionTimers(pool: PooledExplosion[]) {
-  for (const explosion of pool) {
-    if (explosion.timer) {
-      clearTimeout(explosion.timer);
-    }
+export function deactivateExplosion(pool: PooledExplosion[], id: string): PooledExplosion[] {
+  const idx = pool.findIndex((explosion) => explosion.id === id);
+  if (idx === -1 || !pool[idx].active) {
+    return pool;
   }
+
+  const nextPool = [...pool];
+  nextPool[idx] = { ...nextPool[idx], active: false };
+  return nextPool;
 }
 
 export function activateQueuedAsteroids(
