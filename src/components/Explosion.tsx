@@ -78,11 +78,12 @@ const Particle = memo(({ startPos, color }: ParticleProps) => {
 interface ActiveExplosionEffectProps {
   position: [number, number, number];
   color: string;
-  onComplete: () => void;
+  explosionId: string;
+  onComplete: (id: string) => void;
 }
 
 const ActiveExplosionEffect = memo(
-  ({ position, color, onComplete }: ActiveExplosionEffectProps) => {
+  ({ position, color, explosionId, onComplete }: ActiveExplosionEffectProps) => {
     const blastLightRef = useRef<THREE.PointLight>(null);
     const lifeRef = useRef(1);
     const completedRef = useRef(false);
@@ -106,7 +107,7 @@ const ActiveExplosionEffect = memo(
 
       if (lifeRef.current <= 0 && !completedRef.current) {
         completedRef.current = true;
-        onComplete();
+        onComplete(explosionId);
       }
     });
 
@@ -129,18 +130,26 @@ const ActiveExplosionEffect = memo(
 );
 
 interface ExplosionProps {
+  id: string;
   position: [number, number, number];
   type: AsteroidType;
   active: boolean;
-  onComplete: () => void;
+  onComplete: (id: string) => void;
 }
 
-function Explosion({ position, type, active, onComplete }: ExplosionProps) {
+function Explosion({ id, position, type, active, onComplete }: ExplosionProps) {
   const color = EXPLOSION_COLORS[type] || "#ff6600";
 
   if (!active) return null;
 
-  return <ActiveExplosionEffect position={position} color={color} onComplete={onComplete} />;
+  return (
+    <ActiveExplosionEffect
+      position={position}
+      color={color}
+      explosionId={id}
+      onComplete={onComplete}
+    />
+  );
 }
 
 export default memo(Explosion);

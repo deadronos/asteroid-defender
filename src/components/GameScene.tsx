@@ -94,10 +94,11 @@ export default function GameScene({
       {explosions.map((exp) => (
         <Explosion
           key={exp.id}
+          id={exp.id}
           position={exp.pos}
           type={exp.type}
           active={exp.active}
-          onComplete={() => handleExplosionComplete(exp.id)}
+          onComplete={handleExplosionComplete}
         />
       ))}
     </>
