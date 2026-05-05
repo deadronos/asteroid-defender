@@ -1,22 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import type { AsteroidType } from "../../ecs/world";
-import { clearExplosionTimers, createExplosionPool } from "./pools";
+import { createExplosionPool, deactivateExplosion } from "./pools";
 
-const EXPLOSION_DURATION_MS = 1000;
-
+/**
+ * Manages a fixed-size pool of explosion effects.  Deactivation is driven
+ * by a frame-based `onComplete` callback from the <Explosion> component
+ * rather than a wall-clock `setTimeout`, so lifetime stays consistent even
+ * when the tab is backgrounded or frames are dropped.
+ */
 export function useExplosionPool(poolSize: number) {
   const [explosions, setExplosions] = useState(() => createExplosionPool(poolSize));
-  const explosionsRef = useRef(explosions);
-
-  useEffect(() => {
-    explosionsRef.current = explosions;
-  }, [explosions]);
-
-  useEffect(() => {
-    return () => {
-      clearExplosionTimers(explosionsRef.current);
-    };
-  }, []);
 
   const triggerExplosion = useCallback((pos: [number, number, number], type: AsteroidType) => {
     setExplosions((prev) => {
@@ -26,28 +19,19 @@ export function useExplosionPool(poolSize: number) {
       }
 
       const nextExplosions = [...prev];
-      const explosion = nextExplosions[nextIdx];
-
-      if (explosion.timer) {
-        clearTimeout(explosion.timer);
-      }
-
       nextExplosions[nextIdx] = {
-        ...explosion,
+        ...prev[nextIdx],
         active: true,
         pos,
         type,
-        timer: setTimeout(() => {
-          setExplosions((current) => {
-            const next = [...current];
-            next[nextIdx] = { ...next[nextIdx], active: false, timer: undefined };
-            return next;
-          });
-        }, EXPLOSION_DURATION_MS),
       };
       return nextExplosions;
     });
   }, []);
 
-  return { explosions, triggerExplosion };
+  const handleExplosionComplete = useCallback((id: string) => {
+    setExplosions((prev) => deactivateExplosion(prev, id));
+  }, []);
+
+  return { explosions, triggerExplosion, handleExplosionComplete };
 }
