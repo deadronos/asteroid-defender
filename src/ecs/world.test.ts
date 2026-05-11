@@ -99,6 +99,16 @@ describe("asteroid spatial index", () => {
 
     expect(asteroidCells.size).toBe(1);
   });
+
+  it("reuses cell buckets across spatial index updates", () => {
+    const asteroid = addAsteroid("a-8", new THREE.Vector3(0, 0, 0));
+    const initialBucket = asteroidCells.values().next().value;
+
+    asteroid.position!.set(8, 2, 1);
+    updateSpatialIndex();
+
+    expect(asteroidCells.values().next().value).toBe(initialBucket);
+  });
 });
 
 describe("countAsteroidsInRange", () => {
