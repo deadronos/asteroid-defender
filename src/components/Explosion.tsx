@@ -1,4 +1,4 @@
-import { useRef, useEffect, memo } from "react";
+import { useRef, useEffect, memo, useCallback } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { AsteroidType } from "../ecs/world";
@@ -11,59 +11,26 @@ const EXPLOSION_COLORS: Record<AsteroidType, string> = {
 
 const EMISSIVE_COLOR = new THREE.Color(10, 2, 0);
 const EXPLOSION_FRAGMENT_IDS = Array.from({ length: 8 }, (_, index) => index);
+const PARTICLE_COUNT = EXPLOSION_FRAGMENT_IDS.length;
+const PARTICLE_GEOMETRY = new THREE.DodecahedronGeometry(0.5, 0);
 
 interface ParticleProps {
   startPos: [number, number, number];
   color: string;
+  registerParticle: (index: number, mesh: THREE.Mesh | null) => void;
+  registerMaterial: (index: number, material: THREE.MeshStandardMaterial | null) => void;
+  index: number;
 }
 
-const Particle = memo(({ startPos, color }: ParticleProps) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const materialRef = useRef<THREE.MeshStandardMaterial>(null);
-  const lifeRef = useRef(1.0);
-  const velocityRef = useRef(new THREE.Vector3());
-
-  useEffect(() => {
-    lifeRef.current = 1.0;
-    velocityRef.current.set(
-      (Math.random() - 0.5) * 15,
-      (Math.random() - 0.5) * 15,
-      (Math.random() - 0.5) * 15,
-    );
-    if (meshRef.current) {
-      meshRef.current.position.set(...startPos);
-      meshRef.current.scale.setScalar(1);
-    }
-    if (materialRef.current) {
-      materialRef.current.opacity = 1.0;
-    }
-  }, [startPos]);
-
-  useFrame((_, delta) => {
-    if (!meshRef.current || lifeRef.current <= 0) return;
-
-    lifeRef.current -= delta * 1.5;
-
-    if (lifeRef.current <= 0) {
-      meshRef.current.scale.setScalar(0);
-      return;
-    }
-
-    meshRef.current.position.addScaledVector(velocityRef.current, delta);
-    meshRef.current.rotation.x += velocityRef.current.y * delta;
-    meshRef.current.rotation.y += velocityRef.current.x * delta;
-
-    meshRef.current.scale.setScalar(lifeRef.current);
-    if (materialRef.current) {
-      materialRef.current.opacity = lifeRef.current;
-    }
-  });
-
-  return (
-    <mesh ref={meshRef} position={startPos}>
-      <dodecahedronGeometry args={[0.5, 0]} />
+const Particle = memo(
+  ({ startPos, color, registerParticle, registerMaterial, index }: ParticleProps) => (
+    <mesh
+      ref={(mesh) => registerParticle(index, mesh)}
+      position={startPos}
+      geometry={PARTICLE_GEOMETRY}
+    >
       <meshStandardMaterial
-        ref={materialRef}
+        ref={(material) => registerMaterial(index, material)}
         color={color}
         emissive={EMISSIVE_COLOR}
         toneMapped={false}
@@ -72,8 +39,8 @@ const Particle = memo(({ startPos, color }: ParticleProps) => {
         opacity={1}
       />
     </mesh>
-  );
-});
+  ),
+);
 
 interface ActiveExplosionEffectProps {
   position: [number, number, number];
@@ -85,12 +52,51 @@ interface ActiveExplosionEffectProps {
 const ActiveExplosionEffect = memo(
   ({ position, color, explosionId, onComplete }: ActiveExplosionEffectProps) => {
     const blastLightRef = useRef<THREE.PointLight>(null);
+    const particleRefs = useRef<Array<THREE.Mesh | null>>(Array(PARTICLE_COUNT).fill(null));
+    const materialRefs = useRef<Array<THREE.MeshStandardMaterial | null>>(
+      Array(PARTICLE_COUNT).fill(null),
+    );
+    const particleLifeRef = useRef(new Float32Array(PARTICLE_COUNT));
+    const particleVelocityRef = useRef(
+      Array.from({ length: PARTICLE_COUNT }, () => new THREE.Vector3()),
+    );
     const lifeRef = useRef(1);
     const completedRef = useRef(false);
+
+    const registerParticle = useCallback((index: number, mesh: THREE.Mesh | null) => {
+      particleRefs.current[index] = mesh;
+    }, []);
+    const registerMaterial = useCallback(
+      (index: number, material: THREE.MeshStandardMaterial | null) => {
+        materialRefs.current[index] = material;
+      },
+      [],
+    );
 
     useEffect(() => {
       lifeRef.current = 1.0;
       completedRef.current = false;
+
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        particleLifeRef.current[i] = 1.0;
+        particleVelocityRef.current[i].set(
+          (Math.random() - 0.5) * 15,
+          (Math.random() - 0.5) * 15,
+          (Math.random() - 0.5) * 15,
+        );
+
+        const particle = particleRefs.current[i];
+        if (particle) {
+          particle.position.set(...position);
+          particle.rotation.set(0, 0, 0);
+          particle.scale.setScalar(1);
+        }
+
+        const material = materialRefs.current[i];
+        if (material) {
+          material.opacity = 1.0;
+        }
+      }
 
       if (blastLightRef.current) {
         blastLightRef.current.intensity = 7;
@@ -103,6 +109,32 @@ const ActiveExplosionEffect = memo(
 
       if (blastLightRef.current) {
         blastLightRef.current.intensity = 7 * lifeRef.current;
+      }
+
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const particle = particleRefs.current[i];
+        if (!particle || particleLifeRef.current[i] <= 0) {
+          continue;
+        }
+
+        const nextLife = particleLifeRef.current[i] - delta * 1.5;
+        particleLifeRef.current[i] = nextLife;
+
+        if (nextLife <= 0) {
+          particle.scale.setScalar(0);
+          continue;
+        }
+
+        const velocity = particleVelocityRef.current[i];
+        particle.position.addScaledVector(velocity, delta);
+        particle.rotation.x += velocity.y * delta;
+        particle.rotation.y += velocity.x * delta;
+        particle.scale.setScalar(nextLife);
+
+        const material = materialRefs.current[i];
+        if (material) {
+          material.opacity = nextLife;
+        }
       }
 
       if (lifeRef.current <= 0 && !completedRef.current) {
@@ -122,7 +154,14 @@ const ActiveExplosionEffect = memo(
           decay={2}
         />
         {EXPLOSION_FRAGMENT_IDS.map((fragmentId) => (
-          <Particle key={fragmentId} startPos={position} color={color} />
+          <Particle
+            key={fragmentId}
+            index={fragmentId}
+            startPos={position}
+            color={color}
+            registerParticle={registerParticle}
+            registerMaterial={registerMaterial}
+          />
         ))}
       </group>
     );

@@ -3,9 +3,12 @@ import {
   createAsteroidPool,
   createExplosionPool,
   activateQueuedAsteroids,
+  activateQueuedAsteroidsWithDelta,
   deactivateAsteroid,
+  deactivateAsteroidWithDelta,
   deactivateExplosion,
   spawnSplitterFragments,
+  spawnSplitterFragmentsWithDelta,
   countActiveItems,
   type PooledAsteroid,
 } from "./pools";
@@ -102,6 +105,20 @@ describe("Pools Utility Functions", () => {
       expect(countActiveItems(nextPool)).toBe(1);
       expect(nextPool[0].pos).toEqual([10, 0, 0]);
     });
+
+    it("should report how many asteroids were activated", () => {
+      const pool = createAsteroidPool(3);
+      pool[0].active = true;
+      const spawns = [
+        { pos: [10, 0, 0] as [number, number, number], type: "swarmer" as const },
+        { pos: [20, 0, 0] as [number, number, number], type: "tank" as const },
+      ];
+
+      const result = activateQueuedAsteroidsWithDelta(pool, spawns);
+
+      expect(result.activeDelta).toBe(2);
+      expect(countActiveItems(result.items)).toBe(3);
+    });
   });
 
   describe("deactivateAsteroid", () => {
@@ -120,6 +137,16 @@ describe("Pools Utility Functions", () => {
       const pool = createAsteroidPool(2);
       const nextPool = deactivateAsteroid(pool, "non-existent-id");
       expect(nextPool).toBe(pool);
+    });
+
+    it("should report a negative delta when deactivating an asteroid", () => {
+      const pool = createAsteroidPool(2);
+      pool[0].active = true;
+
+      const result = deactivateAsteroidWithDelta(pool, pool[0].id);
+
+      expect(result.activeDelta).toBe(-1);
+      expect(result.items[0].active).toBe(false);
     });
   });
 
@@ -148,6 +175,16 @@ describe("Pools Utility Functions", () => {
       const nextPool = spawnSplitterFragments(pool, pos);
       expect(countActiveItems(nextPool)).toBe(1); // Still only 1 active
       expect(nextPool[0].pos).not.toEqual([12, 10, 10]);
+    });
+
+    it("should report the number of spawned splitter fragments", () => {
+      const pool = createAsteroidPool(3);
+      pool[0].active = true;
+
+      const result = spawnSplitterFragmentsWithDelta(pool, [10, 10, 10]);
+
+      expect(result.activeDelta).toBe(2);
+      expect(countActiveItems(result.items)).toBe(3);
     });
   });
 

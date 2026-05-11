@@ -26,6 +26,7 @@ const INITIAL_LASER_POINTS: [number, number, number][] = [
   [0, 0, LASER_ORIGIN_Z],
   [0, 0, LASER_ORIGIN_Z],
 ];
+const LASER_POINT_BUFFER_LENGTH = 6;
 
 interface TurretProps {
   id: string;
@@ -54,6 +55,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
   const hologramRingRef = useRef<THREE.Mesh>(null);
   const hologramRingMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const hologramReticleRef = useRef<THREE.Group>(null);
+  const laserPointBufferRef = useRef<Float32Array | null>(null);
 
   // Keep vectors around instead of full React states to avoid unneeded renders
   const localTargetRef = useRef(new THREE.Vector3());
@@ -160,14 +162,33 @@ export default function Turret({ id, position, rotation }: TurretProps) {
     }
 
     if (lineRef.current) {
-      lineRef.current.geometry.setPositions([
-        0,
-        0,
-        LASER_ORIGIN_Z,
-        localTargetRef.current.x,
-        localTargetRef.current.y,
-        localTargetRef.current.z,
-      ]);
+      const geometry = lineRef.current.geometry;
+      const instanceStart = geometry.getAttribute("instanceStart");
+      const instanceEnd = geometry.getAttribute("instanceEnd");
+
+      if (instanceStart && instanceEnd) {
+        instanceStart.setXYZ(0, 0, 0, LASER_ORIGIN_Z);
+        instanceEnd.setXYZ(
+          0,
+          localTargetRef.current.x,
+          localTargetRef.current.y,
+          localTargetRef.current.z,
+        );
+        instanceStart.needsUpdate = true;
+        instanceEnd.needsUpdate = true;
+      } else {
+        if (!laserPointBufferRef.current) {
+          laserPointBufferRef.current = new Float32Array(LASER_POINT_BUFFER_LENGTH);
+        }
+        const pointBuffer = laserPointBufferRef.current;
+        pointBuffer[0] = 0;
+        pointBuffer[1] = 0;
+        pointBuffer[2] = LASER_ORIGIN_Z;
+        pointBuffer[3] = localTargetRef.current.x;
+        pointBuffer[4] = localTargetRef.current.y;
+        pointBuffer[5] = localTargetRef.current.z;
+        geometry.setPositions(pointBuffer);
+      }
     }
 
     if (impactRef.current) {

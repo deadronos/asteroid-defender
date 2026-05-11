@@ -15,6 +15,11 @@ export interface PooledExplosion {
   type: AsteroidType;
 }
 
+export interface PoolUpdate<T> {
+  items: T[];
+  activeDelta: number;
+}
+
 function getStoragePosition(): [number, number, number] {
   return [0, -1000, 0];
 }
@@ -48,13 +53,14 @@ export function deactivateExplosion(pool: PooledExplosion[], id: string): Pooled
   return nextPool;
 }
 
-export function activateQueuedAsteroids(
+export function activateQueuedAsteroidsWithDelta(
   pool: PooledAsteroid[],
   spawns: Array<{ pos: [number, number, number]; type: AsteroidType }>,
-): PooledAsteroid[] {
+): PoolUpdate<PooledAsteroid> {
   const nextPool = [...pool];
   let modified = false;
   let nextAvailableIdx = 0;
+  let activeDelta = 0;
 
   for (const spawn of spawns) {
     while (nextAvailableIdx < nextPool.length && nextPool[nextAvailableIdx].active) {
@@ -73,27 +79,45 @@ export function activateQueuedAsteroids(
       type: spawn.type,
     };
     modified = true;
+    activeDelta++;
     nextAvailableIdx++;
   }
 
-  return modified ? nextPool : pool;
+  return {
+    items: modified ? nextPool : pool,
+    activeDelta,
+  };
 }
 
-export function deactivateAsteroid(pool: PooledAsteroid[], id: string): PooledAsteroid[] {
+export function activateQueuedAsteroids(
+  pool: PooledAsteroid[],
+  spawns: Array<{ pos: [number, number, number]; type: AsteroidType }>,
+): PooledAsteroid[] {
+  return activateQueuedAsteroidsWithDelta(pool, spawns).items;
+}
+
+export function deactivateAsteroidWithDelta(
+  pool: PooledAsteroid[],
+  id: string,
+): PoolUpdate<PooledAsteroid> {
   const idx = pool.findIndex((asteroid) => asteroid.id === id);
   if (idx === -1 || !pool[idx].active) {
-    return pool;
+    return { items: pool, activeDelta: 0 };
   }
 
   const nextPool = [...pool];
   nextPool[idx] = { ...nextPool[idx], active: false };
-  return nextPool;
+  return { items: nextPool, activeDelta: -1 };
 }
 
-export function spawnSplitterFragments(
+export function deactivateAsteroid(pool: PooledAsteroid[], id: string): PooledAsteroid[] {
+  return deactivateAsteroidWithDelta(pool, id).items;
+}
+
+export function spawnSplitterFragmentsWithDelta(
   pool: PooledAsteroid[],
   pos: [number, number, number],
-): PooledAsteroid[] {
+): PoolUpdate<PooledAsteroid> {
   const nextPool = [...pool];
   const offset = 2.0;
   let splitsLeft = 2;
@@ -112,7 +136,17 @@ export function spawnSplitterFragments(
     }
   }
 
-  return spawnedCount > 0 ? nextPool : pool;
+  return {
+    items: spawnedCount > 0 ? nextPool : pool,
+    activeDelta: spawnedCount,
+  };
+}
+
+export function spawnSplitterFragments(
+  pool: PooledAsteroid[],
+  pos: [number, number, number],
+): PooledAsteroid[] {
+  return spawnSplitterFragmentsWithDelta(pool, pos).items;
 }
 
 export function countActiveItems<T extends { active: boolean }>(items: T[]): number {
