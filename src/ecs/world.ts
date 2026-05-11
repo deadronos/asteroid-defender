@@ -90,9 +90,11 @@ function visitAsteroidsInRange(
 }
 
 export function updateSpatialIndex() {
-  for (const arr of asteroidCells.values()) {
+  for (const [key, arr] of asteroidCells) {
     arr.length = 0;
+    asteroidCells.delete(key);
   }
+
   for (const entity of asteroidQuery.entities) {
     if (!entity.position) continue;
     const x = Math.floor(entity.position.x / CELL_SIZE);

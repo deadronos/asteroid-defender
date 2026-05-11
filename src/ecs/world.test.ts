@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   ECS,
+  asteroidCells,
   asteroidQuery,
   countAsteroidsInRange,
   findNearestAsteroidInRange,
@@ -86,6 +87,17 @@ describe("asteroid spatial index", () => {
     const results = queryAsteroidsInRange(new THREE.Vector3(0, 0, 0), 20);
     const matches = results.filter((entity) => entity === asteroid);
     expect(matches).toHaveLength(1);
+  });
+
+  it("drops empty cells after asteroids move away", () => {
+    const asteroid = addAsteroid("a-7", new THREE.Vector3(0, 0, 0));
+
+    expect(asteroidCells.size).toBe(1);
+
+    asteroid.position!.set(250, 0, 0);
+    updateSpatialIndex();
+
+    expect(asteroidCells.size).toBe(1);
   });
 });
 

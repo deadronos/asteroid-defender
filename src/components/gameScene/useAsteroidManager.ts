@@ -5,12 +5,11 @@ import useGameStore from "../../store/gameStore";
 import { AsteroidType, updateSpatialIndex } from "../../ecs/world";
 import { clearAsteroidSpawns, drainAsteroidSpawns } from "../../ecs/asteroidSpawnQueue";
 import {
-  activateQueuedAsteroids,
-  countActiveItems,
+  activateQueuedAsteroidsWithDelta,
   createAsteroidPool,
-  deactivateAsteroid,
+  deactivateAsteroidWithDelta,
   type PooledAsteroid,
-  spawnSplitterFragments,
+  spawnSplitterFragmentsWithDelta,
 } from "./pools";
 
 export interface AsteroidManagerOptions {
@@ -63,10 +62,13 @@ export function useAsteroidManager({
     const spawns = drainAsteroidSpawns();
     if (spawns.length > 0) {
       setAsteroidState((prev) => {
-        const nextItems = activateQueuedAsteroids(prev.items, spawns);
+        const { items: nextItems, activeDelta } = activateQueuedAsteroidsWithDelta(
+          prev.items,
+          spawns,
+        );
         // Optimization: Update store count immediately if changed
         if (nextItems !== prev.items) {
-          const nextCount = countActiveItems(nextItems);
+          const nextCount = prev.activeCount + activeDelta;
           setActiveAsteroids(nextCount);
           return { items: nextItems, activeCount: nextCount };
         }
@@ -84,13 +86,18 @@ export function useAsteroidManager({
       }
 
       setAsteroidState((prev) => {
-        let nextItems = deactivateAsteroid(prev.items, id);
+        const deactivateResult = deactivateAsteroidWithDelta(prev.items, id);
+        let nextItems = deactivateResult.items;
+        let activeDelta = deactivateResult.activeDelta;
+
         if (type === "splitter" && !isBaseHit) {
-          nextItems = spawnSplitterFragments(nextItems, pos);
+          const splitterResult = spawnSplitterFragmentsWithDelta(nextItems, pos);
+          nextItems = splitterResult.items;
+          activeDelta += splitterResult.activeDelta;
         }
 
         if (nextItems !== prev.items) {
-          const nextCount = countActiveItems(nextItems);
+          const nextCount = prev.activeCount + activeDelta;
           // Update active count in global store
           setActiveAsteroids(nextCount);
           return { items: nextItems, activeCount: nextCount };
