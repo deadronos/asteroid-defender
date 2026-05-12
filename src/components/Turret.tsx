@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo } from "react";
+import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Edges, Line } from "@react-three/drei";
 import * as THREE from "three";
@@ -36,7 +36,6 @@ interface TurretProps {
 
 export default function Turret({ id, position, rotation }: TurretProps) {
   const turretGroup = useRef<THREE.Group>(null);
-  const [hasTarget, setHasTarget] = useState(false);
   const [rotationX, rotationY, rotationZ] = rotation;
   const baseRotation = useMemo(
     () => new THREE.Euler(rotationX, rotationY, rotationZ),
@@ -55,11 +54,21 @@ export default function Turret({ id, position, rotation }: TurretProps) {
   const hologramRingRef = useRef<THREE.Mesh>(null);
   const hologramRingMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const hologramReticleRef = useRef<THREE.Group>(null);
+  const targetEffectsRef = useRef<THREE.Group>(null);
   const laserPointBufferRef = useRef<Float32Array | null>(null);
 
   // Keep vectors around instead of full React states to avoid unneeded renders
   const localTargetRef = useRef(new THREE.Vector3());
   const currentTargetRef = useRef<GameEntity | null>(null);
+  const hasTargetRef = useRef(false);
+
+  const setTargetEffectsVisible = (visible: boolean) => {
+    if (hasTargetRef.current === visible) return;
+    hasTargetRef.current = visible;
+    if (targetEffectsRef.current) {
+      targetEffectsRef.current.visible = visible;
+    }
+  };
 
   useFrame((state, delta) => {
     if (!turretGroup.current) return;
@@ -67,7 +76,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
     if (useGameStore.getState().gameState !== "playing") {
       releaseTarget(currentTargetRef.current, id);
       currentTargetRef.current = null;
-      if (hasTarget) setHasTarget(false);
+      setTargetEffectsVisible(false);
       return;
     }
 
@@ -91,7 +100,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
 
       nearestEntity.targetedBy = id;
 
-      if (!hasTarget) setHasTarget(true);
+      setTargetEffectsVisible(true);
       recalibrationStartRef.current = null;
       if (barrelGroupRef.current) barrelGroupRef.current.rotation.set(0, 0, 0);
 
@@ -102,7 +111,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
         releaseTarget(currentTargetRef.current, id);
         currentTargetRef.current = null;
       }
-      if (hasTarget) setHasTarget(false);
+      setTargetEffectsVisible(false);
 
       applyIdleTurretRotation(
         turretGroup.current,
@@ -143,17 +152,19 @@ export default function Turret({ id, position, rotation }: TurretProps) {
 
     if (hologramRingRef.current) {
       hologramRingRef.current.rotation.z = (state.clock.elapsedTime * 1.2) % (Math.PI * 2);
-      const scale = hasTarget ? 1.05 + pulse * 0.2 : 0.95 + pulse * 0.08;
+      const scale = hasTargetRef.current ? 1.05 + pulse * 0.2 : 0.95 + pulse * 0.08;
       hologramRingRef.current.scale.setScalar(scale);
     }
     if (hologramRingMaterialRef.current) {
-      hologramRingMaterialRef.current.opacity = hasTarget ? 0.45 + pulse * 0.2 : 0.2 + pulse * 0.08;
+      hologramRingMaterialRef.current.opacity = hasTargetRef.current
+        ? 0.45 + pulse * 0.2
+        : 0.2 + pulse * 0.08;
     }
     if (hologramReticleRef.current) {
       hologramReticleRef.current.rotation.z = (-state.clock.elapsedTime * 1.6) % (Math.PI * 2);
     }
 
-    if (!hasTarget) return;
+    if (!hasTargetRef.current) return;
 
     const lineMaterial = lineRef.current?.material;
     if (lineMaterial instanceof LineMaterial) {
@@ -251,36 +262,34 @@ export default function Turret({ id, position, rotation }: TurretProps) {
         <Line points={HOLOGRAM_POINTS_Y} color="#7ec8ff" lineWidth={1} transparent opacity={0.45} />
       </group>
 
-      {hasTarget && (
-        <>
-          <Line
-            ref={lineRef}
-            points={INITIAL_LASER_POINTS} // Initialized coords, replaced in useFrame
-            color={LASER_COLOR}
-            lineWidth={3}
-          />
-          <mesh ref={impactRef} position={[0, 0, 0]}>
-            <sphereGeometry args={[0.6, 8, 8]} />
-            <meshBasicMaterial color={LASER_COLOR} toneMapped={false} transparent opacity={0.9} />
-          </mesh>
-          <pointLight
-            ref={beamLightRef}
-            position={[0, 0, 0]}
-            color="#ff4a4a"
-            intensity={5}
-            distance={14}
-            decay={2}
-          />
-          <pointLight
-            ref={impactLightRef}
-            position={[0, 0, 0]}
-            color="#ff7a5f"
-            intensity={7}
-            distance={10}
-            decay={2}
-          />
-        </>
-      )}
+      <group ref={targetEffectsRef} visible={false}>
+        <Line
+          ref={lineRef}
+          points={INITIAL_LASER_POINTS} // Initialized coords, replaced in useFrame
+          color={LASER_COLOR}
+          lineWidth={3}
+        />
+        <mesh ref={impactRef} position={[0, 0, 0]}>
+          <sphereGeometry args={[0.6, 8, 8]} />
+          <meshBasicMaterial color={LASER_COLOR} toneMapped={false} transparent opacity={0.9} />
+        </mesh>
+        <pointLight
+          ref={beamLightRef}
+          position={[0, 0, 0]}
+          color="#ff4a4a"
+          intensity={5}
+          distance={14}
+          decay={2}
+        />
+        <pointLight
+          ref={impactLightRef}
+          position={[0, 0, 0]}
+          color="#ff7a5f"
+          intensity={7}
+          distance={10}
+          decay={2}
+        />
+      </group>
     </group>
   );
 }

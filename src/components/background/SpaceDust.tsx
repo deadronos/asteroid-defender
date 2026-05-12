@@ -24,6 +24,7 @@ interface SpaceDustProps {
 
 export default function SpaceDust({ count, animate }: SpaceDustProps) {
   const pointsRef = useRef<THREE.Points>(null);
+  const pendingDeltaRef = useRef(0);
   const { positions, velocities } = useMemo(() => createSpaceDustData(count), [count]);
 
   useEffect(() => {
@@ -37,11 +38,16 @@ export default function SpaceDust({ count, animate }: SpaceDustProps) {
 
   useFrame((_, delta) => {
     if (!pointsRef.current || !animate) return;
+    pendingDeltaRef.current += delta;
+    if (pendingDeltaRef.current < 1 / 30) return;
+
+    const stepDelta = pendingDeltaRef.current;
+    pendingDeltaRef.current = 0;
     const pos = pointsRef.current.geometry.attributes.position.array as Float32Array;
     for (let i = 0; i < count; i++) {
-      pos[i * 3] += velocities[i * 3] * delta;
-      pos[i * 3 + 1] += velocities[i * 3 + 1] * delta;
-      pos[i * 3 + 2] += velocities[i * 3 + 2] * delta;
+      pos[i * 3] += velocities[i * 3] * stepDelta;
+      pos[i * 3 + 1] += velocities[i * 3 + 1] * stepDelta;
+      pos[i * 3 + 2] += velocities[i * 3 + 2] * stepDelta;
       for (let j = 0; j < 3; j++) {
         if (pos[i * 3 + j] > 25) pos[i * 3 + j] = -25;
         if (pos[i * 3 + j] < -25) pos[i * 3 + j] = 25;

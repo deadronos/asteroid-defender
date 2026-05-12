@@ -56,9 +56,9 @@ export function useAsteroidManager({
 
   // Update spatial index and process new spawns every frame
   useFrame(() => {
-    updateSpatialIndex();
     if (useGameStore.getState().gameState !== "playing") return;
 
+    updateSpatialIndex();
     const spawns = drainAsteroidSpawns();
     if (spawns.length > 0) {
       setAsteroidState((prev) => {
