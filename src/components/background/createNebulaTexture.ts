@@ -1,6 +1,12 @@
 import * as THREE from "three";
 
+let cachedNebulaTexture: THREE.DataTexture | null = null;
+
 export function createNebulaTexture() {
+  if (cachedNebulaTexture) {
+    return cachedNebulaTexture;
+  }
+
   const width = 256;
   const height = 128;
   const data = new Uint8Array(width * height * 4);
@@ -65,5 +71,6 @@ export function createNebulaTexture() {
   texture.minFilter = THREE.LinearMipmapLinearFilter;
   texture.generateMipmaps = true;
   texture.needsUpdate = true;
+  cachedNebulaTexture = texture;
   return texture;
 }

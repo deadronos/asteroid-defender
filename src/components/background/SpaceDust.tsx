@@ -44,13 +44,13 @@ export default function SpaceDust({ count, animate }: SpaceDustProps) {
     const stepDelta = pendingDeltaRef.current;
     pendingDeltaRef.current = 0;
     const pos = pointsRef.current.geometry.attributes.position.array as Float32Array;
-    for (let i = 0; i < count; i++) {
-      pos[i * 3] += velocities[i * 3] * stepDelta;
-      pos[i * 3 + 1] += velocities[i * 3 + 1] * stepDelta;
-      pos[i * 3 + 2] += velocities[i * 3 + 2] * stepDelta;
-      for (let j = 0; j < 3; j++) {
-        if (pos[i * 3 + j] > 25) pos[i * 3 + j] = -25;
-        if (pos[i * 3 + j] < -25) pos[i * 3 + j] = 25;
+    const len = count * 3;
+    for (let i = 0; i < len; i++) {
+      pos[i] += velocities[i] * stepDelta;
+      if (pos[i] > 25) {
+        pos[i] = -25;
+      } else if (pos[i] < -25) {
+        pos[i] = 25;
       }
     }
     pointsRef.current.geometry.attributes.position.needsUpdate = true;

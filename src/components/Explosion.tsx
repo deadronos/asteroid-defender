@@ -43,6 +43,7 @@ const Particle = memo(
 );
 
 interface ActiveExplosionEffectProps {
+  active: boolean;
   position: [number, number, number];
   color: string;
   explosionId: string;
@@ -50,7 +51,7 @@ interface ActiveExplosionEffectProps {
 }
 
 const ActiveExplosionEffect = memo(
-  ({ position, color, explosionId, onComplete }: ActiveExplosionEffectProps) => {
+  ({ active, position, color, explosionId, onComplete }: ActiveExplosionEffectProps) => {
     const blastLightRef = useRef<THREE.PointLight>(null);
     const particleRefs = useRef<Array<THREE.Mesh | null>>(Array(PARTICLE_COUNT).fill(null));
     const materialRefs = useRef<Array<THREE.MeshStandardMaterial | null>>(
@@ -74,6 +75,8 @@ const ActiveExplosionEffect = memo(
     );
 
     useEffect(() => {
+      if (!active) return;
+
       lifeRef.current = 1.0;
       completedRef.current = false;
 
@@ -102,9 +105,11 @@ const ActiveExplosionEffect = memo(
         blastLightRef.current.intensity = 7;
         blastLightRef.current.position.set(...position);
       }
-    }, [position]);
+    }, [active, position]);
 
     useFrame((_, delta) => {
+      if (!active) return;
+
       lifeRef.current = Math.max(0, lifeRef.current - delta * 1.6);
 
       if (blastLightRef.current) {
@@ -144,7 +149,7 @@ const ActiveExplosionEffect = memo(
     });
 
     return (
-      <group>
+      <group visible={active}>
         <pointLight
           ref={blastLightRef}
           position={position}
@@ -179,10 +184,9 @@ interface ExplosionProps {
 function Explosion({ id, position, type, active, onComplete }: ExplosionProps) {
   const color = EXPLOSION_COLORS[type] || "#ff6600";
 
-  if (!active) return null;
-
   return (
     <ActiveExplosionEffect
+      active={active}
       position={position}
       color={color}
       explosionId={id}

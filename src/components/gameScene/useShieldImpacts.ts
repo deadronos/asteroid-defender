@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { nextId } from "../../utils/id";
+import useGameStore from "../../store/gameStore";
 
 const SHIELD_IMPACT_DURATION_MS = 900;
 
@@ -11,6 +12,15 @@ export interface ShieldImpactData {
 export function useShieldImpacts() {
   const [shieldImpacts, setShieldImpacts] = useState<ShieldImpactData[]>([]);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const sessionId = useGameStore((state) => state.sessionId);
+
+  useEffect(() => {
+    setShieldImpacts([]);
+    for (const timer of timersRef.current) {
+      clearTimeout(timer);
+    }
+    timersRef.current = [];
+  }, [sessionId]);
 
   useEffect(() => {
     return () => {

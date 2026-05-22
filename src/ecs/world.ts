@@ -16,15 +16,18 @@ export type GameEntity = {
 // Define the central ECS world
 export const ECS = new World<GameEntity>();
 export const asteroidQuery = ECS.with("isAsteroid");
-
-const CELL_SIZE = 25;
+export const CELL_SIZE = 25;
 
 /**
- * Packs 3 integer coordinates into a single numeric key for the spatial index.
- * Uses offset arithmetic to ensure a unique positive integer for common coordinate ranges.
+ * Packs 3 integer coordinates into a single 32-bit signed integer.
+ * Offsets each coordinate to fit in 10 bits (values 0-1023), allowing coordinates in [-512, 511].
+ * This covers coordinates in space from -12800 to 12775 (since CELL_SIZE is 25).
  */
 export function getCellKey(x: number, y: number, z: number): number {
-  return x + 32768 + (y + 32768) * 65536 + (z + 32768) * 4294967296;
+  const ox = (x + 512) & 1023;
+  const oy = (y + 512) & 1023;
+  const oz = (z + 512) & 1023;
+  return ox | (oy << 10) | (oz << 20);
 }
 
 export const asteroidCells = new Map<number, GameEntity[]>();
@@ -75,6 +78,23 @@ function visitAsteroidsInRange(
   visitor: (entity: GameEntity, distSq: number) => void,
 ) {
   const rangeSq = range * range;
+  const entities = asteroidQuery.entities;
+
+  // Performance optimization: For small numbers of active entities,
+  // a linear scan is much faster than checking 125 spatial index cells.
+  if (entities.length < 80) {
+    for (let i = 0; i < entities.length; i++) {
+      const entity = entities[i];
+      if (entity.position) {
+        const distSq = position.distanceToSquared(entity.position);
+        if (distSq <= rangeSq) {
+          visitor(entity, distSq);
+        }
+      }
+    }
+    return;
+  }
+
   const { minX, maxX, minY, maxY, minZ, maxZ } = getRangeCellBounds(position, range);
 
   for (let x = minX; x <= maxX; x++) {
@@ -91,11 +111,11 @@ function visitAsteroidsInRange(
 }
 
 export function updateSpatialIndex() {
-  for (const [key, arr] of asteroidCells) {
+  for (const arr of asteroidCells.values()) {
     arr.length = 0;
-    asteroidCells.delete(key);
     recycledAsteroidCellBuckets.push(arr);
   }
+  asteroidCells.clear();
 
   for (const entity of asteroidQuery.entities) {
     if (!entity.position) continue;

@@ -53,7 +53,7 @@ export default function PostEffects({ quality }: PostEffectsProps) {
 
   if (bloomOnly) {
     return (
-      <EffectComposer>
+      <EffectComposer stencilBuffer={false}>
         <Bloom
           luminanceThreshold={0.32}
           luminanceSmoothing={0.82}
@@ -65,7 +65,7 @@ export default function PostEffects({ quality }: PostEffectsProps) {
   }
 
   return (
-    <EffectComposer>
+    <EffectComposer stencilBuffer={false}>
       <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.75} intensity={3.2} mipmapBlur />
       <DynamicDepthOfField />
     </EffectComposer>

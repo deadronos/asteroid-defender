@@ -17,6 +17,7 @@ interface AsteroidVisualProps {
   visualProfile: AsteroidVisualProfile;
   materialRef: RefObject<THREE.MeshStandardMaterial | null>;
   dangerRingMaterialRef: RefObject<THREE.MeshBasicMaterial | null>;
+  active: boolean;
 }
 
 export default function AsteroidVisual({
@@ -25,6 +26,7 @@ export default function AsteroidVisual({
   visualProfile,
   materialRef,
   dangerRingMaterialRef,
+  active,
 }: AsteroidVisualProps) {
   const asteroidMesh = (
     <mesh geometry={geometries[type]}>
@@ -35,7 +37,7 @@ export default function AsteroidVisual({
 
   return (
     <group>
-      {visualProfile.showTrail ? (
+      {active && visualProfile.showTrail ? (
         <Trail
           width={visualProfile.trailWidth}
           length={visualProfile.trailLength}

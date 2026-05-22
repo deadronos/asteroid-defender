@@ -2,7 +2,6 @@ import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Edges, Line } from "@react-three/drei";
 import * as THREE from "three";
-import { Line2, LineMaterial } from "three-stdlib";
 import { GameEntity } from "../ecs/world";
 import useGameStore from "../store/gameStore";
 import {
@@ -22,11 +21,7 @@ const HOLOGRAM_POINTS_Y: [number, number, number][] = [
   [0, -1.55, 0],
   [0, 1.55, 0],
 ];
-const INITIAL_LASER_POINTS: [number, number, number][] = [
-  [0, 0, LASER_ORIGIN_Z],
-  [0, 0, LASER_ORIGIN_Z],
-];
-const LASER_POINT_BUFFER_LENGTH = 6;
+
 
 interface TurretProps {
   id: string;
@@ -49,13 +44,12 @@ export default function Turret({ id, position, rotation }: TurretProps) {
   const coreMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
   const beamLightRef = useRef<THREE.PointLight>(null);
   const impactLightRef = useRef<THREE.PointLight>(null);
-  const lineRef = useRef<Line2>(null);
+  const laserMeshRef = useRef<THREE.Mesh>(null);
   const barrelGroupRef = useRef<THREE.Group>(null);
   const hologramRingRef = useRef<THREE.Mesh>(null);
   const hologramRingMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const hologramReticleRef = useRef<THREE.Group>(null);
   const targetEffectsRef = useRef<THREE.Group>(null);
-  const laserPointBufferRef = useRef<Float32Array | null>(null);
 
   // Keep vectors around instead of full React states to avoid unneeded renders
   const localTargetRef = useRef(new THREE.Vector3());
@@ -81,6 +75,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
     }
 
     const nearestEntity: GameEntity | null = findTurretTarget(turretGroup.current, id);
+    let actualDist = 0;
 
     if (nearestEntity) {
       // Un-mark previous target if we switched
@@ -95,7 +90,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
       // is always (0, 0, actualDist). This avoids expensive matrix world
       // updates and worldToLocal inversions every frame.
       const actualDistSq = turretGroup.current.position.distanceToSquared(nearestEntity.position!);
-      const actualDist = Math.sqrt(actualDistSq);
+      actualDist = Math.sqrt(actualDistSq);
       localTargetRef.current.set(0, 0, actualDist);
 
       nearestEntity.targetedBy = id;
@@ -166,40 +161,11 @@ export default function Turret({ id, position, rotation }: TurretProps) {
 
     if (!hasTargetRef.current) return;
 
-    const lineMaterial = lineRef.current?.material;
-    if (lineMaterial instanceof LineMaterial) {
-      // Pulse between 1 and 4 linewidth thickness
-      lineMaterial.linewidth = 1 + pulse * 3;
-    }
-
-    if (lineRef.current) {
-      const geometry = lineRef.current.geometry;
-      const instanceStart = geometry.getAttribute("instanceStart");
-      const instanceEnd = geometry.getAttribute("instanceEnd");
-
-      if (instanceStart && instanceEnd) {
-        instanceStart.setXYZ(0, 0, 0, LASER_ORIGIN_Z);
-        instanceEnd.setXYZ(
-          0,
-          localTargetRef.current.x,
-          localTargetRef.current.y,
-          localTargetRef.current.z,
-        );
-        instanceStart.needsUpdate = true;
-        instanceEnd.needsUpdate = true;
-      } else {
-        if (!laserPointBufferRef.current) {
-          laserPointBufferRef.current = new Float32Array(LASER_POINT_BUFFER_LENGTH);
-        }
-        const pointBuffer = laserPointBufferRef.current;
-        pointBuffer[0] = 0;
-        pointBuffer[1] = 0;
-        pointBuffer[2] = LASER_ORIGIN_Z;
-        pointBuffer[3] = localTargetRef.current.x;
-        pointBuffer[4] = localTargetRef.current.y;
-        pointBuffer[5] = localTargetRef.current.z;
-        geometry.setPositions(pointBuffer);
-      }
+    if (laserMeshRef.current) {
+      const length = actualDist - LASER_ORIGIN_Z;
+      const thickness = 0.08 + pulse * 0.12;
+      laserMeshRef.current.scale.set(thickness, thickness, length);
+      laserMeshRef.current.position.set(0, 0, LASER_ORIGIN_Z + length * 0.5);
     }
 
     if (impactRef.current) {
@@ -263,12 +229,10 @@ export default function Turret({ id, position, rotation }: TurretProps) {
       </group>
 
       <group ref={targetEffectsRef} visible={false}>
-        <Line
-          ref={lineRef}
-          points={INITIAL_LASER_POINTS} // Initialized coords, replaced in useFrame
-          color={LASER_COLOR}
-          lineWidth={3}
-        />
+        <mesh ref={laserMeshRef}>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshBasicMaterial color={LASER_COLOR} toneMapped={false} />
+        </mesh>
         <mesh ref={impactRef} position={[0, 0, 0]}>
           <sphereGeometry args={[0.6, 8, 8]} />
           <meshBasicMaterial color={LASER_COLOR} toneMapped={false} transparent opacity={0.9} />

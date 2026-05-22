@@ -23,6 +23,7 @@ interface GameSceneProps {
   asteroidEffectsQuality: EffectsQuality;
   backgroundEffectsQuality: EffectsQuality;
   reducedMotion: boolean;
+  sessionId: number;
 }
 
 const TURRET_CONFIGS = [
@@ -52,6 +53,7 @@ export default function GameScene({
   asteroidEffectsQuality,
   backgroundEffectsQuality,
   reducedMotion,
+  sessionId,
 }: GameSceneProps) {
   const { explosions, triggerExplosion, handleExplosionComplete } = useExplosionPool(POOL_SIZE);
   const { shieldImpacts, addShieldImpact } = useShieldImpacts();
@@ -71,36 +73,38 @@ export default function GameScene({
       </Suspense>
       <CinematicCamera />
 
-      <AsteroidSpawner />
+      <group key={sessionId}>
+        <AsteroidSpawner />
 
-      <Platform shieldImpacts={shieldImpacts} />
+        <Platform shieldImpacts={shieldImpacts} />
 
-      {TURRET_CONFIGS.map((config) => (
-        <Turret key={config.id} {...config} />
-      ))}
+        {TURRET_CONFIGS.map((config) => (
+          <Turret key={config.id} {...config} />
+        ))}
 
-      {asteroids.map((ast) => (
-        <Asteroid
-          key={ast.id}
-          id={ast.id}
-          startPos={ast.pos}
-          type={ast.type}
-          active={ast.active}
-          effectsQuality={asteroidEffectsQuality}
-          onDestroy={handleDestroy}
-        />
-      ))}
+        {asteroids.map((ast) => (
+          <Asteroid
+            key={ast.id}
+            id={ast.id}
+            startPos={ast.pos}
+            type={ast.type}
+            active={ast.active}
+            effectsQuality={asteroidEffectsQuality}
+            onDestroy={handleDestroy}
+          />
+        ))}
 
-      {explosions.map((exp) => (
-        <Explosion
-          key={exp.id}
-          id={exp.id}
-          position={exp.pos}
-          type={exp.type}
-          active={exp.active}
-          onComplete={handleExplosionComplete}
-        />
-      ))}
+        {explosions.map((exp) => (
+          <Explosion
+            key={exp.id}
+            id={exp.id}
+            position={exp.pos}
+            type={exp.type}
+            active={exp.active}
+            onComplete={handleExplosionComplete}
+          />
+        ))}
+      </group>
     </>
   );
 }
