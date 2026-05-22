@@ -198,15 +198,16 @@ function Asteroid({ id, startPos, type, active, effectsQuality, onDestroy }: Ast
       linearDamping={0}
     >
       <BallCollider args={[cfg.radius]} />
-      {active && (
+      <group visible={active}>
         <AsteroidVisual
           type={type}
           cfg={cfg}
           visualProfile={visualProfile}
           materialRef={materialRef}
           dangerRingMaterialRef={dangerRingMaterialRef}
+          active={active}
         />
-      )}
+      </group>
     </RigidBody>
   );
 }

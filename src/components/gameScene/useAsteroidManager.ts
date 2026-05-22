@@ -41,18 +41,30 @@ export function useAsteroidManager({
     activeCount: 0,
   }));
 
-  const { incrementDestroyed, setActiveAsteroids } = useGameStore(
+  const { incrementDestroyed, setActiveAsteroids, sessionId } = useGameStore(
     useShallow((state) => ({
       incrementDestroyed: state.incrementDestroyed,
       setActiveAsteroids: state.setActiveAsteroids,
+      sessionId: state.sessionId,
     })),
   );
 
-  // Initialize and cleanup spawn queue
+  // Reset state and spawn queue when sessionId changes, and clean up on unmount
   useEffect(() => {
+    setAsteroidState({
+      items: createAsteroidPool(poolSize),
+      activeCount: 0,
+    });
     clearAsteroidSpawns();
-    return () => clearAsteroidSpawns();
-  }, []);
+    return () => {
+      clearAsteroidSpawns();
+    };
+  }, [sessionId, poolSize]);
+
+  // Sync active count to global store when it changes
+  useEffect(() => {
+    setActiveAsteroids(asteroidState.activeCount);
+  }, [asteroidState.activeCount, setActiveAsteroids]);
 
   // Update spatial index and process new spawns every frame
   useFrame(() => {
@@ -66,10 +78,8 @@ export function useAsteroidManager({
           prev.items,
           spawns,
         );
-        // Optimization: Update store count immediately if changed
         if (nextItems !== prev.items) {
           const nextCount = prev.activeCount + activeDelta;
-          setActiveAsteroids(nextCount);
           return { items: nextItems, activeCount: nextCount };
         }
         return prev;
@@ -98,8 +108,6 @@ export function useAsteroidManager({
 
         if (nextItems !== prev.items) {
           const nextCount = prev.activeCount + activeDelta;
-          // Update active count in global store
-          setActiveAsteroids(nextCount);
           return { items: nextItems, activeCount: nextCount };
         }
         return prev;
@@ -108,7 +116,7 @@ export function useAsteroidManager({
       // Notify external listeners (e.g., for explosions)
       onAsteroidDestroyed?.(pos, type, isBaseHit);
     },
-    [incrementDestroyed, setActiveAsteroids, onAsteroidDestroyed, onShieldImpact],
+    [incrementDestroyed, onAsteroidDestroyed, onShieldImpact],
   );
 
   return {

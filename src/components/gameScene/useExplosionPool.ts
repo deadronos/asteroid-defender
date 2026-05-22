@@ -1,6 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import type { AsteroidType } from "../../ecs/world";
 import { createExplosionPool, deactivateExplosion } from "./pools";
+import useGameStore from "../../store/gameStore";
 
 /**
  * Manages a fixed-size pool of explosion effects.  Deactivation is driven
@@ -10,6 +11,11 @@ import { createExplosionPool, deactivateExplosion } from "./pools";
  */
 export function useExplosionPool(poolSize: number) {
   const [explosions, setExplosions] = useState(() => createExplosionPool(poolSize));
+  const sessionId = useGameStore((state) => state.sessionId);
+
+  useEffect(() => {
+    setExplosions(createExplosionPool(poolSize));
+  }, [sessionId, poolSize]);
 
   const triggerExplosion = useCallback((pos: [number, number, number], type: AsteroidType) => {
     setExplosions((prev) => {

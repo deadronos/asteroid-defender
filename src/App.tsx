@@ -28,7 +28,11 @@ function App() {
   return (
     <>
       <HUD />
-      <Canvas camera={{ position: [0, 15, 25], fov: 60 }} dpr={effectiveVisualProfile.dpr}>
+      <Canvas
+        camera={{ position: [0, 15, 25], fov: 60 }}
+        dpr={effectiveVisualProfile.dpr}
+        gl={{ stencil: false }}
+      >
         <PerformanceMonitor
           onIncline={() =>
             setVisualProfile((current) => improveVisualProfile(current, reducedMotion))
@@ -43,10 +47,10 @@ function App() {
           <Suspense fallback={null}>
             <Physics paused={gameState !== "playing"}>
               <GameScene
-                key={sessionId}
                 asteroidEffectsQuality={effectiveVisualProfile.effectsQuality}
                 backgroundEffectsQuality={effectiveVisualProfile.effectsQuality}
                 reducedMotion={reducedMotion}
+                sessionId={sessionId}
               />
             </Physics>
           </Suspense>
