@@ -18,6 +18,10 @@ export const ECS = new World<GameEntity>();
 export const asteroidQuery = ECS.with("isAsteroid");
 export const CELL_SIZE = 25;
 
+// Threshold below which queries use linear scan instead of spatial index.
+// Must match the threshold used in visitAsteroidsInRange.
+export const SPATIAL_INDEX_THRESHOLD = 80;
+
 let anyAsteroidMoved = false;
 
 export function markAsteroidDirty() {
