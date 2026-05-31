@@ -140,9 +140,10 @@ export function bootstrapDevTelemetry(): TelemetryStore | null {
 
   store = createTelemetryStore({
     enabled: isDevTelemetryEnabledByDefault(win),
-    overlayVisible: false,
+    overlayVisible: true,
     startedAt: Date.now(),
     clock: () => performance.now(),
+    maxEvents: 500_000,
   });
 
   attachWindowApi(store);
