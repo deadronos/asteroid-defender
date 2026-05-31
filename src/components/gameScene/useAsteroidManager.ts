@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useFrame } from "@react-three/fiber";
 import useGameStore from "../../store/gameStore";
-import { AsteroidType, updateSpatialIndex } from "../../ecs/world";
+import { AsteroidType, updateSpatialIndex, SPATIAL_INDEX_THRESHOLD, asteroidQuery } from "../../ecs/world";
 import { clearAsteroidSpawns, drainAsteroidSpawns } from "../../ecs/asteroidSpawnQueue";
 import { markTelemetry } from "../../telemetry/runtime";
 import { usePoolStore } from "../../store/poolStore";
@@ -59,7 +59,11 @@ export function useAsteroidManager({
   useFrame(() => {
     if (useGameStore.getState().gameState !== "playing") return;
 
-    updateSpatialIndex();
+    // Only rebuild the spatial index when the asteroid count is high enough
+    // that queries will actually use it (linear scan is faster below threshold)
+    if (asteroidQuery.entities.length >= SPATIAL_INDEX_THRESHOLD) {
+      updateSpatialIndex();
+    }
     const spawns = drainAsteroidSpawns();
     if (spawns.length > 0) {
       markTelemetry("asteroids:drain-spawns", {
