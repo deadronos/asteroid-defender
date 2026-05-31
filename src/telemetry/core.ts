@@ -120,7 +120,7 @@ export function createTelemetryStore(options: TelemetryOptions = {}): TelemetryS
 
   const listeners = new Set<() => void>();
   const activeCalls = new Map<number, ActiveCall>();
-  const events = new Array<TelemetryEvent | undefined>(maxEvents);
+  const events = Array.from<TelemetryEvent | undefined>({ length: maxEvents });
 
   let enabled = options.enabled ?? true;
   let paused = options.paused ?? false;

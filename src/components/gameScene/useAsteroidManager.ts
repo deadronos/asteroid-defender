@@ -55,7 +55,7 @@ export function useAsteroidManager({ poolSize, onShieldImpact }: AsteroidManager
     return () => {
       clearAsteroidSpawns();
     };
-  }, [sessionId, poolSize]);
+  }, [sessionId, poolSize, setActiveAsteroids]);
 
   // Update spatial index and process new spawns every frame
   useFrame(() => {

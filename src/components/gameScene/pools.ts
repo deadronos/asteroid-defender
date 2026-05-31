@@ -79,7 +79,11 @@ export class PoolState<T extends { id: string; active: boolean }> {
   release(id: string): boolean {
     const idx = this.idToIndex.get(id);
     if (idx === undefined) return false;
-    this.items[idx] = { ...this.items[idx], active: false, pos: getStoragePosition() as T["pos"] };
+    this.items[idx] = {
+      ...this.items[idx],
+      active: false,
+      pos: getStoragePosition() as T extends { pos: infer P } ? P : never,
+    };
     this.freeList.push(idx);
     this.idToIndex.delete(id);
     return true;

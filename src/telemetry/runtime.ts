@@ -55,14 +55,14 @@ function downloadTelemetry(currentStore: TelemetryStore) {
   const blob = new Blob([exportTelemetryJson(currentStore)], {
     type: "application/json",
   });
-  const url = win.URL.createObjectURL(blob);
+  const url = URL.createObjectURL(blob);
   const link = win.document.createElement("a");
   link.href = url;
   link.download = `dev-telemetry-${Date.now()}.json`;
   win.document.body.appendChild(link);
   link.click();
   link.remove();
-  win.URL.revokeObjectURL(url);
+  window.URL.revokeObjectURL(url);
 }
 
 function bindHotkeys(currentStore: TelemetryStore) {

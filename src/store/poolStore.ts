@@ -84,7 +84,7 @@ export const usePoolStore = create<PoolState>((set, get) => ({
   activateAsteroids: (spawns) => {
     if (spawns.length === 0) return;
 
-    const { asteroids, asteroidFreeList, asteroidIdToIndex } = get();
+    const { asteroids, asteroidFreeList } = get();
 
     // Fast path: enough free slots
     if (asteroidFreeList.length >= spawns.length) {
@@ -154,7 +154,7 @@ export const usePoolStore = create<PoolState>((set, get) => ({
   },
 
   deactivateAsteroid: (id) => {
-    const { asteroidIdToIndex, asteroidFreeList } = get();
+    const { asteroidIdToIndex } = get();
     const idx = asteroidIdToIndex.get(id);
     if (idx === undefined) return;
 
@@ -177,7 +177,7 @@ export const usePoolStore = create<PoolState>((set, get) => ({
   },
 
   triggerExplosion: (pos, type) => {
-    const { explosions, explosionFreeList, explosionIdToIndex } = get();
+    const { explosions, explosionFreeList } = get();
 
     // Fast path: free slot available
     if (explosionFreeList.length > 0) {
