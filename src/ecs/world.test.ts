@@ -6,6 +6,7 @@ import {
   asteroidQuery,
   countAsteroidsInRange,
   findNearestAsteroidInRange,
+  markAsteroidDirty,
   queryAsteroidsInRange,
   updateSpatialIndex,
   type GameEntity,
@@ -82,6 +83,7 @@ describe("asteroid spatial index", () => {
     const asteroid = addAsteroid("a-6", new THREE.Vector3(1, 1, 1));
 
     asteroid.position!.set(8, 2, 1);
+    markAsteroidDirty();
     updateSpatialIndex();
 
     const results = queryAsteroidsInRange(new THREE.Vector3(0, 0, 0), 20);
@@ -95,6 +97,7 @@ describe("asteroid spatial index", () => {
     expect(asteroidCells.size).toBe(1);
 
     asteroid.position!.set(250, 0, 0);
+    markAsteroidDirty();
     updateSpatialIndex();
 
     expect(asteroidCells.size).toBe(1);
@@ -105,6 +108,7 @@ describe("asteroid spatial index", () => {
     const initialBucket = asteroidCells.values().next().value;
 
     asteroid.position!.set(8, 2, 1);
+    markAsteroidDirty();
     updateSpatialIndex();
 
     expect(asteroidCells.values().next().value).toBe(initialBucket);

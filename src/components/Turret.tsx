@@ -22,7 +22,6 @@ const HOLOGRAM_POINTS_Y: [number, number, number][] = [
   [0, 1.55, 0],
 ];
 
-
 interface TurretProps {
   id: string;
   position: [number, number, number];

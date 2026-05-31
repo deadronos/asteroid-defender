@@ -18,6 +18,12 @@ export const ECS = new World<GameEntity>();
 export const asteroidQuery = ECS.with("isAsteroid");
 export const CELL_SIZE = 25;
 
+let anyAsteroidMoved = false;
+
+export function markAsteroidDirty() {
+  anyAsteroidMoved = true;
+}
+
 /**
  * Packs 3 integer coordinates into a single 32-bit signed integer.
  * Offsets each coordinate to fit in 10 bits (values 0-1023), allowing coordinates in [-512, 511].
@@ -111,9 +117,14 @@ function visitAsteroidsInRange(
 }
 
 export function updateSpatialIndex() {
+  if (!anyAsteroidMoved) return;
+  anyAsteroidMoved = false;
+
   for (const arr of asteroidCells.values()) {
     arr.length = 0;
-    recycledAsteroidCellBuckets.push(arr);
+    if (recycledAsteroidCellBuckets.length < 128) {
+      recycledAsteroidCellBuckets.push(arr);
+    }
   }
   asteroidCells.clear();
 
