@@ -27,3 +27,4 @@ dist-ssr
 *.trace.json.gz
 gameplay-*.json.gz
 *trace.json.*
+trace*.json

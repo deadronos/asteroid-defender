@@ -1,5 +1,6 @@
 import { defineConfig } from "vite-plus";
 import react from "@vitejs/plugin-react";
+import { devTelemetryVitePlugin } from "./tools/telemetry/viteTelemetryPlugin.js";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -26,7 +27,7 @@ export default defineConfig({
         },
       },
       {
-        files: ["*.config.{js,ts}", "vite.config.ts"],
+        files: ["*.config.{js,ts}", "vite.config.js"],
         env: {
           node: true,
         },
@@ -154,7 +155,7 @@ export default defineConfig({
       typeCheck: true,
     },
   },
-  plugins: [react()],
+  plugins: [devTelemetryVitePlugin(), react()],
   base: "/asteroid-defender/",
   build: {
     rollupOptions: {

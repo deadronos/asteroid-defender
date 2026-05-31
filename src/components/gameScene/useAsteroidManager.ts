@@ -4,6 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import useGameStore from "../../store/gameStore";
 import { AsteroidType, updateSpatialIndex } from "../../ecs/world";
 import { clearAsteroidSpawns, drainAsteroidSpawns } from "../../ecs/asteroidSpawnQueue";
+import { markTelemetry } from "../../telemetry/runtime";
 import {
   activateQueuedAsteroidsWithDelta,
   createAsteroidPool,
@@ -55,6 +56,10 @@ export function useAsteroidManager({
       items: createAsteroidPool(poolSize),
       activeCount: 0,
     });
+    markTelemetry("asteroids:reset-pool", {
+      poolSize,
+      sessionId,
+    });
     clearAsteroidSpawns();
     return () => {
       clearAsteroidSpawns();
@@ -73,6 +78,9 @@ export function useAsteroidManager({
     updateSpatialIndex();
     const spawns = drainAsteroidSpawns();
     if (spawns.length > 0) {
+      markTelemetry("asteroids:drain-spawns", {
+        count: spawns.length,
+      });
       setAsteroidState((prev) => {
         const { items: nextItems, activeDelta } = activateQueuedAsteroidsWithDelta(
           prev.items,
@@ -89,6 +97,11 @@ export function useAsteroidManager({
 
   const handleDestroy = useCallback(
     (id: string, pos: [number, number, number], isBaseHit = false, type: AsteroidType) => {
+      markTelemetry("asteroids:destroy", {
+        type,
+        baseHit: isBaseHit,
+      });
+
       if (!isBaseHit) {
         incrementDestroyed();
       } else if (onShieldImpact) {
@@ -104,6 +117,11 @@ export function useAsteroidManager({
           const splitterResult = spawnSplitterFragmentsWithDelta(nextItems, pos);
           nextItems = splitterResult.items;
           activeDelta += splitterResult.activeDelta;
+          if (splitterResult.activeDelta > 0) {
+            markTelemetry("asteroids:splitter-fragments", {
+              spawned: splitterResult.activeDelta,
+            });
+          }
         }
 
         if (activeDelta !== 0) {

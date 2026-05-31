@@ -1,4 +1,5 @@
 import type { AsteroidType } from "../../ecs/world";
+import { markTelemetry } from "../../telemetry/runtime";
 import { nextId } from "../../utils/id";
 
 export interface PooledAsteroid {
@@ -69,6 +70,10 @@ export function activateQueuedAsteroidsWithDelta(
     }
 
     if (nextAvailableIdx >= pool.length) {
+      markTelemetry("pool:asteroid-starved", {
+        requested: spawns.length,
+        capacity: pool.length,
+      });
       console.warn("Asteroid pool starved! Dropping spawn.");
       break;
     }
