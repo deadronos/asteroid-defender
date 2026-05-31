@@ -6,6 +6,7 @@ import AsteroidSpawner from "./AsteroidSpawner";
 import type { EffectsQuality } from "../utils/visualQuality";
 import { useShieldImpacts } from "./gameScene/useShieldImpacts";
 import { usePoolStore } from "../store/poolStore";
+import { useAsteroidManager } from "./gameScene/useAsteroidManager";
 import AsteroidLayer from "./gameScene/AsteroidLayer";
 import ExplosionLayer from "./gameScene/ExplosionLayer";
 
@@ -54,7 +55,14 @@ export default function GameScene({
   reducedMotion,
   sessionId,
 }: GameSceneProps) {
-  const { shieldImpacts } = useShieldImpacts();
+  const { shieldImpacts, addShieldImpact } = useShieldImpacts();
+
+  // useAsteroidManager drives spawn queue draining and active count sync.
+  // It does NOT render asteroids — that's AsteroidLayer's job.
+  useAsteroidManager({
+    poolSize: POOL_SIZE,
+    onShieldImpact: addShieldImpact,
+  });
 
   // Reset pool state when session changes
   useEffect(() => {
