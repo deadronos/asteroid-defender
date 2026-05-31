@@ -54,7 +54,7 @@ export default function GameScene({
   reducedMotion,
   sessionId,
 }: GameSceneProps) {
-  const { shieldImpacts, addShieldImpact } = useShieldImpacts();
+  const { shieldImpacts } = useShieldImpacts();
 
   // Reset pool state when session changes
   useEffect(() => {
