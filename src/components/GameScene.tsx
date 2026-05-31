@@ -1,14 +1,13 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import CinematicCamera from "./CinematicCamera";
 import Platform from "./Platform";
 import Turret from "./Turret";
-import Asteroid from "./Asteroid";
 import AsteroidSpawner from "./AsteroidSpawner";
-import Explosion from "./Explosion";
 import type { EffectsQuality } from "../utils/visualQuality";
-import { useExplosionPool } from "./gameScene/useExplosionPool";
 import { useShieldImpacts } from "./gameScene/useShieldImpacts";
-import { useAsteroidManager } from "./gameScene/useAsteroidManager";
+import { usePoolStore } from "../store/poolStore";
+import AsteroidLayer from "./gameScene/AsteroidLayer";
+import ExplosionLayer from "./gameScene/ExplosionLayer";
 
 // Lazy-load the cosmetic background so core gameplay geometry renders first.
 const SpaceBackground = lazy(() => import("./SpaceBackground"));
@@ -55,13 +54,12 @@ export default function GameScene({
   reducedMotion,
   sessionId,
 }: GameSceneProps) {
-  const { explosions, handleExplosionComplete } = useExplosionPool(POOL_SIZE);
   const { shieldImpacts, addShieldImpact } = useShieldImpacts();
 
-  const { asteroids, handleDestroy } = useAsteroidManager({
-    poolSize: POOL_SIZE,
-    onShieldImpact: addShieldImpact,
-  });
+  // Reset pool state when session changes
+  useEffect(() => {
+    usePoolStore.getState().resetPools(POOL_SIZE);
+  }, [sessionId]);
 
   return (
     <>
@@ -81,28 +79,8 @@ export default function GameScene({
           <Turret key={config.id} {...config} />
         ))}
 
-        {asteroids.map((ast) => (
-          <Asteroid
-            key={ast.id}
-            id={ast.id}
-            startPos={ast.pos}
-            type={ast.type}
-            active={ast.active}
-            effectsQuality={asteroidEffectsQuality}
-            onDestroy={handleDestroy}
-          />
-        ))}
-
-        {explosions.map((exp) => (
-          <Explosion
-            key={exp.id}
-            id={exp.id}
-            position={exp.pos}
-            type={exp.type}
-            active={exp.active}
-            onComplete={handleExplosionComplete}
-          />
-        ))}
+        <AsteroidLayer effectsQuality={asteroidEffectsQuality} />
+        <ExplosionLayer />
       </group>
     </>
   );
