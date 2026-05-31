@@ -32,6 +32,9 @@ import { ASTEROID_CONFIGS } from "./asteroid/config";
 
 const tempVec = new THREE.Vector3();
 
+// Threshold below which emissive/opacity writes are skipped to avoid material churn
+const MATERIAL_WRITE_THRESHOLD = 0.01;
+
 // Pre-allocated colour scratch to avoid per-frame GC pressure in proximity glow
 const _proxColor = new THREE.Color();
 
@@ -59,6 +62,10 @@ function Asteroid({ id, startPos, type, active, effectsQuality, onDestroy }: Ast
   const prevHealthRef = useRef(0);
   const flashTimerRef = useRef(0);
   const isFirstActiveFrameRef = useRef(false);
+
+  // Track previously applied material values to skip redundant writes
+  const prevEmissiveIntensityRef = useRef(-1);
+  const prevTankRingOpacityRef = useRef(-1);
 
   const cfg = ASTEROID_CONFIGS[type] || ASTEROID_CONFIGS["swarmer"];
   const visualProfile = getAsteroidVisualProfile(type, effectsQuality);
@@ -123,11 +130,19 @@ function Asteroid({ id, startPos, type, active, effectsQuality, onDestroy }: Ast
       flashTimerRef.current -= delta;
       if (materialRef.current) {
         materialRef.current.emissive.setHex(0xffffff);
-        materialRef.current.emissiveIntensity = 2.0;
+        const newIntensity = 2.0;
+        if (Math.abs(newIntensity - prevEmissiveIntensityRef.current) > MATERIAL_WRITE_THRESHOLD) {
+          materialRef.current.emissiveIntensity = newIntensity;
+          prevEmissiveIntensityRef.current = newIntensity;
+        }
       }
       if (flashTimerRef.current <= 0 && materialRef.current) {
         materialRef.current.emissive.setHex(0x000000);
-        materialRef.current.emissiveIntensity = 0;
+        const newIntensity = 0;
+        if (Math.abs(newIntensity - prevEmissiveIntensityRef.current) > MATERIAL_WRITE_THRESHOLD) {
+          materialRef.current.emissiveIntensity = newIntensity;
+          prevEmissiveIntensityRef.current = newIntensity;
+        }
       }
     }
 
@@ -159,6 +174,7 @@ function Asteroid({ id, startPos, type, active, effectsQuality, onDestroy }: Ast
     const imminentRatio = Math.max(0, 1 - dist / 35);
 
     if (flashTimerRef.current <= 0 && materialRef.current) {
+      let newIntensity = 0;
       if (visualProfile.showProximityGlow && imminentRatio > 0) {
         _proxColor.set(cfg.color);
         materialRef.current.emissive.copy(_proxColor);
@@ -166,26 +182,34 @@ function Asteroid({ id, startPos, type, active, effectsQuality, onDestroy }: Ast
         if (visualProfile.animateProximityGlow && !reducedMotion) {
           const pulseSpeed = 3 + imminentRatio * 8;
           const pulseFactor = Math.sin(state.clock.elapsedTime * pulseSpeed) * 0.5 + 0.5;
-          materialRef.current.emissiveIntensity = imminentRatio * 1.2 * pulseFactor;
+          newIntensity = imminentRatio * 1.2 * pulseFactor;
         } else {
-          materialRef.current.emissiveIntensity = imminentRatio > 0.5 ? imminentRatio * 0.4 : 0;
+          newIntensity = imminentRatio > 0.5 ? imminentRatio * 0.4 : 0;
         }
       } else {
         materialRef.current.emissive.setHex(0x000000);
-        materialRef.current.emissiveIntensity = 0;
+      }
+      if (Math.abs(newIntensity - prevEmissiveIntensityRef.current) > MATERIAL_WRITE_THRESHOLD) {
+        materialRef.current.emissiveIntensity = newIntensity;
+        prevEmissiveIntensityRef.current = newIntensity;
       }
     }
 
     // Tank-specific: pulse the outer danger ring opacity
     if (type === "tank" && dangerRingMaterialRef.current) {
+      let newOpacity = 0;
       if (!visualProfile.showTankRing) {
-        dangerRingMaterialRef.current.opacity = 0;
+        newOpacity = 0;
       } else if (visualProfile.animateTankRing && !reducedMotion) {
         const ringPulse =
           Math.sin(state.clock.elapsedTime * (1.5 + imminentRatio * 3)) * 0.25 + 0.75;
-        dangerRingMaterialRef.current.opacity = ringPulse * (0.25 + imminentRatio * 0.45);
+        newOpacity = ringPulse * (0.25 + imminentRatio * 0.45);
       } else {
-        dangerRingMaterialRef.current.opacity = 0.3 + imminentRatio * 0.3;
+        newOpacity = 0.3 + imminentRatio * 0.3;
+      }
+      if (Math.abs(newOpacity - prevTankRingOpacityRef.current) > MATERIAL_WRITE_THRESHOLD) {
+        dangerRingMaterialRef.current.opacity = newOpacity;
+        prevTankRingOpacityRef.current = newOpacity;
       }
     }
   });
