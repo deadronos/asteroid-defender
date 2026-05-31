@@ -12,6 +12,7 @@ interface AsteroidLayerProps {
 
 const AsteroidLayer = memo(function AsteroidLayer({ effectsQuality }: AsteroidLayerProps) {
   const asteroids = usePoolStore(useShallow((s) => s.asteroids));
+  const activeAsteroidCount = asteroids.filter((a) => a.active).length;
 
   const handleDestroy = useCallback(
     (id: string, pos: [number, number, number], isHit: boolean, type: AsteroidType, damage: number) => {
@@ -43,6 +44,7 @@ const AsteroidLayer = memo(function AsteroidLayer({ effectsQuality }: AsteroidLa
           type={ast.type}
           active={ast.active}
           effectsQuality={effectsQuality}
+          activeAsteroidCount={activeAsteroidCount}
           onDestroy={handleDestroy}
         />
       ))}

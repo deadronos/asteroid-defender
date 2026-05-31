@@ -43,29 +43,52 @@ const OFF_PROFILE: AsteroidVisualProfile = {
   animateTankRing: false,
 };
 
+/** Load-based degradation thresholds — graceful removal of decorative effects as asteroid count rises */
+const LOAD_TRAIL_DROP_COUNT = 20;
+const LOAD_EDGES_DROP_COUNT = 40;
+const LOAD_SPLITTER_RINGS_DROP_COUNT = 50;
+
 export function getAsteroidVisualProfile(
   type: AsteroidType,
   quality: EffectsQuality,
+  activeAsteroidCount?: number,
 ): AsteroidVisualProfile {
+  // Start from the quality-tier base profile
+  let profile: AsteroidVisualProfile;
   if (quality === "full") {
-    return FULL_PROFILE;
+    profile = { ...FULL_PROFILE };
+  } else if (quality === "off") {
+    profile = { ...OFF_PROFILE };
+  } else {
+    // "reduced" tier
+    profile = {
+      showTrail: type !== "swarmer",
+      trailWidth: type === "tank" ? 0.6 : 0.5,
+      trailLength: type === "tank" ? 2.8 : 2.2,
+      trailDecay: 1,
+      trailStride: type === "tank" ? 0.28 : 0.35,
+      showEdges: false,
+      showTankRing: type === "tank",
+      showSplitterRings: false,
+      showProximityGlow: true,
+      animateProximityGlow: false,
+      animateTankRing: false,
+    };
   }
 
-  if (quality === "off") {
-    return OFF_PROFILE;
+  // Apply load-based degradation on top of the quality tier
+  if (activeAsteroidCount !== undefined) {
+    if (activeAsteroidCount >= LOAD_TRAIL_DROP_COUNT) {
+      profile.showTrail = false;
+    }
+    if (activeAsteroidCount >= LOAD_EDGES_DROP_COUNT) {
+      profile.showEdges = false;
+    }
+    if (activeAsteroidCount >= LOAD_SPLITTER_RINGS_DROP_COUNT) {
+      profile.showSplitterRings = false;
+    }
+    // Tank ring is a critical threat cue — keep it regardless of load
   }
 
-  return {
-    showTrail: type !== "swarmer",
-    trailWidth: type === "tank" ? 0.6 : 0.5,
-    trailLength: type === "tank" ? 2.8 : 2.2,
-    trailDecay: 1,
-    trailStride: type === "tank" ? 0.28 : 0.35,
-    showEdges: false,
-    showTankRing: type === "tank",
-    showSplitterRings: false,
-    showProximityGlow: true,
-    animateProximityGlow: false,
-    animateTankRing: false,
-  };
+  return profile;
 }

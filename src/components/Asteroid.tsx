@@ -44,6 +44,7 @@ interface AsteroidProps {
   type: AsteroidType;
   active: boolean; // Pooling: Object avoids physics/rendering workloads when inactive
   effectsQuality: EffectsQuality;
+  activeAsteroidCount: number;
   onDestroy: (
     id: string,
     pos: [number, number, number],
@@ -53,7 +54,7 @@ interface AsteroidProps {
   ) => void;
 }
 
-function Asteroid({ id, startPos, type, active, effectsQuality, onDestroy }: AsteroidProps) {
+function Asteroid({ id, startPos, type, active, effectsQuality, activeAsteroidCount, onDestroy }: AsteroidProps) {
   const rbRef = useRef<RapierRigidBody>(null);
   const entityRef = useRef<GameEntity | null>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
@@ -68,7 +69,7 @@ function Asteroid({ id, startPos, type, active, effectsQuality, onDestroy }: Ast
   const prevTankRingOpacityRef = useRef(-1);
 
   const cfg = ASTEROID_CONFIGS[type] || ASTEROID_CONFIGS["swarmer"];
-  const visualProfile = getAsteroidVisualProfile(type, effectsQuality);
+  const visualProfile = getAsteroidVisualProfile(type, effectsQuality, activeAsteroidCount);
 
   useEffect(() => {
     if (active) {

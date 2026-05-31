@@ -65,4 +65,57 @@ describe("asteroidVisualQuality", () => {
       animateTankRing: false,
     });
   });
+
+  // --- Load-based degradation ---
+
+  it("drops trails when active asteroid count >= 20", () => {
+    const profile = getAsteroidVisualProfile("swarmer", "full", 20);
+    expect(profile.showTrail).toBe(false);
+    // Other effects remain
+    expect(profile.showEdges).toBe(true);
+    expect(profile.showSplitterRings).toBe(true);
+  });
+
+  it("drops trails and edges when active asteroid count >= 40", () => {
+    const profile = getAsteroidVisualProfile("swarmer", "full", 40);
+    expect(profile.showTrail).toBe(false);
+    expect(profile.showEdges).toBe(false);
+    expect(profile.showSplitterRings).toBe(true);
+  });
+
+  it("drops splitter rings when active asteroid count >= 50", () => {
+    const profile = getAsteroidVisualProfile("splitter", "full", 50);
+    expect(profile.showTrail).toBe(false);
+    expect(profile.showEdges).toBe(false);
+    expect(profile.showSplitterRings).toBe(false);
+    // Tank ring is a critical threat cue — kept regardless of load
+    expect(profile.showTankRing).toBe(true);
+  });
+
+  it("applies load-based degradation on top of reduced quality tier", () => {
+    // reduced tier already drops trails for swarmers
+    const profile = getAsteroidVisualProfile("swarmer", "reduced", 40);
+    expect(profile.showTrail).toBe(false); // already off at reduced
+    expect(profile.showEdges).toBe(false); // load drops edges
+    expect(profile.showSplitterRings).toBe(false); // load drops splitter rings
+  });
+
+  it("keeps tank ring as critical threat cue regardless of load", () => {
+    const profile = getAsteroidVisualProfile("tank", "full", 60);
+    expect(profile.showTankRing).toBe(true);
+  });
+
+  it("returns base profile when activeAsteroidCount is undefined", () => {
+    const profile = getAsteroidVisualProfile("swarmer", "full");
+    expect(profile.showTrail).toBe(true);
+    expect(profile.showEdges).toBe(true);
+    expect(profile.showSplitterRings).toBe(true);
+  });
+
+  it("does not drop effects below load thresholds", () => {
+    const profile = getAsteroidVisualProfile("swarmer", "full", 19);
+    expect(profile.showTrail).toBe(true);
+    expect(profile.showEdges).toBe(true);
+    expect(profile.showSplitterRings).toBe(true);
+  });
 });
