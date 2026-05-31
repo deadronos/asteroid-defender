@@ -55,13 +55,12 @@ export default function GameScene({
   reducedMotion,
   sessionId,
 }: GameSceneProps) {
-  const { explosions, triggerExplosion, handleExplosionComplete } = useExplosionPool(POOL_SIZE);
+  const { explosions, handleExplosionComplete } = useExplosionPool(POOL_SIZE);
   const { shieldImpacts, addShieldImpact } = useShieldImpacts();
 
   const { asteroids, handleDestroy } = useAsteroidManager({
     poolSize: POOL_SIZE,
     onShieldImpact: addShieldImpact,
-    onAsteroidDestroyed: (pos, type) => triggerExplosion(pos, type),
   });
 
   return (
