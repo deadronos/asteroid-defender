@@ -15,7 +15,13 @@ const AsteroidLayer = memo(function AsteroidLayer({ effectsQuality }: AsteroidLa
   const activeAsteroidCount = asteroids.filter((a) => a.active).length;
 
   const handleDestroy = useCallback(
-    (id: string, pos: [number, number, number], isHit: boolean, type: AsteroidType, damage: number) => {
+    (
+      id: string,
+      pos: [number, number, number],
+      isHit: boolean,
+      type: AsteroidType,
+      damage: number,
+    ) => {
       const store = usePoolStore.getState();
       store.deactivateAsteroid(id);
 

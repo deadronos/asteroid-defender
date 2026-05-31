@@ -54,7 +54,15 @@ interface AsteroidProps {
   ) => void;
 }
 
-function Asteroid({ id, startPos, type, active, effectsQuality, activeAsteroidCount, onDestroy }: AsteroidProps) {
+function Asteroid({
+  id,
+  startPos,
+  type,
+  active,
+  effectsQuality,
+  activeAsteroidCount,
+  onDestroy,
+}: AsteroidProps) {
   const rbRef = useRef<RapierRigidBody>(null);
   const entityRef = useRef<GameEntity | null>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);

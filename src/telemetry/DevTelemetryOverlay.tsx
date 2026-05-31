@@ -110,11 +110,20 @@ export default function DevTelemetryOverlay() {
         <div>Capacity: {snapshot.maxEvents}</div>
         <div>Active calls: {snapshot.activeCallCount}</div>
         <div>Rate: {formatCount(snapshot.recentEventRate)}/s</div>
-        <div>Fill: {snapshot.maxEvents > 0 ? `${Math.round((snapshot.eventCount / snapshot.maxEvents) * 100)}%` : "0%"}</div>
+        <div>
+          Fill:{" "}
+          {snapshot.maxEvents > 0
+            ? `${Math.round((snapshot.eventCount / snapshot.maxEvents) * 100)}%`
+            : "0%"}
+        </div>
       </div>
 
       <div className="dev-telemetry__actions">
-        <button type="button" onClick={() => telemetryStore.togglePaused()} className="dev-telemetry__button">
+        <button
+          type="button"
+          onClick={() => telemetryStore.togglePaused()}
+          className="dev-telemetry__button"
+        >
           {snapshot.paused ? "Resume" : "Pause"}
         </button>
         <button
@@ -124,7 +133,11 @@ export default function DevTelemetryOverlay() {
         >
           {snapshot.enabled ? "Disable" : "Enable"}
         </button>
-        <button type="button" onClick={() => telemetryStore.clear()} className="dev-telemetry__button">
+        <button
+          type="button"
+          onClick={() => telemetryStore.clear()}
+          className="dev-telemetry__button"
+        >
           Clear
         </button>
         <button
@@ -136,9 +149,7 @@ export default function DevTelemetryOverlay() {
         </button>
       </div>
 
-      <div className="dev-telemetry__hint">
-        Hotkeys: `Alt+Shift+T` overlay, `Alt+Shift+P` pause
-      </div>
+      <div className="dev-telemetry__hint">Hotkeys: `Alt+Shift+T` overlay, `Alt+Shift+P` pause</div>
 
       <section className="dev-telemetry__section">
         <div className="dev-telemetry__section-title">Recent slow returns</div>
@@ -148,7 +159,9 @@ export default function DevTelemetryOverlay() {
           <ul className="dev-telemetry__list">
             {snapshot.recentSlowCalls.map((event) => (
               <li key={`slow-${event.seq}`} className="dev-telemetry__item">
-                <div className={`dev-telemetry__label ${getEventColor(event.type)}`}>{event.name}</div>
+                <div className={`dev-telemetry__label ${getEventColor(event.type)}`}>
+                  {event.name}
+                </div>
                 <div className="dev-telemetry__duration">{formatMs(event.duration)}</div>
               </li>
             ))}
@@ -165,7 +178,9 @@ export default function DevTelemetryOverlay() {
             {snapshot.topByCallCount.map((summary) => (
               <li key={`count-${summary.name}`} className="dev-telemetry__item">
                 <div className="dev-telemetry__row">
-                  <span className="dev-telemetry__label dev-telemetry__label--call">{summary.name}</span>
+                  <span className="dev-telemetry__label dev-telemetry__label--call">
+                    {summary.name}
+                  </span>
                   <span className="dev-telemetry__duration">{formatCount(summary.callCount)}</span>
                 </div>
                 <div className="dev-telemetry__detail">{renderSummaryMeta(summary)}</div>
@@ -184,11 +199,14 @@ export default function DevTelemetryOverlay() {
             {snapshot.topByTotalDuration.map((summary) => (
               <li key={`duration-${summary.name}`} className="dev-telemetry__item">
                 <div className="dev-telemetry__row">
-                  <span className="dev-telemetry__label dev-telemetry__label--return">{summary.name}</span>
+                  <span className="dev-telemetry__label dev-telemetry__label--return">
+                    {summary.name}
+                  </span>
                   <span className="dev-telemetry__duration">{formatMs(summary.totalDuration)}</span>
                 </div>
                 <div className="dev-telemetry__detail">
-                  avg {formatMs(summary.averageDuration)} | max {formatMs(summary.maxDuration)} | returns {formatCount(summary.returnCount)}
+                  avg {formatMs(summary.averageDuration)} | max {formatMs(summary.maxDuration)} |
+                  returns {formatCount(summary.returnCount)}
                 </div>
               </li>
             ))}
@@ -210,7 +228,9 @@ export default function DevTelemetryOverlay() {
                   </span>
                   <span className="dev-telemetry__duration">#{event.seq}</span>
                 </div>
-                {(event.detail || event.metadata) && <div className="dev-telemetry__detail">{renderMetadata(event)}</div>}
+                {(event.detail || event.metadata) && (
+                  <div className="dev-telemetry__detail">{renderMetadata(event)}</div>
+                )}
               </li>
             ))}
           </ul>

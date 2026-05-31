@@ -220,9 +220,18 @@ export function devTelemetryVitePlugin() {
       ast.program.body.unshift(
         t.importDeclaration(
           [
-            t.importSpecifier(t.identifier("__devTelemetryEnter"), t.identifier("__devTelemetryEnter")),
-            t.importSpecifier(t.identifier("__devTelemetryExit"), t.identifier("__devTelemetryExit")),
-            t.importSpecifier(t.identifier("__devTelemetryThrow"), t.identifier("__devTelemetryThrow")),
+            t.importSpecifier(
+              t.identifier("__devTelemetryEnter"),
+              t.identifier("__devTelemetryEnter"),
+            ),
+            t.importSpecifier(
+              t.identifier("__devTelemetryExit"),
+              t.identifier("__devTelemetryExit"),
+            ),
+            t.importSpecifier(
+              t.identifier("__devTelemetryThrow"),
+              t.identifier("__devTelemetryThrow"),
+            ),
           ],
           t.stringLiteral(TELEMETRY_IMPORT_SOURCE),
         ),

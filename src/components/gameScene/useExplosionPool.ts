@@ -8,12 +8,9 @@ import { usePoolStore } from "../../store/poolStore";
  * to poolStore.explosions directly.
  */
 export function useExplosionPool() {
-  const triggerExplosion = useCallback(
-    (pos: [number, number, number], type: AsteroidType) => {
-      usePoolStore.getState().triggerExplosion(pos, type);
-    },
-    [],
-  );
+  const triggerExplosion = useCallback((pos: [number, number, number], type: AsteroidType) => {
+    usePoolStore.getState().triggerExplosion(pos, type);
+  }, []);
 
   const handleExplosionComplete = useCallback((id: string) => {
     usePoolStore.getState().deactivateExplosion(id);

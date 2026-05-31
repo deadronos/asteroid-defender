@@ -2,7 +2,12 @@ import { useState, useCallback, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useFrame } from "@react-three/fiber";
 import useGameStore from "../../store/gameStore";
-import { AsteroidType, updateSpatialIndex, SPATIAL_INDEX_THRESHOLD, asteroidQuery } from "../../ecs/world";
+import {
+  AsteroidType,
+  updateSpatialIndex,
+  SPATIAL_INDEX_THRESHOLD,
+  asteroidQuery,
+} from "../../ecs/world";
 import { clearAsteroidSpawns, drainAsteroidSpawns } from "../../ecs/asteroidSpawnQueue";
 import { markTelemetry } from "../../telemetry/runtime";
 import { usePoolStore } from "../../store/poolStore";
@@ -25,10 +30,7 @@ export interface AsteroidPoolState {
  * Pool state lives in poolStore; this hook dispatches operations to the store
  * and syncs active count to gameStore.
  */
-export function useAsteroidManager({
-  poolSize,
-  onShieldImpact,
-}: AsteroidManagerOptions) {
+export function useAsteroidManager({ poolSize, onShieldImpact }: AsteroidManagerOptions) {
   // Track active count locally and sync to gameStore
   const [activeCount, setActiveAsteroidsCount] = useState(0);
 
