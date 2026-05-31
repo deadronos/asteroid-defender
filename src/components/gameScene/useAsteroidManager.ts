@@ -5,42 +5,32 @@ import useGameStore from "../../store/gameStore";
 import { AsteroidType, updateSpatialIndex } from "../../ecs/world";
 import { clearAsteroidSpawns, drainAsteroidSpawns } from "../../ecs/asteroidSpawnQueue";
 import { markTelemetry } from "../../telemetry/runtime";
-import {
-  activateQueuedAsteroidsWithDelta,
-  createAsteroidPool,
-  deactivateAsteroidWithDelta,
-  type PooledAsteroid,
-  spawnSplitterFragmentsWithDelta,
-} from "./pools";
+import { usePoolStore } from "../../store/poolStore";
 
 export interface AsteroidManagerOptions {
   poolSize: number;
-  onAsteroidDestroyed?: (
-    pos: [number, number, number],
-    type: AsteroidType,
-    isBaseHit: boolean,
-  ) => void;
   onShieldImpact?: (pos: [number, number, number]) => void;
 }
 
+// Keep for backwards compatibility — activeCount now derived from store
 export interface AsteroidPoolState {
-  items: PooledAsteroid[];
+  items: Array<{ id: string; active: boolean; pos: [number, number, number]; type: AsteroidType }>;
   activeCount: number;
 }
 
 /**
  * Manages the lifecycle of asteroids in the game scene, including spawning,
  * destruction, and synchronization with the global game store.
+ *
+ * Pool state lives in poolStore; this hook dispatches operations to the store
+ * and syncs active count to gameStore.
  */
 export function useAsteroidManager({
   poolSize,
-  onAsteroidDestroyed,
   onShieldImpact,
 }: AsteroidManagerOptions) {
-  const [asteroidState, setAsteroidState] = useState<AsteroidPoolState>(() => ({
-    items: createAsteroidPool(poolSize),
-    activeCount: 0,
-  }));
+  // Track active count locally and sync to gameStore
+  const [activeCount, setActiveAsteroidsCount] = useState(0);
 
   const { incrementDestroyed, setActiveAsteroids, sessionId } = useGameStore(
     useShallow((state) => ({
@@ -50,12 +40,11 @@ export function useAsteroidManager({
     })),
   );
 
-  // Reset state and spawn queue when sessionId changes, and clean up on unmount
+  // Reset pool when sessionId changes, and clean up on unmount
   useEffect(() => {
-    setAsteroidState({
-      items: createAsteroidPool(poolSize),
-      activeCount: 0,
-    });
+    usePoolStore.getState().resetPools(poolSize);
+    setActiveAsteroidsCount(0);
+    setActiveAsteroids(0);
     markTelemetry("asteroids:reset-pool", {
       poolSize,
       sessionId,
@@ -65,11 +54,6 @@ export function useAsteroidManager({
       clearAsteroidSpawns();
     };
   }, [sessionId, poolSize]);
-
-  // Sync active count to global store when it changes
-  useEffect(() => {
-    setActiveAsteroids(asteroidState.activeCount);
-  }, [asteroidState.activeCount, setActiveAsteroids]);
 
   // Update spatial index and process new spawns every frame
   useFrame(() => {
@@ -81,17 +65,14 @@ export function useAsteroidManager({
       markTelemetry("asteroids:drain-spawns", {
         count: spawns.length,
       });
-      setAsteroidState((prev) => {
-        const { items: nextItems, activeDelta } = activateQueuedAsteroidsWithDelta(
-          prev.items,
-          spawns,
-        );
-        if (activeDelta !== 0) {
-          const nextCount = prev.activeCount + activeDelta;
-          return { items: nextItems, activeCount: nextCount };
-        }
-        return prev;
-      });
+      usePoolStore.getState().activateAsteroids(spawns);
+    }
+
+    // Derive active count from store and sync to gameStore
+    const count = usePoolStore.getState().asteroids.filter((a) => a.active).length;
+    if (count !== activeCount) {
+      setActiveAsteroidsCount(count);
+      setActiveAsteroids(count);
     }
   });
 
@@ -108,37 +89,16 @@ export function useAsteroidManager({
         onShieldImpact(pos);
       }
 
-      setAsteroidState((prev) => {
-        const deactivateResult = deactivateAsteroidWithDelta(prev.items, id);
-        let nextItems = deactivateResult.items;
-        let activeDelta = deactivateResult.activeDelta;
-
-        if (type === "splitter" && !isBaseHit) {
-          const splitterResult = spawnSplitterFragmentsWithDelta(nextItems, pos);
-          nextItems = splitterResult.items;
-          activeDelta += splitterResult.activeDelta;
-          if (splitterResult.activeDelta > 0) {
-            markTelemetry("asteroids:splitter-fragments", {
-              spawned: splitterResult.activeDelta,
-            });
-          }
-        }
-
-        if (activeDelta !== 0) {
-          const nextCount = prev.activeCount + activeDelta;
-          return { items: nextItems, activeCount: nextCount };
-        }
-        return prev;
-      });
-
-      // Notify external listeners (e.g., for explosions)
-      onAsteroidDestroyed?.(pos, type, isBaseHit);
+      usePoolStore.getState().deactivateAsteroid(id);
     },
-    [incrementDestroyed, onAsteroidDestroyed, onShieldImpact],
+    [incrementDestroyed, onShieldImpact],
   );
 
+  // Expose asteroids from store for rendering
+  const asteroids = usePoolStore((state) => state.asteroids);
+
   return {
-    asteroids: asteroidState.items,
+    asteroids,
     handleDestroy,
   };
 }
