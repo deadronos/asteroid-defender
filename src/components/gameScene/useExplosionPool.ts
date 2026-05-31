@@ -1,43 +1,23 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback } from "react";
 import type { AsteroidType } from "../../ecs/world";
-import { createExplosionPool, deactivateExplosion } from "./pools";
-import useGameStore from "../../store/gameStore";
+import { usePoolStore } from "../../store/poolStore";
 
 /**
- * Manages a fixed-size pool of explosion effects.  Deactivation is driven
- * by a frame-based `onComplete` callback from the <Explosion> component
- * rather than a wall-clock `setTimeout`, so lifetime stays consistent even
- * when the tab is backgrounded or frames are dropped.
+ * Manages explosion pool operations by dispatching to poolStore.
+ * Explosion rendering is handled by ExplosionLayer which subscribes
+ * to poolStore.explosions directly.
  */
-export function useExplosionPool(poolSize: number) {
-  const [explosions, setExplosions] = useState(() => createExplosionPool(poolSize));
-  const sessionId = useGameStore((state) => state.sessionId);
-
-  useEffect(() => {
-    setExplosions(createExplosionPool(poolSize));
-  }, [sessionId, poolSize]);
-
-  const triggerExplosion = useCallback((pos: [number, number, number], type: AsteroidType) => {
-    setExplosions((prev) => {
-      const nextIdx = prev.findIndex((explosion) => !explosion.active);
-      if (nextIdx === -1) {
-        return prev;
-      }
-
-      const nextExplosions = [...prev];
-      nextExplosions[nextIdx] = {
-        ...prev[nextIdx],
-        active: true,
-        pos,
-        type,
-      };
-      return nextExplosions;
-    });
-  }, []);
+export function useExplosionPool() {
+  const triggerExplosion = useCallback(
+    (pos: [number, number, number], type: AsteroidType) => {
+      usePoolStore.getState().triggerExplosion(pos, type);
+    },
+    [],
+  );
 
   const handleExplosionComplete = useCallback((id: string) => {
-    setExplosions((prev) => deactivateExplosion(prev, id));
+    usePoolStore.getState().deactivateExplosion(id);
   }, []);
 
-  return { explosions, triggerExplosion, handleExplosionComplete };
+  return { triggerExplosion, handleExplosionComplete };
 }
