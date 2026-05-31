@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Performance traces
+*.trace.json.gz
+gameplay-*.json.gz
+*trace.json.*

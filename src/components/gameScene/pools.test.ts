@@ -59,7 +59,7 @@ describe("Pools Utility Functions", () => {
       expect(nextPool[0].pos).toEqual([10, 0, 0]);
       expect(nextPool[1].active).toBe(true);
       expect(nextPool[1].pos).toEqual([20, 0, 0]);
-      expect(nextPool !== pool).toBe(true);
+      expect(nextPool).toBe(pool); // in-place mutation returns same reference
     });
 
     it("should return the same pool reference when there are no spawns", () => {
@@ -130,7 +130,7 @@ describe("Pools Utility Functions", () => {
       const nextPool = deactivateAsteroid(pool, idToDeactivate);
 
       expect(nextPool[0].active).toBe(false);
-      expect(nextPool !== pool).toBe(true);
+      expect(nextPool).toBe(pool); // in-place mutation returns same reference
     });
 
     it("should return the original pool if the ID is not found", () => {
@@ -215,7 +215,7 @@ describe("Pools Utility Functions", () => {
       const nextPool = deactivateExplosion(pool, idToDeactivate);
 
       expect(nextPool[0].active).toBe(false);
-      expect(nextPool !== pool).toBe(true);
+      expect(nextPool).toBe(pool); // in-place mutation returns same reference
     });
 
     it("should return the original pool if the ID is not found", () => {

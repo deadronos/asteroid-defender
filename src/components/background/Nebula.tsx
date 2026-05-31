@@ -9,8 +9,6 @@ export default function Nebula() {
   const timeWrapSeconds = 1250;
   const nebulaTexture = useMemo(() => createNebulaTexture(), []);
 
-
-
   const uniforms = useMemo(
     () => ({ uTime: { value: 0 }, uNebulaTex: { value: nebulaTexture } }),
     [nebulaTexture],

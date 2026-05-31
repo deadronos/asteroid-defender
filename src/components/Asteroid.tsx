@@ -22,7 +22,7 @@ import { useRef, useEffect, memo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { RigidBody, BallCollider, RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
-import { ECS, GameEntity, AsteroidType } from "../ecs/world";
+import { ECS, GameEntity, AsteroidType, markAsteroidDirty } from "../ecs/world";
 import useGameStore from "../store/gameStore";
 import { getAsteroidVisualProfile } from "../utils/asteroidVisualQuality";
 import type { EffectsQuality } from "../utils/visualQuality";
@@ -140,10 +140,12 @@ function Asteroid({ id, startPos, type, active, effectsQuality, onDestroy }: Ast
 
     // Sync Rapier position to ECS for Turrets to read
     entityRef.current.position!.set(translation.x, translation.y, translation.z);
+    markAsteroidDirty();
 
     // Move Asteroid towards the center platform (0,0,0)
     tempVec.set(translation.x, translation.y, translation.z);
-    if (tempVec.lengthSq() <= 9) {
+    const distSq = tempVec.lengthSq();
+    if (distSq <= 9) {
       // Hit the platform
       useGameStore.getState().takeDamage(cfg.damage);
       onDestroy(id, [translation.x, translation.y, translation.z], true, type);
@@ -152,7 +154,7 @@ function Asteroid({ id, startPos, type, active, effectsQuality, onDestroy }: Ast
 
     // Proximity danger glow: pulse emissive colour as asteroid closes in on the base.
     // Quality scaling trims the more expensive animated material updates first.
-    const dist = tempVec.length();
+    const dist = Math.sqrt(distSq);
     const imminentRatio = Math.max(0, 1 - dist / 35);
 
     if (flashTimerRef.current <= 0 && materialRef.current) {

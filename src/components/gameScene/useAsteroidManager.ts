@@ -78,7 +78,7 @@ export function useAsteroidManager({
           prev.items,
           spawns,
         );
-        if (nextItems !== prev.items) {
+        if (activeDelta !== 0) {
           const nextCount = prev.activeCount + activeDelta;
           return { items: nextItems, activeCount: nextCount };
         }
@@ -106,7 +106,7 @@ export function useAsteroidManager({
           activeDelta += splitterResult.activeDelta;
         }
 
-        if (nextItems !== prev.items) {
+        if (activeDelta !== 0) {
           const nextCount = prev.activeCount + activeDelta;
           return { items: nextItems, activeCount: nextCount };
         }

@@ -3,6 +3,7 @@ import { findNearestAsteroidInRange, type GameEntity } from "../../ecs/world";
 
 export const LASER_ORIGIN_Z = 3.5;
 export const TURRET_RANGE = 50;
+export const TURRET_RANGE_SQ = TURRET_RANGE * TURRET_RANGE; // 2500
 export const TARGETING_PENALTY = 400;
 
 export function releaseTarget(target: GameEntity | null, turretId: string) {
@@ -38,5 +39,5 @@ export function applyIdleTurretRotation(
 export function calculateTurretDamage(actualDistSq: number) {
   const maxDamage = 5;
   const minDamage = 0.1;
-  return maxDamage - (actualDistSq / (TURRET_RANGE * TURRET_RANGE)) * (maxDamage - minDamage);
+  return maxDamage - (actualDistSq / TURRET_RANGE_SQ) * (maxDamage - minDamage);
 }
