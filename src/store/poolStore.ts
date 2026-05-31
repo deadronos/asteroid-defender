@@ -145,13 +145,13 @@ export const usePoolStore = create<PoolState>((set, get) => ({
       id: nextId(),
       active: false,
       pos: storagePos,
-      type: "standard" as AsteroidType,
+      type: "swarmer" as AsteroidType,
     }));
     const explosions = Array.from({ length: poolSize }, () => ({
       id: nextId(),
       active: false,
       pos: storagePos,
-      type: "standard" as AsteroidType,
+      type: "swarmer" as AsteroidType,
     }));
     set({ asteroids, explosions, poolSize });
   },
