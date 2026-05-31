@@ -28,3 +28,6 @@ dist-ssr
 gameplay-*.json.gz
 *trace.json.*
 trace*.json
+
+# Worktrees
+.worktrees/
