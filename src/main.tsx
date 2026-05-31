@@ -3,6 +3,9 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { bootstrapDevTelemetry, markTelemetry } from "./telemetry/runtime";
+
+bootstrapDevTelemetry();
 
 /**
  * Renders a minimal DOM error overlay for crashes that happen outside
@@ -48,11 +51,17 @@ window.addEventListener("error", (event) => {
   // Skip errors that React's ErrorBoundary can handle (they bubble through render).
   // Only catch runtime errors from callbacks, async, etc.
   if (event.target === window || event.target === document) {
+    markTelemetry("window:error", {
+      message: (event.error?.message ?? event.message ?? "Unknown error").slice(0, 180),
+    });
     showGlobalError(event.error?.message ?? event.message ?? "Unknown error");
   }
 });
 
 window.addEventListener("unhandledrejection", (event) => {
+  markTelemetry("window:unhandledrejection", {
+    message: String(event.reason?.message ?? event.reason).slice(0, 180),
+  });
   showGlobalError(event.reason?.message ?? String(event.reason));
 });
 
@@ -66,8 +75,15 @@ console.warn = (...args) => {
   ) {
     return;
   }
+  if (msg) {
+    markTelemetry("console:warn", {
+      message: msg.slice(0, 180),
+    });
+  }
   originalWarn(...args);
 };
+
+markTelemetry("app:render-root");
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

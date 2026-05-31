@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { markTelemetry } from "../telemetry/runtime";
 
 export type GameplayState = "menu" | "playing" | "paused" | "gameover";
 export type CameraMode = "cinematic" | "static";
@@ -97,6 +98,15 @@ const useGameStore = create<GameState>((set) => ({
       if (state.gameState !== "playing") return state;
       const now = Date.now();
       const newHealth = Math.max(0, state.health - amount);
+      markTelemetry("game:damage", {
+        amount,
+        health: newHealth,
+      });
+      if (newHealth === 0) {
+        markTelemetry("game:over", {
+          sessionId: state.sessionId,
+        });
+      }
       return {
         health: newHealth,
         gameState: newHealth === 0 ? "gameover" : state.gameState,
@@ -105,17 +115,30 @@ const useGameStore = create<GameState>((set) => ({
       };
     }),
 
-  startGame: () => set((state) => createFreshRun(state.sessionId)),
+  startGame: () =>
+    set((state) => {
+      const nextState = createFreshRun(state.sessionId);
+      markTelemetry("game:start", {
+        sessionId: nextState.sessionId,
+      });
+      return nextState;
+    }),
 
   pauseGame: () =>
     set((state) => {
       if (state.gameState !== "playing") return state;
+      markTelemetry("game:pause", {
+        sessionId: state.sessionId,
+      });
       return { gameState: "paused" };
     }),
 
   resumeGame: () =>
     set((state) => {
       if (state.gameState !== "paused") return state;
+      markTelemetry("game:resume", {
+        sessionId: state.sessionId,
+      });
       return { gameState: "playing" };
     }),
 
@@ -126,20 +149,46 @@ const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
+      markTelemetry("game:toggle-pause", {
+        sessionId: state.sessionId,
+        nextState: nextGameState,
+      });
       return { gameState: nextGameState };
     }),
 
-  restartGame: () => set((state) => createFreshRun(state.sessionId)),
+  restartGame: () =>
+    set((state) => {
+      const nextState = createFreshRun(state.sessionId);
+      markTelemetry("game:restart", {
+        sessionId: nextState.sessionId,
+      });
+      return nextState;
+    }),
 
-  resetGame: () => set((state) => createFreshRun(state.sessionId)),
+  resetGame: () =>
+    set((state) => {
+      const nextState = createFreshRun(state.sessionId);
+      markTelemetry("game:reset", {
+        sessionId: nextState.sessionId,
+      });
+      return nextState;
+    }),
 
   toggleCameraMode: () =>
     set((state) => ({
+      ...(markTelemetry("camera:toggle-mode", {
+        nextMode: state.cameraMode === "cinematic" ? "static" : "cinematic",
+      }),
+      {}),
       cameraMode: state.cameraMode === "cinematic" ? "static" : "cinematic",
     })),
 
   toggleReducedMotion: () =>
     set((state) => ({
+      ...(markTelemetry("camera:toggle-reduced-motion", {
+        reducedMotion: !state.reducedMotion,
+      }),
+      {}),
       reducedMotion: !state.reducedMotion,
     })),
 

@@ -3,35 +3,23 @@
 // encryption and should not be treated as a security boundary.
 
 // Retrieve the secret key from environment variables (Vite-specific).
-// If missing, generate a random session key for non-critical obfuscation.
+// If missing, derive a stable app-scoped key so values remain readable across reloads.
+const getDefaultSecretKey = (): string => {
+  const baseUrl = import.meta.env?.BASE_URL ?? "/";
+  const origin = globalThis.location?.origin ?? "local-origin";
+  return `asteroid-defender::${origin}${baseUrl}`;
+};
+
 const getSecretKey = (): string => {
   try {
     // Safely access import.meta.env to avoid crashes in non-Vite environments.
     const envSecret = import.meta.env?.VITE_STORAGE_SECRET;
     if (envSecret) return envSecret;
   } catch {
-    // Fall back to random key if environment access fails
+    // Fall back to a stable app-scoped key if environment access fails
   }
 
-  // Generate a random key for the current session to avoid hardcoded secrets.
-  // Note: This means data will NOT persist across reloads if VITE_STORAGE_SECRET is missing.
-  if (import.meta.env.DEV) {
-    console.warn(
-      "VITE_STORAGE_SECRET is missing. Using a random session key. " +
-        "Data in localStorage will not persist across reloads.",
-    );
-  }
-
-  const randomBytes = new Uint8Array(32);
-  if (typeof crypto === "undefined" || !crypto.getRandomValues) {
-    throw new Error(
-      "Cryptographically secure random number generation is not available. " +
-        "A secure session key cannot be generated.",
-    );
-  }
-  crypto.getRandomValues(randomBytes);
-
-  return Array.from(randomBytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return getDefaultSecretKey();
 };
 
 const SECRET_KEY = getSecretKey();
