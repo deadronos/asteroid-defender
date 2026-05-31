@@ -46,6 +46,7 @@ interface AsteroidProps {
     pos: [number, number, number],
     isHit: boolean,
     type: AsteroidType,
+    damage: number,
   ) => void;
 }
 
@@ -132,7 +133,7 @@ function Asteroid({ id, startPos, type, active, effectsQuality, onDestroy }: Ast
 
     if (entityRef.current.health! <= 0) {
       const t = rbRef.current.translation();
-      onDestroy(id, [t.x, t.y, t.z], false, type);
+      onDestroy(id, [t.x, t.y, t.z], false, type, cfg.damage);
       return;
     }
 
@@ -148,7 +149,7 @@ function Asteroid({ id, startPos, type, active, effectsQuality, onDestroy }: Ast
     if (distSq <= 9) {
       // Hit the platform
       useGameStore.getState().takeDamage(cfg.damage);
-      onDestroy(id, [translation.x, translation.y, translation.z], true, type);
+      onDestroy(id, [translation.x, translation.y, translation.z], true, type, cfg.damage);
       return;
     }
 
