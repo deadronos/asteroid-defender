@@ -20,14 +20,14 @@ Asteroid spawning is **tame on paper but bursty in practice**:
   spawner throttles on its own `currentInterval` timer, not on `delta`).
 - The **theoretical floor is 0.5 s/spawn** (≈ 120 spawns/min) and the ceiling is
   5 s/spawn (≈ 12 spawns/min).
-- The **feedback controller** compares the *close-asteroid count* (radius 25)
+- The **feedback controller** compares the _close-asteroid count_ (radius 25)
   against a `PROXIMITY_THRESHOLD = 3` and adjusts the interval by
   `±0.2 s` per spawn — meaning the loop walks the full 0.5–5 s range in
   **23 spawns (≈ 30 s of perfect pressure / 230 s of perfect quiet)**.
 - **Splitter cascades** can layer on top of regular spawns: each destroyed
   `splitter` synchronously activates **2 new `swarmer`s** in the same frame
-  via `activateSplitterFragments`, and that code path *bypasses the spawn
-  queue entirely*. This is the dominant burst source and is invisible to
+  via `activateSplitterFragments`, and that code path _bypasses the spawn
+  queue entirely_. This is the dominant burst source and is invisible to
   `useFrame` queue telemetry.
 - A previously-undocumented per-frame allocation was found in
   `useAsteroidManager.useFrame` (the `.filter().length` for the active count
@@ -38,7 +38,7 @@ Asteroid spawning is **tame on paper but bursty in practice**:
 
 The actual frame-budget impact today is small (everything is sub-millisecond
 on the hot path per the existing benchmarks), but the **architectural concern**
-is that spawns are *uncorrelated with frame budget*: nothing in the pipeline
+is that spawns are _uncorrelated with frame budget_: nothing in the pipeline
 asks "is this frame cheap?" before adding work. If the game ever pushes
 past the 60-pool ceiling or runs on a constrained device, the existing
 splitter-cascade fast path will be the first thing to bite.
@@ -65,13 +65,13 @@ The spawner runs inside `useFrame`, but only **enqueues one asteroid per
 fire**, regardless of how much real time elapsed during the gate interval.
 At a healthy 60 FPS, the cadence is bounded by:
 
-| Mode | Interval | Spawns/min | Spawns/sec |
-|------|---------:|-----------:|-----------:|
-| Maximum pressure (`closeCount < 3` and `currentInterval` already at min) | 0.5 s | 120 | 2.0 |
-| Equilibrium (steady state, `closeCount == 3`) | any | n/a (oscillates ±0.2 s) | n/a |
-| Maximum quiet (all asteroids destroyed) | 5.0 s | 12 | 0.2 |
+| Mode                                                                     | Interval |              Spawns/min | Spawns/sec |
+| ------------------------------------------------------------------------ | -------: | ----------------------: | ---------: |
+| Maximum pressure (`closeCount < 3` and `currentInterval` already at min) |    0.5 s |                     120 |        2.0 |
+| Equilibrium (steady state, `closeCount == 3`)                            |      any | n/a (oscillates ±0.2 s) |        n/a |
+| Maximum quiet (all asteroids destroyed)                                  |    5.0 s |                      12 |        0.2 |
 
-Because the controller adds ±0.2 s *per spawn event* (not per second), the
+Because the controller adds ±0.2 s _per spawn event_ (not per second), the
 **time to reach `MIN_SPAWN_INTERVAL` from `INITIAL_SPAWN_INTERVAL` is**:
 
 - Going faster: `(2.0 − 0.5) / 0.2 = 7.5 → 8 spawns` ⇒ ≈ 4 s of in-game time
@@ -95,7 +95,7 @@ directly. It always activates exactly 2 `swarmer`s.
 The maximum theoretical spawn rate is therefore the regular spawner
 **plus** all the splitter fragments currently exploding in the same frame.
 The worst case is N splitters detonating in a single frame after a
-concentrated volley: each contributes 2 to the pool *that frame*, on top
+concentrated volley: each contributes 2 to the pool _that frame_, on top
 of the spawner's own enqueue. With the `POOL_SIZE = 60` ceiling, the pool
 can fill from 0 → 60 in a single frame if the spawner has been silent for a
 while and 30 splitters happen to die simultaneously (e.g., a chain
@@ -131,7 +131,7 @@ if (spawns.length > 0) {
 
 In practice, `drainAsteroidSpawns()` returns an array of length 0 or 1 per
 frame under normal play (because the spawner gates itself). The burst
-case is: spawn enqueued this frame *and* 1+ splitters just died in the
+case is: spawn enqueued this frame _and_ 1+ splitters just died in the
 same frame. The store's `activateAsteroids` allocates a fresh
 `[...state.asteroids]` (60 elements), a fresh `newFreeList` (up to 60
 elements), and a fresh `newIdToIndex` (cloned `Map<string, number>`) on
@@ -151,7 +151,7 @@ above), it is one Map clone of 60 entries + two 60-element array clones
 [`src/store/poolStore.ts:258-302`](src/store/poolStore.ts#L258-L302)
 
 The splitter fragment activation lives in `poolStore.activateSplitterFragments`
-and mutates the pool *directly* — it does not call `enqueueAsteroidSpawn`.
+and mutates the pool _directly_ — it does not call `enqueueAsteroidSpawn`.
 That means:
 
 1. **No telemetry event** is emitted for fragment spawns, only for the
@@ -163,13 +163,13 @@ That means:
 2. **No rate limit** applies to fragments. The spawner's "back off when
    the field is full" controller doesn't see them, so the field can
    exceed `PROXIMITY_THRESHOLD` for a window after a chain explosion,
-   and the *next* regular spawn fires before the controller has
+   and the _next_ regular spawn fires before the controller has
    observed the new population.
 3. **No backpressure**: if both pool slots and the `asteroidFreeList`
    bookkeeping are partially out of sync, `activateSplitterFragments`
    silently returns. The two free slots are dropped without
    `markTelemetry('pool:asteroid-starved', …)` — which is the path
-   `activateAsteroids` *does* report. Inconsistent observability.
+   `activateAsteroids` _does_ report. Inconsistent observability.
 
 **Recommendation:** Route fragment spawns through the same queue (or a
 parallel `enqueueAsteroidFragment`) so the spawner controller, telemetry,
@@ -209,8 +209,8 @@ deactivate) would be allocation-free.
   ```
 - Or expose a `getActiveAsteroidCount()` selector on `usePoolStore` that
   maintains the count as part of `activateAsteroids` / `deactivateAsteroid`.
-  This is the more correct fix because it eliminates the *read* allocation
-  *and* the per-frame `usePoolStore.getState().asteroids` subscription
+  This is the more correct fix because it eliminates the _read_ allocation
+  _and_ the per-frame `usePoolStore.getState().asteroids` subscription
   churn from `useAsteroidLayer`.
 
 ### Finding #3 — Pool activation clones a 60-element `Map<string, number>` per batch (LOW PRIORITY)
@@ -245,7 +245,7 @@ spread pattern is still here.
 "mutate the slot in place + bump a version counter" approach. The
 existing `useShallow` subscribers in `AsteroidLayer` would still update
 correctly if the array length changed, but in-place mutation of slot
-fields would *not* trigger re-renders of `<Asteroid key={ast.id}>` if
+fields would _not_ trigger re-renders of `<Asteroid key={ast.id}>` if
 those components don't re-render based on `pos`/`type` (they only
 react to `active`). This is a larger refactor — see
 [Refactor 1 in `refactoring_suggestions.md`](refactoring_suggestions.md)
@@ -304,7 +304,7 @@ session being applied to a fresh one. **No change recommended.**
 The telemetry hooks `spawn-queue:enqueue`, `spawn-queue:drain`, and
 `pool:asteroid-starved` give a partial view. The full activation rate
 should be observable as a histogram in the dev overlay. A useful new
-metric would be `asteroids:activations` emitted from the *post-pool*
+metric would be `asteroids:activations` emitted from the _post-pool_
 side, capturing all sources (regular spawns, splitter fragments, and
 anything added in the future) uniformly.
 
@@ -315,20 +315,21 @@ anything added in the future) uniformly.
 The existing bench suite
 [`src/ecs/world.bench.ts:131-178`](src/ecs/world.bench.ts#L131-L178) shows
 that the full "worst-case frame" (spatial index rebuild + 4 turret targetings
-+ active count scan) at 60 asteroids costs **well under 0.01 ms** on the
-hot-path CPU. The only budget-affecting thing *added* by spawning is:
 
-| Operation | Cost per spawn | Worst case (1 spawn + 2 fragments) |
-|---|---:|---:|
-| `enqueueAsteroidSpawn` push | O(1), 1 array push | 3 array pushes total |
-| `drainAsteroidSpawns` slice | O(n) of queue length | 3 elements |
-| `activateAsteroids` Map clone + 2 array clones + 3 object spreads | ~0.005 ms typical | ~0.015 ms worst case |
-| `markAsteroidDirty` + 4× `findNearestAsteroidInRange` | unchanged | unchanged |
-| React re-render of `<Asteroid>` for 3 newly active slots | one-time mount cost | one-time mount cost |
+- active count scan) at 60 asteroids costs **well under 0.01 ms** on the
+  hot-path CPU. The only budget-affecting thing _added_ by spawning is:
+
+| Operation                                                         |       Cost per spawn | Worst case (1 spawn + 2 fragments) |
+| ----------------------------------------------------------------- | -------------------: | ---------------------------------: |
+| `enqueueAsteroidSpawn` push                                       |   O(1), 1 array push |               3 array pushes total |
+| `drainAsteroidSpawns` slice                                       | O(n) of queue length |                         3 elements |
+| `activateAsteroids` Map clone + 2 array clones + 3 object spreads |    ~0.005 ms typical |               ~0.015 ms worst case |
+| `markAsteroidDirty` + 4× `findNearestAsteroidInRange`             |            unchanged |                          unchanged |
+| React re-render of `<Asteroid>` for 3 newly active slots          |  one-time mount cost |                one-time mount cost |
 
 **Headroom estimate:** 60 FPS = 16.67 ms/frame. Rapier + Three.js + post-fx
 dominate. The spawn pipeline costs < 0.5 % of frame time under worst case,
-*on top of* the existing hot-path work. **The game is not at risk of a
+_on top of_ the existing hot-path work. **The game is not at risk of a
 spawn-related frame drop today.**
 
 The risk is **scaling**: if the pool cap is ever raised to 120 or 200
@@ -337,8 +338,8 @@ clones grow linearly, and the splitter cascade's worst case grows as
 `N_splitters * 2` new objects per frame. None of this is being measured
 in CI; it would be worth adding a bench analogous to
 [`simulated worst-case frame at 60 asteroids`](src/ecs/world.bench.ts#L156-L178)
-but varying the *spawn batch size* (1, 2, 4, 8) and the *splitter cascade
-count* (0, 1, 5, 20) instead of the entity count.
+but varying the _spawn batch size_ (1, 2, 4, 8) and the _splitter cascade
+count_ (0, 1, 5, 20) instead of the entity count.
 
 ---
 
@@ -373,16 +374,16 @@ deserves a dedicated `src/store/poolStore.bench.ts` and a small
 
 ## Summary of Recommendations (Prioritized)
 
-| # | Priority | Title | File |
-|---|----------|-------|------|
-| 1 | MEDIUM | Route splitter fragments through the spawn queue | `AsteroidLayer.tsx`, `poolStore.ts` |
-| 2 | LOW-MEDIUM | Replace per-frame `.filter().length` with a for-loop or store-maintained counter | `useAsteroidManager.ts` |
-| 3 | LOW | Reduce per-batch `Map<string, number>` clone in `activateAsteroids` | `poolStore.ts` |
-| 4 | LOW | (Already known) `Math.acos` per spawn — no change | `utils/math.ts` |
-| 5 | LOW | Document, do not fix, the controller's "ramp after clear" behavior | `AsteroidSpawner.tsx` |
-| 6 | — | No change recommended; `useEffect` reset is correct | `AsteroidSpawner.tsx` |
-| 7 | OBSERVABILITY | Add `asteroids:activations` telemetry for a unified activation view | `poolStore.ts` |
-| — | DEFERRED | Add spawn-batch + splitter-cascade bench (needs store accessor) | new `poolStore.bench.ts` |
+| #   | Priority      | Title                                                                            | File                                |
+| --- | ------------- | -------------------------------------------------------------------------------- | ----------------------------------- |
+| 1   | MEDIUM        | Route splitter fragments through the spawn queue                                 | `AsteroidLayer.tsx`, `poolStore.ts` |
+| 2   | LOW-MEDIUM    | Replace per-frame `.filter().length` with a for-loop or store-maintained counter | `useAsteroidManager.ts`             |
+| 3   | LOW           | Reduce per-batch `Map<string, number>` clone in `activateAsteroids`              | `poolStore.ts`                      |
+| 4   | LOW           | (Already known) `Math.acos` per spawn — no change                                | `utils/math.ts`                     |
+| 5   | LOW           | Document, do not fix, the controller's "ramp after clear" behavior               | `AsteroidSpawner.tsx`               |
+| 6   | —             | No change recommended; `useEffect` reset is correct                              | `AsteroidSpawner.tsx`               |
+| 7   | OBSERVABILITY | Add `asteroids:activations` telemetry for a unified activation view              | `poolStore.ts`                      |
+| —   | DEFERRED      | Add spawn-batch + splitter-cascade bench (needs store accessor)                  | new `poolStore.bench.ts`            |
 
 ---
 
