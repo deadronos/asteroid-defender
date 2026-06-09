@@ -36,8 +36,6 @@ interface AsteroidUserData {
   asteroidDamage?: number;
 }
 
-const tempVec = new THREE.Vector3();
-
 // Threshold below which emissive/opacity writes are skipped to avoid material churn
 const MATERIAL_WRITE_THRESHOLD = 0.01;
 
@@ -154,21 +152,23 @@ function Asteroid({
     }
     prevHealthRef.current = entityRef.current.health!;
 
+    const material = materialRef.current;
+
     if (flashTimerRef.current > 0) {
       flashTimerRef.current -= delta;
-      if (materialRef.current) {
-        materialRef.current.emissive.setHex(0xffffff);
+      if (material) {
+        material.emissive.setHex(0xffffff);
         const newIntensity = 2.0;
         if (Math.abs(newIntensity - prevEmissiveIntensityRef.current) > MATERIAL_WRITE_THRESHOLD) {
-          materialRef.current.emissiveIntensity = newIntensity;
+          material.emissiveIntensity = newIntensity;
           prevEmissiveIntensityRef.current = newIntensity;
         }
       }
-      if (flashTimerRef.current <= 0 && materialRef.current) {
-        materialRef.current.emissive.setHex(0x000000);
+      if (flashTimerRef.current <= 0 && material) {
+        material.emissive.setHex(0x000000);
         const newIntensity = 0;
         if (Math.abs(newIntensity - prevEmissiveIntensityRef.current) > MATERIAL_WRITE_THRESHOLD) {
-          materialRef.current.emissiveIntensity = newIntensity;
+          material.emissiveIntensity = newIntensity;
           prevEmissiveIntensityRef.current = newIntensity;
         }
       }
@@ -181,26 +181,41 @@ function Asteroid({
     }
 
     const translation = rbRef.current.translation();
+    const tx = translation.x;
+    const ty = translation.y;
+    const tz = translation.z;
 
     // Sync Rapier position to ECS for Turrets to read
-    entityRef.current.position!.set(translation.x, translation.y, translation.z);
+    entityRef.current.position!.set(tx, ty, tz);
     markAsteroidDirty();
 
-    // Compute distance from origin for proximity danger glow.
-    // Base-hit detection is now handled by Rapier collision events on the
-    // platform CylinderCollider (see Platform.tsx onCollisionEnter).
-    tempVec.set(translation.x, translation.y, translation.z);
-    const distSq = tempVec.lengthSq();
-    const dist = Math.sqrt(distSq);
-    const imminentRatio = Math.max(0, 1 - dist / 35);
+    const currentMaterial = materialRef.current;
+    const currentDangerRingMaterial = dangerRingMaterialRef.current;
+    const shouldUpdateGlow =
+      flashTimerRef.current <= 0 && currentMaterial !== null && visualProfile.showProximityGlow;
+    const shouldUpdateTankRing =
+      type === "tank" && currentDangerRingMaterial !== null && visualProfile.showTankRing;
 
-    if (flashTimerRef.current <= 0 && materialRef.current) {
+    let imminentRatio = 0;
+    if (shouldUpdateGlow || shouldUpdateTankRing) {
+      // Base-hit detection is now handled by Rapier collision events on the
+      // platform CylinderCollider (see Platform.tsx onCollisionEnter).
+      const distSq = tx * tx + ty * ty + tz * tz;
+      const dist = Math.sqrt(distSq);
+      imminentRatio = Math.max(0, 1 - dist / 35);
+    }
+
+    if (shouldUpdateGlow) {
+      const material = currentMaterial;
+      if (!material) return;
+
       let newIntensity = 0;
-      if (visualProfile.showProximityGlow && imminentRatio > 0) {
+      const animateProximityGlow = visualProfile.animateProximityGlow;
+      if (imminentRatio > 0) {
         _proxColor.set(cfg.color);
-        materialRef.current.emissive.copy(_proxColor);
+        material.emissive.copy(_proxColor);
 
-        if (visualProfile.animateProximityGlow && !reducedMotion) {
+        if (animateProximityGlow && !reducedMotion) {
           const pulseSpeed = 3 + imminentRatio * 8;
           const pulseFactor = Math.sin(state.clock.elapsedTime * pulseSpeed) * 0.5 + 0.5;
           newIntensity = imminentRatio * 1.2 * pulseFactor;
@@ -208,20 +223,25 @@ function Asteroid({
           newIntensity = imminentRatio > 0.5 ? imminentRatio * 0.4 : 0;
         }
       } else {
-        materialRef.current.emissive.setHex(0x000000);
+        material.emissive.setHex(0x000000);
       }
       if (Math.abs(newIntensity - prevEmissiveIntensityRef.current) > MATERIAL_WRITE_THRESHOLD) {
-        materialRef.current.emissiveIntensity = newIntensity;
+        material.emissiveIntensity = newIntensity;
         prevEmissiveIntensityRef.current = newIntensity;
       }
     }
 
     // Tank-specific: pulse the outer danger ring opacity
-    if (type === "tank" && dangerRingMaterialRef.current) {
+    if (shouldUpdateTankRing) {
+      const dangerRingMaterial = currentDangerRingMaterial;
+      if (!dangerRingMaterial) return;
+
       let newOpacity = 0;
-      if (!visualProfile.showTankRing) {
+      const showTankRing = visualProfile.showTankRing;
+      const animateTankRing = visualProfile.animateTankRing;
+      if (!showTankRing) {
         newOpacity = 0;
-      } else if (visualProfile.animateTankRing && !reducedMotion) {
+      } else if (animateTankRing && !reducedMotion) {
         const ringPulse =
           Math.sin(state.clock.elapsedTime * (1.5 + imminentRatio * 3)) * 0.25 + 0.75;
         newOpacity = ringPulse * (0.25 + imminentRatio * 0.45);
@@ -229,7 +249,7 @@ function Asteroid({
         newOpacity = 0.3 + imminentRatio * 0.3;
       }
       if (Math.abs(newOpacity - prevTankRingOpacityRef.current) > MATERIAL_WRITE_THRESHOLD) {
-        dangerRingMaterialRef.current.opacity = newOpacity;
+        dangerRingMaterial.opacity = newOpacity;
         prevTankRingOpacityRef.current = newOpacity;
       }
     }

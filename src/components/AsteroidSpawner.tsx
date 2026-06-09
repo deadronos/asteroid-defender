@@ -22,7 +22,7 @@ const SPAWN_RADIUS = 40;
 const PROXIMITY_THRESHOLD = 3;
 
 export default function AsteroidSpawner() {
-  const origin = new THREE.Vector3(0, 0, 0);
+  const originRef = useRef(new THREE.Vector3(0, 0, 0));
   const spawnTimer = useRef(0);
   const currentInterval = useRef(INITIAL_SPAWN_INTERVAL);
   const sessionId = useGameStore((state) => state.sessionId);
@@ -39,7 +39,7 @@ export default function AsteroidSpawner() {
     if (spawnTimer.current >= currentInterval.current) {
       spawnTimer.current = 0;
 
-      const closeCount = countAsteroidsInRange(origin, 25);
+      const closeCount = countAsteroidsInRange(originRef.current, 25);
 
       // Adjust spawn rate based on proximity count
       if (closeCount < PROXIMITY_THRESHOLD) {

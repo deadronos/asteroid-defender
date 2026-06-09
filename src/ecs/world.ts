@@ -24,6 +24,15 @@ export const CELL_SIZE = 25;
 export const SPATIAL_INDEX_THRESHOLD = 80;
 
 let anyAsteroidMoved = false;
+const scratchCellBounds: CellBounds = {
+  minX: 0,
+  maxX: 0,
+  minY: 0,
+  maxY: 0,
+  minZ: 0,
+  maxZ: 0,
+};
+const rebuildBucketMap = new Map<number, GameEntity[]>();
 
 export function markAsteroidDirty() {
   anyAsteroidMoved = true;
@@ -52,15 +61,14 @@ interface CellBounds {
   maxZ: number;
 }
 
-function getRangeCellBounds(position: THREE.Vector3, range: number): CellBounds {
-  return {
-    minX: Math.floor((position.x - range) / CELL_SIZE),
-    maxX: Math.floor((position.x + range) / CELL_SIZE),
-    minY: Math.floor((position.y - range) / CELL_SIZE),
-    maxY: Math.floor((position.y + range) / CELL_SIZE),
-    minZ: Math.floor((position.z - range) / CELL_SIZE),
-    maxZ: Math.floor((position.z + range) / CELL_SIZE),
-  };
+function getRangeCellBounds(position: THREE.Vector3, range: number, out: CellBounds): CellBounds {
+  out.minX = Math.floor((position.x - range) / CELL_SIZE);
+  out.maxX = Math.floor((position.x + range) / CELL_SIZE);
+  out.minY = Math.floor((position.y - range) / CELL_SIZE);
+  out.maxY = Math.floor((position.y + range) / CELL_SIZE);
+  out.minZ = Math.floor((position.z - range) / CELL_SIZE);
+  out.maxZ = Math.floor((position.z + range) / CELL_SIZE);
+  return out;
 }
 
 function visitAsteroidsInCell(
@@ -69,13 +77,22 @@ function visitAsteroidsInCell(
   rangeSq: number,
   visitor: (entity: GameEntity, distSq: number) => void,
 ) {
+  const px = position.x;
+  const py = position.y;
+  const pz = position.z;
+
   for (let i = 0; i < cell.length; i++) {
     const entity = cell[i];
-    if (!entity.position) {
+    const entityPosition = entity.position;
+    if (!entityPosition) {
       continue;
     }
 
-    const distSq = position.distanceToSquared(entity.position);
+    const dx = px - entityPosition.x;
+    const dy = py - entityPosition.y;
+    const dz = pz - entityPosition.z;
+    const distSq = dx * dx + dy * dy + dz * dz;
+
     if (distSq <= rangeSq) {
       visitor(entity, distSq);
     }
@@ -89,14 +106,22 @@ function visitAsteroidsInRange(
 ) {
   const rangeSq = range * range;
   const entities = asteroidQuery.entities;
+  const px = position.x;
+  const py = position.y;
+  const pz = position.z;
 
   // Performance optimization: For small numbers of active entities,
   // a linear scan is much faster than checking 125 spatial index cells.
   if (entities.length < SPATIAL_INDEX_THRESHOLD) {
     for (let i = 0; i < entities.length; i++) {
       const entity = entities[i];
-      if (entity.position) {
-        const distSq = position.distanceToSquared(entity.position);
+      const entityPosition = entity.position;
+      if (entityPosition) {
+        const dx = px - entityPosition.x;
+        const dy = py - entityPosition.y;
+        const dz = pz - entityPosition.z;
+        const distSq = dx * dx + dy * dy + dz * dz;
+
         if (distSq <= rangeSq) {
           visitor(entity, distSq);
         }
@@ -105,7 +130,11 @@ function visitAsteroidsInRange(
     return;
   }
 
-  const { minX, maxX, minY, maxY, minZ, maxZ } = getRangeCellBounds(position, range);
+  const { minX, maxX, minY, maxY, minZ, maxZ } = getRangeCellBounds(
+    position,
+    range,
+    scratchCellBounds,
+  );
 
   for (let x = minX; x <= maxX; x++) {
     for (let y = minY; y <= maxY; y++) {
@@ -125,44 +154,31 @@ export function updateSpatialIndex() {
   anyAsteroidMoved = false;
 
   const entities = asteroidQuery.entities;
-  const usedKeys = new Set<number>();
+  rebuildBucketMap.clear();
 
   for (let i = 0; i < entities.length; i++) {
     const entity = entities[i];
-    if (!entity.position) continue;
+    const entityPosition = entity.position;
+    if (!entityPosition) continue;
 
-    const x = Math.floor(entity.position.x / CELL_SIZE);
-    const y = Math.floor(entity.position.y / CELL_SIZE);
-    const z = Math.floor(entity.position.z / CELL_SIZE);
+    const x = Math.floor(entityPosition.x / CELL_SIZE);
+    const y = Math.floor(entityPosition.y / CELL_SIZE);
+    const z = Math.floor(entityPosition.z / CELL_SIZE);
     const key = getCellKey(x, y, z);
 
-    usedKeys.add(key);
-
-    let cell = asteroidCells.get(key);
+    let cell = rebuildBucketMap.get(key);
     if (!cell) {
-      cell = [];
-      asteroidCells.set(key, cell);
+      cell = asteroidCells.get(key) ?? [];
+      cell.length = 0;
+      rebuildBucketMap.set(key, cell);
     }
 
-    cell.length = 0;
+    cell.push(entity);
   }
 
-  for (let i = 0; i < entities.length; i++) {
-    const entity = entities[i];
-    if (!entity.position) continue;
-
-    const x = Math.floor(entity.position.x / CELL_SIZE);
-    const y = Math.floor(entity.position.y / CELL_SIZE);
-    const z = Math.floor(entity.position.z / CELL_SIZE);
-    const key = getCellKey(x, y, z);
-
-    asteroidCells.get(key)!.push(entity);
-  }
-
-  for (const key of asteroidCells.keys()) {
-    if (!usedKeys.has(key)) {
-      asteroidCells.delete(key);
-    }
+  asteroidCells.clear();
+  for (const [key, cell] of rebuildBucketMap) {
+    asteroidCells.set(key, cell);
   }
 }
 
