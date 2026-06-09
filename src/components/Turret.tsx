@@ -73,7 +73,8 @@ export default function Turret({ id, position, rotation }: TurretProps) {
       return;
     }
 
-    const nearestEntity: GameEntity | null = findTurretTarget(turretGroup.current, id);
+    const turret = turretGroup.current;
+    const nearestEntity: GameEntity | null = findTurretTarget(turret, id);
     let actualDist = 0;
 
     if (nearestEntity) {
@@ -83,12 +84,21 @@ export default function Turret({ id, position, rotation }: TurretProps) {
       }
       currentTargetRef.current = nearestEntity;
 
-      turretGroup.current.lookAt(nearestEntity.position!);
+      const targetPosition = nearestEntity.position;
+      if (!targetPosition) {
+        return;
+      }
+
+      turret.lookAt(targetPosition);
 
       // Optimized: Since we just called lookAt, the target's local position
       // is always (0, 0, actualDist). This avoids expensive matrix world
       // updates and worldToLocal inversions every frame.
-      const actualDistSq = turretGroup.current.position.distanceToSquared(nearestEntity.position!);
+      const turretPosition = turret.position;
+      const dx = turretPosition.x - targetPosition.x;
+      const dy = turretPosition.y - targetPosition.y;
+      const dz = turretPosition.z - targetPosition.z;
+      const actualDistSq = dx * dx + dy * dy + dz * dz;
       actualDist = Math.sqrt(actualDistSq);
       localTargetRef.current.set(0, 0, actualDist);
 
