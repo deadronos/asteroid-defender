@@ -13,10 +13,10 @@ import {
 } from "./visualQuality";
 
 describe("visualQuality", () => {
-  it("starts with full effects on standard motion", () => {
+  it("starts with reduced effects on standard motion", () => {
     expect(getInitialVisualProfile(false)).toEqual({
-      effectsQuality: "full",
-      dpr: FULL_EFFECTS_MAX_DPR,
+      effectsQuality: "reduced",
+      dpr: REDUCED_EFFECTS_MAX_DPR,
     });
   });
 
