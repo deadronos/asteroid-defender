@@ -11,6 +11,7 @@ export type GameEntity = {
   health?: number;
   targetedBy?: string | null;
   asteroidType?: AsteroidType;
+  isBaseHit?: boolean;
 };
 
 // Define the central ECS world

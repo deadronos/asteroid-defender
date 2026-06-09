@@ -1,9 +1,11 @@
 import { RigidBody, CylinderCollider } from "@react-three/rapier";
+import type { CollisionEnterPayload } from "@react-three/rapier";
 import { Edges } from "@react-three/drei";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useCallback } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import useGameStore from "../store/gameStore";
+import { asteroidQuery } from "../ecs/world";
 
 // Pre-allocated scratch colours to avoid per-frame GC pressure
 const _shieldHealthy = new THREE.Color("#7ec8ff");
@@ -76,6 +78,25 @@ export default function Platform({ shieldImpacts }: PlatformProps) {
   const shieldMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const beaconGroupRef = useRef<THREE.Group>(null);
 
+  // Rapier collision handler: detect when an asteroid's BallCollider touches
+  // the platform's CylinderCollider. This replaces the per-frame distance
+  // check that was previously in Asteroid.tsx.
+  const onCollisionEnter = useCallback((payload: CollisionEnterPayload) => {
+    const ud = payload.other.rigidBody?.userData as { asteroidId?: string } | undefined;
+    if (!ud?.asteroidId) return;
+
+    // Find the ECS entity and mark it as a base hit
+    const entities = asteroidQuery.entities;
+    for (let i = 0; i < entities.length; i++) {
+      const entity = entities[i];
+      if (entity.id === ud.asteroidId && entity.health! > 0) {
+        entity.isBaseHit = true;
+        entity.health = 0;
+        return;
+      }
+    }
+  }, []);
+
   useFrame((state) => {
     const { health, maxHealth, reducedMotion } = useGameStore.getState();
     const ratio = maxHealth > 0 ? Math.max(0, health / maxHealth) : 1;
@@ -115,7 +136,7 @@ export default function Platform({ shieldImpacts }: PlatformProps) {
   });
 
   return (
-    <RigidBody type="fixed" colliders={false}>
+    <RigidBody type="fixed" colliders={false} onCollisionEnter={onCollisionEnter}>
       <CylinderCollider args={[1, 12]} />
       <group>
         <mesh receiveShadow>

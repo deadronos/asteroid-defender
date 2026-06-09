@@ -30,6 +30,12 @@ import AsteroidVisual from "./asteroid/AsteroidVisual";
 import { activateAsteroidBody, deactivateAsteroidBody } from "./asteroid/bodyLifecycle";
 import { ASTEROID_CONFIGS } from "./asteroid/config";
 
+interface AsteroidUserData {
+  asteroidId?: string;
+  asteroidType?: AsteroidType;
+  asteroidDamage?: number;
+}
+
 const tempVec = new THREE.Vector3();
 
 // Threshold below which emissive/opacity writes are skipped to avoid material churn
@@ -95,6 +101,15 @@ function Asteroid({
       prevHealthRef.current = cfg.health;
       flashTimerRef.current = 0;
       isFirstActiveFrameRef.current = true;
+
+      // Tag the Rapier body so the Platform collision handler can identify this asteroid
+      if (rbRef.current) {
+        (rbRef.current.userData as AsteroidUserData) = {
+          asteroidId: id,
+          asteroidType: type,
+          asteroidDamage: cfg.damage,
+        };
+      }
     } else {
       // Un-pool into storage
       if (entityRef.current) {
@@ -105,6 +120,10 @@ function Asteroid({
       if (materialRef.current) {
         materialRef.current.emissive.setHex(0x000000);
         materialRef.current.emissiveIntensity = 0;
+      }
+      // Clear userData so deactivated bodies aren't mistaken for live asteroids
+      if (rbRef.current) {
+        (rbRef.current.userData as AsteroidUserData) = {};
       }
     }
 
@@ -157,7 +176,7 @@ function Asteroid({
 
     if (entityRef.current.health! <= 0) {
       const t = rbRef.current.translation();
-      onDestroy(id, [t.x, t.y, t.z], false, type, cfg.damage);
+      onDestroy(id, [t.x, t.y, t.z], entityRef.current.isBaseHit ?? false, type, cfg.damage);
       return;
     }
 
@@ -167,18 +186,11 @@ function Asteroid({
     entityRef.current.position!.set(translation.x, translation.y, translation.z);
     markAsteroidDirty();
 
-    // Move Asteroid towards the center platform (0,0,0)
+    // Compute distance from origin for proximity danger glow.
+    // Base-hit detection is now handled by Rapier collision events on the
+    // platform CylinderCollider (see Platform.tsx onCollisionEnter).
     tempVec.set(translation.x, translation.y, translation.z);
     const distSq = tempVec.lengthSq();
-    if (distSq <= 9) {
-      // Hit the platform
-      useGameStore.getState().takeDamage(cfg.damage);
-      onDestroy(id, [translation.x, translation.y, translation.z], true, type, cfg.damage);
-      return;
-    }
-
-    // Proximity danger glow: pulse emissive colour as asteroid closes in on the base.
-    // Quality scaling trims the more expensive animated material updates first.
     const dist = Math.sqrt(distSq);
     const imminentRatio = Math.max(0, 1 - dist / 35);
 
