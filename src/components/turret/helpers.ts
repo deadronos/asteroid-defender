@@ -18,8 +18,13 @@ export function findTurretTarget(turret: THREE.Group, turretId: string): GameEnt
 
   return findNearestAsteroidInRange(turretPosition, TURRET_RANGE, (entity, distSq) => {
     const entityPosition = entity.position;
-    if (!entityPosition) return Infinity;
-    if (entityPosition.y > 0 !== isTopTurret) return Infinity;
+    if (!entityPosition) {
+      return Infinity;
+    }
+
+    if (entityPosition.y > 0 !== isTopTurret) {
+      return Infinity;
+    }
 
     const targetedBy = entity.targetedBy;
     return distSq + (targetedBy && targetedBy !== turretId ? TARGETING_PENALTY : 0);
