@@ -41,7 +41,6 @@ export function getCellKey(x: number, y: number, z: number): number {
 }
 
 export const asteroidCells = new Map<number, GameEntity[]>();
-const recycledAsteroidCellBuckets: GameEntity[][] = [];
 
 interface CellBounds {
   minX: number;
@@ -124,12 +123,6 @@ export function updateSpatialIndex() {
   if (!anyAsteroidMoved) return;
   anyAsteroidMoved = false;
 
-  for (const arr of asteroidCells.values()) {
-    arr.length = 0;
-    if (recycledAsteroidCellBuckets.length < 128) {
-      recycledAsteroidCellBuckets.push(arr);
-    }
-  }
   asteroidCells.clear();
 
   for (const entity of asteroidQuery.entities) {
@@ -140,7 +133,7 @@ export function updateSpatialIndex() {
     const key = getCellKey(x, y, z);
     let arr = asteroidCells.get(key);
     if (!arr) {
-      arr = recycledAsteroidCellBuckets.pop() ?? [];
+      arr = [];
       asteroidCells.set(key, arr);
     }
     arr.push(entity);
