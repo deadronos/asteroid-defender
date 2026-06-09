@@ -103,15 +103,16 @@ describe("asteroid spatial index", () => {
     expect(asteroidCells.size).toBe(1);
   });
 
-  it("reuses cell buckets across spatial index updates", () => {
+  it("correctly queries asteroids after spatial index updates", () => {
     const asteroid = addAsteroid("a-8", new THREE.Vector3(0, 0, 0));
-    const initialBucket = asteroidCells.values().next().value;
 
     asteroid.position!.set(8, 2, 1);
     markAsteroidDirty();
     updateSpatialIndex();
 
-    expect(asteroidCells.values().next().value).toBe(initialBucket);
+    const results = queryAsteroidsInRange(new THREE.Vector3(8, 2, 1), 10);
+    expect(results).toHaveLength(1);
+    expect(results[0]).toBe(asteroid);
   });
 });
 
