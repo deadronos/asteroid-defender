@@ -20,7 +20,7 @@ function normalizeEffectsQuality(quality: EffectsQuality, reducedMotion: boolean
 }
 
 export function getPreferredEffectsQuality(reducedMotion: boolean): EffectsQuality {
-  return reducedMotion ? "reduced" : "full";
+  return reducedMotion ? "reduced" : "reduced";
 }
 
 export function getMaxDprForEffectsQuality(
