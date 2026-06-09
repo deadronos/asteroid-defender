@@ -74,8 +74,11 @@ export function useAsteroidManager({ poolSize, onShieldImpact }: AsteroidManager
       usePoolStore.getState().activateAsteroids(spawns);
     }
 
-    // Derive active count from store and sync to gameStore
-    const count = usePoolStore.getState().asteroids.filter((a) => a.active).length;
+    // Active count is now maintained incrementally in the store
+    // (see `activeAsteroidCount` on `usePoolStore`). Reading it directly
+    // avoids a per-frame `asteroids.filter().length` allocation that
+    // scales with the pool size.
+    const count = usePoolStore.getState().activeAsteroidCount;
     if (count !== activeCount) {
       setActiveAsteroidsCount(count);
       setActiveAsteroids(count);

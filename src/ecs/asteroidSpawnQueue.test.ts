@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   clearAsteroidSpawns,
   drainAsteroidSpawns,
+  enqueueAsteroidFragment,
   enqueueAsteroidSpawn,
   type SpawnData,
 } from "./asteroidSpawnQueue";
@@ -57,5 +58,39 @@ describe("asteroidSpawnQueue", () => {
     drained.push({ id: "2", pos: [1, 1, 1], type: "tank" });
 
     expect(drainAsteroidSpawns()).toHaveLength(0);
+  });
+});
+
+describe("enqueueAsteroidFragment", () => {
+  beforeEach(() => {
+    clearAsteroidSpawns();
+  });
+
+  it("queues two swarmer spawns offset on the X axis from the given position", () => {
+    enqueueAsteroidFragment([10, 0, 0]);
+
+    const drained = drainAsteroidSpawns();
+    expect(drained).toHaveLength(2);
+    expect(drained[0].type).toBe("swarmer");
+    expect(drained[1].type).toBe("swarmer");
+    expect(drained[0].pos).toEqual([12, 0, 0]);
+    expect(drained[1].pos).toEqual([8, 0, 0]);
+  });
+
+  it("assigns unique ids to the two fragments", () => {
+    enqueueAsteroidFragment([0, 0, 0]);
+    const drained = drainAsteroidSpawns();
+    expect(drained[0].id).not.toBe(drained[1].id);
+  });
+
+  it("appends to existing queued spawns in order", () => {
+    enqueueAsteroidSpawn({ id: "a", pos: [0, 0, 0], type: "tank" });
+    enqueueAsteroidFragment([5, 5, 5]);
+
+    const drained = drainAsteroidSpawns();
+    expect(drained.map((s) => s.type)).toEqual(["tank", "swarmer", "swarmer"]);
+    expect(drained[0].pos).toEqual([0, 0, 0]);
+    expect(drained[1].pos).toEqual([7, 5, 5]);
+    expect(drained[2].pos).toEqual([3, 5, 5]);
   });
 });

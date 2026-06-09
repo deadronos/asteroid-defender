@@ -3,6 +3,7 @@ import { useShallow } from "zustand/react/shallow";
 import Asteroid from "../Asteroid";
 import { usePoolStore } from "../../store/poolStore";
 import type { AsteroidType } from "../../ecs/world";
+import { enqueueAsteroidFragment } from "../../ecs/asteroidSpawnQueue";
 import useGameStore from "../../store/gameStore";
 import type { EffectsQuality } from "../../utils/visualQuality";
 
@@ -12,7 +13,7 @@ interface AsteroidLayerProps {
 
 const AsteroidLayer = memo(function AsteroidLayer({ effectsQuality }: AsteroidLayerProps) {
   const asteroids = usePoolStore(useShallow((s) => s.asteroids));
-  const activeAsteroidCount = asteroids.filter((a) => a.active).length;
+  const activeAsteroidCount = usePoolStore((s) => s.activeAsteroidCount);
 
   const handleDestroy = useCallback(
     (
@@ -34,7 +35,10 @@ const AsteroidLayer = memo(function AsteroidLayer({ effectsQuality }: AsteroidLa
       store.triggerExplosion(pos, type);
 
       if (type === "splitter" && !isHit) {
-        store.activateSplitterFragments(pos);
+        // Route fragments through the spawn queue so they share the
+        // same backpressure, telemetry, and starvation reporting as
+        // regular spawns.
+        enqueueAsteroidFragment(pos);
       }
     },
     [],

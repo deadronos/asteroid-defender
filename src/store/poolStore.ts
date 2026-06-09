@@ -22,6 +22,13 @@ interface PoolState {
   asteroids: PooledAsteroid[];
   explosions: PooledExplosion[];
   poolSize: number;
+  /**
+   * Maintained count of currently-active asteroid slots. Updated
+   * incrementally by `activateAsteroids` / `deactivateAsteroid` so that
+   * per-frame readers (e.g. `useAsteroidManager`) do not have to allocate
+   * a filtered array each frame to compute it.
+   */
+  activeAsteroidCount: number;
   // Free-list bookkeeping: stack of inactive slot indices
   asteroidFreeList: number[];
   explosionFreeList: number[];
@@ -34,7 +41,6 @@ interface PoolState {
   deactivateAsteroid: (id: string) => void;
   triggerExplosion: (pos: [number, number, number], type: AsteroidType) => void;
   deactivateExplosion: (id: string) => void;
-  activateSplitterFragments: (pos: [number, number, number]) => void;
   resetPools: (poolSize: number) => void;
 }
 
@@ -76,6 +82,7 @@ export const usePoolStore = create<PoolState>((set, get) => ({
   asteroids: [],
   explosions: [],
   poolSize: 60,
+  activeAsteroidCount: 0,
   asteroidFreeList: [],
   explosionFreeList: [],
   asteroidIdToIndex: new Map(),
@@ -104,17 +111,23 @@ export const usePoolStore = create<PoolState>((set, get) => ({
           newIdToIndex.set(newAsteroids[idx].id, idx);
         }
 
+        markTelemetry("asteroids:activations", {
+          count: spawns.length,
+          source: "spawn-queue",
+        });
+
         return {
           asteroids: newAsteroids,
           asteroidFreeList: newFreeList,
           asteroidIdToIndex: newIdToIndex,
+          activeAsteroidCount: state.activeAsteroidCount + spawns.length,
         };
       });
       return;
     }
 
     // Slow path: free list exhausted — rebuild bookkeeping then retry
-    markTelemetry("pool:asteroid-starved", {
+    markTelemetry("asteroids:starved", {
       requested: spawns.length,
       available: asteroidFreeList.length,
     });
@@ -145,10 +158,17 @@ export const usePoolStore = create<PoolState>((set, get) => ({
         newIdToIndex.set(newAsteroids[idx].id, idx);
       }
 
+      markTelemetry("asteroids:activations", {
+        count: toActivate,
+        source: "spawn-queue",
+        starved: spawns.length - toActivate,
+      });
+
       return {
         asteroids: newAsteroids,
         asteroidFreeList: newFreeList,
         asteroidIdToIndex: newIdToIndex,
+        activeAsteroidCount: state.activeAsteroidCount + toActivate,
       };
     });
   },
@@ -172,6 +192,7 @@ export const usePoolStore = create<PoolState>((set, get) => ({
         asteroids: newAsteroids,
         asteroidFreeList: newFreeList,
         asteroidIdToIndex: newIdToIndex,
+        activeAsteroidCount: Math.max(0, state.activeAsteroidCount - 1),
       };
     });
   },
@@ -255,63 +276,6 @@ export const usePoolStore = create<PoolState>((set, get) => ({
     });
   },
 
-  activateSplitterFragments: (pos) => {
-    const { asteroids, asteroidFreeList } = get();
-
-    if (asteroidFreeList.length < 2) {
-      // Rebuild bookkeeping to check real availability
-      const rebuilt = rebuildAsteroidBookkeeping(asteroids);
-      if (rebuilt.freeList.length < 2) return;
-
-      set((state) => {
-        const newAsteroids = [...state.asteroids];
-        const newFreeList = [...rebuilt.freeList];
-        const newIdToIndex = new Map(rebuilt.idToIndex);
-
-        for (let f = 0; f < 2; f++) {
-          const idx = newFreeList.pop()!;
-          newAsteroids[idx] = {
-            ...newAsteroids[idx],
-            active: true,
-            pos: [pos[0] + (f === 0 ? 2 : -2), pos[1], pos[2]],
-            type: "swarmer",
-          };
-          newIdToIndex.set(newAsteroids[idx].id, idx);
-        }
-
-        return {
-          asteroids: newAsteroids,
-          asteroidFreeList: newFreeList,
-          asteroidIdToIndex: newIdToIndex,
-        };
-      });
-      return;
-    }
-
-    set((state) => {
-      const newAsteroids = [...state.asteroids];
-      const newFreeList = [...state.asteroidFreeList];
-      const newIdToIndex = new Map(state.asteroidIdToIndex);
-
-      for (let f = 0; f < 2; f++) {
-        const idx = newFreeList.pop()!;
-        newAsteroids[idx] = {
-          ...newAsteroids[idx],
-          active: true,
-          pos: [pos[0] + (f === 0 ? 2 : -2), pos[1], pos[2]],
-          type: "swarmer",
-        };
-        newIdToIndex.set(newAsteroids[idx].id, idx);
-      }
-
-      return {
-        asteroids: newAsteroids,
-        asteroidFreeList: newFreeList,
-        asteroidIdToIndex: newIdToIndex,
-      };
-    });
-  },
-
   resetPools: (poolSize) => {
     const storagePos = getStoragePosition();
     const asteroids = Array.from({ length: poolSize }, () => ({
@@ -335,6 +299,7 @@ export const usePoolStore = create<PoolState>((set, get) => ({
       asteroids,
       explosions,
       poolSize,
+      activeAsteroidCount: 0,
       asteroidFreeList,
       explosionFreeList,
       asteroidIdToIndex: new Map(),

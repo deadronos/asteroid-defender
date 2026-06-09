@@ -13,13 +13,13 @@ telemetry event names where observable by the existing test suite) stable.
 
 ## Findings → Tasks
 
-| # | Finding | File(s) | Approach |
-|---|---------|---------|----------|
-| F1 | Splitter cascade bypasses the spawn queue | `poolStore.ts`, `AsteroidLayer.tsx` | Add `enqueueAsteroidFragment(pos)` that builds a `SpawnData` and enqueues it; delete `activateSplitterFragments`; `AsteroidLayer` calls the new enqueue. |
-| F2 | Per-frame `.filter().length` in `useAsteroidManager` | `poolStore.ts`, `useAsteroidManager.ts` | Maintain `activeCount` in `poolStore`; increment on activate, decrement on deactivate; expose `getActiveCount()` and replace the filter with a selector. |
-| F3 | `Map<string, number>` clone per batch | `poolStore.ts` | Switch to **mutate-in-place + version counter** pattern; keep the existing `useShallow` subscriber contract by bumping a top-level counter. |
-| F4–F6 | (LOW / non-issues) | — | No code change. |
-| F7 | Telemetry undercounts activation rate | `poolStore.ts` | Emit a unified `asteroids:activations` event with `{ source: "spawn" \| "fragment" }` whenever a slot is activated. |
+| #     | Finding                                              | File(s)                                 | Approach                                                                                                                                                 |
+| ----- | ---------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1    | Splitter cascade bypasses the spawn queue            | `poolStore.ts`, `AsteroidLayer.tsx`     | Add `enqueueAsteroidFragment(pos)` that builds a `SpawnData` and enqueues it; delete `activateSplitterFragments`; `AsteroidLayer` calls the new enqueue. |
+| F2    | Per-frame `.filter().length` in `useAsteroidManager` | `poolStore.ts`, `useAsteroidManager.ts` | Maintain `activeCount` in `poolStore`; increment on activate, decrement on deactivate; expose `getActiveCount()` and replace the filter with a selector. |
+| F3    | `Map<string, number>` clone per batch                | `poolStore.ts`                          | Switch to **mutate-in-place + version counter** pattern; keep the existing `useShallow` subscriber contract by bumping a top-level counter.              |
+| F4–F6 | (LOW / non-issues)                                   | —                                       | No code change.                                                                                                                                          |
+| F7    | Telemetry undercounts activation rate                | `poolStore.ts`                          | Emit a unified `asteroids:activations` event with `{ source: "spawn" \| "fragment" }` whenever a slot is activated.                                      |
 
 ## Out of Scope
 
@@ -58,10 +58,10 @@ allocation.
 
 The React subscriber in `AsteroidLayer` already does its own
 `.filter(...).length` for `activeAsteroidCount` (local component prop
-for `Asteroid` visual quality). That stays — the *file-local* count
+for `Asteroid` visual quality). That stays — the _file-local_ count
 is a different value (used to drive visual tier) and only updates
 when the `asteroids` array reference changes, which still happens
-on activate/deactivate. The *manager's* count is the value pushed
+on activate/deactivate. The _manager's_ count is the value pushed
 into `gameStore.activeAsteroids`.
 
 ### F3 — Mutate-in-place with version counter
