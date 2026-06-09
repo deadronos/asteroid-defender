@@ -6,6 +6,7 @@ import {
   asteroidQuery,
   countAsteroidsInRange,
   findNearestAsteroidInRange,
+  getCellKey,
   markAsteroidDirty,
   queryAsteroidsInRange,
   updateSpatialIndex,
@@ -101,6 +102,22 @@ describe("asteroid spatial index", () => {
     updateSpatialIndex();
 
     expect(asteroidCells.size).toBe(1);
+  });
+
+  it("reuses existing cell buckets across rebuilds", () => {
+    markAsteroidDirty();
+    const asteroid = addAsteroid("a-8", new THREE.Vector3(0, 0, 0));
+    const initialBucket = asteroidCells.get(getCellKey(0, 0, 0));
+
+    expect(initialBucket).toBeDefined();
+
+    asteroid.position!.set(1, 0, 0);
+    markAsteroidDirty();
+    updateSpatialIndex();
+
+    const rebuiltBucket = asteroidCells.get(getCellKey(0, 0, 0));
+
+    expect(rebuiltBucket).toBe(initialBucket);
   });
 
   it("correctly queries asteroids after spatial index updates", () => {

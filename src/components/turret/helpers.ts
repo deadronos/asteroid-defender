@@ -13,12 +13,16 @@ export function releaseTarget(target: GameEntity | null, turretId: string) {
 }
 
 export function findTurretTarget(turret: THREE.Group, turretId: string): GameEntity | null {
-  const isTopTurret = turret.position.y > 0;
+  const turretPosition = turret.position;
+  const isTopTurret = turretPosition.y > 0;
 
-  return findNearestAsteroidInRange(turret.position, TURRET_RANGE, (entity, distSq) => {
-    if (!entity.position) return Infinity;
-    if (entity.position.y > 0 !== isTopTurret) return Infinity;
-    return distSq + (entity.targetedBy && entity.targetedBy !== turretId ? TARGETING_PENALTY : 0);
+  return findNearestAsteroidInRange(turretPosition, TURRET_RANGE, (entity, distSq) => {
+    const entityPosition = entity.position;
+    if (!entityPosition) return Infinity;
+    if (entityPosition.y > 0 !== isTopTurret) return Infinity;
+
+    const targetedBy = entity.targetedBy;
+    return distSq + (targetedBy && targetedBy !== turretId ? TARGETING_PENALTY : 0);
   });
 }
 
