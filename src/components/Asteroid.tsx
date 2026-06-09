@@ -36,8 +36,6 @@ interface AsteroidUserData {
   asteroidDamage?: number;
 }
 
-const tempVec = new THREE.Vector3();
-
 // Threshold below which emissive/opacity writes are skipped to avoid material churn
 const MATERIAL_WRITE_THRESHOLD = 0.01;
 
@@ -183,23 +181,26 @@ function Asteroid({
     }
 
     const translation = rbRef.current.translation();
+    const tx = translation.x;
+    const ty = translation.y;
+    const tz = translation.z;
 
     // Sync Rapier position to ECS for Turrets to read
-    entityRef.current.position!.set(translation.x, translation.y, translation.z);
+    entityRef.current.position!.set(tx, ty, tz);
     markAsteroidDirty();
 
     const currentMaterial = materialRef.current;
     const currentDangerRingMaterial = dangerRingMaterialRef.current;
-    const isTank = type === "tank";
-    const shouldUpdateGlow = flashTimerRef.current <= 0 && currentMaterial !== null;
-    const shouldUpdateTankRing = isTank && currentDangerRingMaterial !== null;
+    const shouldUpdateGlow =
+      flashTimerRef.current <= 0 && currentMaterial !== null && visualProfile.showProximityGlow;
+    const shouldUpdateTankRing =
+      type === "tank" && currentDangerRingMaterial !== null && visualProfile.showTankRing;
 
     let imminentRatio = 0;
     if (shouldUpdateGlow || shouldUpdateTankRing) {
       // Base-hit detection is now handled by Rapier collision events on the
       // platform CylinderCollider (see Platform.tsx onCollisionEnter).
-      tempVec.set(translation.x, translation.y, translation.z);
-      const distSq = tempVec.lengthSq();
+      const distSq = tx * tx + ty * ty + tz * tz;
       const dist = Math.sqrt(distSq);
       imminentRatio = Math.max(0, 1 - dist / 35);
     }
@@ -209,9 +210,8 @@ function Asteroid({
       if (!material) return;
 
       let newIntensity = 0;
-      const showProximityGlow = visualProfile.showProximityGlow;
       const animateProximityGlow = visualProfile.animateProximityGlow;
-      if (showProximityGlow && imminentRatio > 0) {
+      if (imminentRatio > 0) {
         _proxColor.set(cfg.color);
         material.emissive.copy(_proxColor);
 

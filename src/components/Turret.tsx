@@ -148,27 +148,29 @@ export default function Turret({ id, position, rotation }: TurretProps) {
 
     // Pulse Animation for Laser & Impact
     pulseRef.current += delta * 30;
+    const elapsedTime = state.clock.elapsedTime;
     const pulse = Math.sin(pulseRef.current) * 0.5 + 0.5;
+    const isTargeting = hasTargetRef.current;
 
     if (coreMaterialRef.current) {
       coreMaterialRef.current.emissiveIntensity = 1.6 + pulse * 1.8;
     }
 
     if (hologramRingRef.current) {
-      hologramRingRef.current.rotation.z = (state.clock.elapsedTime * 1.2) % (Math.PI * 2);
-      const scale = hasTargetRef.current ? 1.05 + pulse * 0.2 : 0.95 + pulse * 0.08;
+      hologramRingRef.current.rotation.z = (elapsedTime * 1.2) % (Math.PI * 2);
+      const scale = isTargeting ? 1.05 + pulse * 0.2 : 0.95 + pulse * 0.08;
       hologramRingRef.current.scale.setScalar(scale);
     }
     if (hologramRingMaterialRef.current) {
-      hologramRingMaterialRef.current.opacity = hasTargetRef.current
+      hologramRingMaterialRef.current.opacity = isTargeting
         ? 0.45 + pulse * 0.2
         : 0.2 + pulse * 0.08;
     }
     if (hologramReticleRef.current) {
-      hologramReticleRef.current.rotation.z = (-state.clock.elapsedTime * 1.6) % (Math.PI * 2);
+      hologramReticleRef.current.rotation.z = (-elapsedTime * 1.6) % (Math.PI * 2);
     }
 
-    if (!hasTargetRef.current) return;
+    if (!isTargeting) return;
 
     if (laserMeshRef.current) {
       const length = actualDist - LASER_ORIGIN_Z;

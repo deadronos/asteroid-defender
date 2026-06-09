@@ -27,7 +27,8 @@ export function findTurretTarget(turret: THREE.Group, turretId: string): GameEnt
     }
 
     const targetedBy = entity.targetedBy;
-    return distSq + (targetedBy && targetedBy !== turretId ? TARGETING_PENALTY : 0);
+    const penalty = targetedBy && targetedBy !== turretId ? TARGETING_PENALTY : 0;
+    return distSq + penalty;
   });
 }
 
