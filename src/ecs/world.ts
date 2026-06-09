@@ -92,7 +92,7 @@ function visitAsteroidsInRange(
 
   // Performance optimization: For small numbers of active entities,
   // a linear scan is much faster than checking 125 spatial index cells.
-  if (entities.length < 80) {
+  if (entities.length < SPATIAL_INDEX_THRESHOLD) {
     for (let i = 0; i < entities.length; i++) {
       const entity = entities[i];
       if (entity.position) {
@@ -124,20 +124,45 @@ export function updateSpatialIndex() {
   if (!anyAsteroidMoved) return;
   anyAsteroidMoved = false;
 
-  asteroidCells.clear();
+  const entities = asteroidQuery.entities;
+  const usedKeys = new Set<number>();
 
-  for (const entity of asteroidQuery.entities) {
+  for (let i = 0; i < entities.length; i++) {
+    const entity = entities[i];
     if (!entity.position) continue;
+
     const x = Math.floor(entity.position.x / CELL_SIZE);
     const y = Math.floor(entity.position.y / CELL_SIZE);
     const z = Math.floor(entity.position.z / CELL_SIZE);
     const key = getCellKey(x, y, z);
-    let arr = asteroidCells.get(key);
-    if (!arr) {
-      arr = [];
-      asteroidCells.set(key, arr);
+
+    usedKeys.add(key);
+
+    let cell = asteroidCells.get(key);
+    if (!cell) {
+      cell = [];
+      asteroidCells.set(key, cell);
     }
-    arr.push(entity);
+
+    cell.length = 0;
+  }
+
+  for (let i = 0; i < entities.length; i++) {
+    const entity = entities[i];
+    if (!entity.position) continue;
+
+    const x = Math.floor(entity.position.x / CELL_SIZE);
+    const y = Math.floor(entity.position.y / CELL_SIZE);
+    const z = Math.floor(entity.position.z / CELL_SIZE);
+    const key = getCellKey(x, y, z);
+
+    asteroidCells.get(key)!.push(entity);
+  }
+
+  for (const key of asteroidCells.keys()) {
+    if (!usedKeys.has(key)) {
+      asteroidCells.delete(key);
+    }
   }
 }
 

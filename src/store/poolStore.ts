@@ -102,13 +102,11 @@ export const usePoolStore = create<PoolState>((set, get) => ({
 
         for (let s = 0; s < spawns.length; s++) {
           const idx = newFreeList.pop()!;
-          newAsteroids[idx] = {
-            ...newAsteroids[idx],
-            active: true,
-            pos: spawns[s].pos,
-            type: spawns[s].type,
-          };
-          newIdToIndex.set(newAsteroids[idx].id, idx);
+          const slot = newAsteroids[idx];
+          slot.active = true;
+          slot.pos = spawns[s].pos;
+          slot.type = spawns[s].type;
+          newIdToIndex.set(slot.id, idx);
         }
 
         markTelemetry("asteroids:activations", {
@@ -149,13 +147,11 @@ export const usePoolStore = create<PoolState>((set, get) => ({
       const toActivate = Math.min(spawns.length, newFreeList.length);
       for (let s = 0; s < toActivate; s++) {
         const idx = newFreeList.pop()!;
-        newAsteroids[idx] = {
-          ...newAsteroids[idx],
-          active: true,
-          pos: spawns[s].pos,
-          type: spawns[s].type,
-        };
-        newIdToIndex.set(newAsteroids[idx].id, idx);
+        const slot = newAsteroids[idx];
+        slot.active = true;
+        slot.pos = spawns[s].pos;
+        slot.type = spawns[s].type;
+        newIdToIndex.set(slot.id, idx);
       }
 
       markTelemetry("asteroids:activations", {
@@ -180,11 +176,9 @@ export const usePoolStore = create<PoolState>((set, get) => ({
 
     set((state) => {
       const newAsteroids = [...state.asteroids];
-      newAsteroids[idx] = {
-        ...newAsteroids[idx],
-        active: false,
-        pos: getStoragePosition(),
-      };
+      const slot = newAsteroids[idx];
+      slot.active = false;
+      slot.pos = getStoragePosition();
       const newFreeList = [...state.asteroidFreeList, idx];
       const newIdToIndex = new Map(state.asteroidIdToIndex);
       newIdToIndex.delete(id);
@@ -208,13 +202,11 @@ export const usePoolStore = create<PoolState>((set, get) => ({
         const newIdToIndex = new Map(state.explosionIdToIndex);
 
         const idx = newFreeList.pop()!;
-        newExplosions[idx] = {
-          ...newExplosions[idx],
-          active: true,
-          pos,
-          type,
-        };
-        newIdToIndex.set(newExplosions[idx].id, idx);
+        const slot = newExplosions[idx];
+        slot.active = true;
+        slot.pos = pos;
+        slot.type = type;
+        newIdToIndex.set(slot.id, idx);
 
         return {
           explosions: newExplosions,
@@ -237,13 +229,11 @@ export const usePoolStore = create<PoolState>((set, get) => ({
       const newIdToIndex = new Map(rebuilt.idToIndex);
 
       const idx = newFreeList.pop()!;
-      newExplosions[idx] = {
-        ...newExplosions[idx],
-        active: true,
-        pos,
-        type,
-      };
-      newIdToIndex.set(newExplosions[idx].id, idx);
+      const slot = newExplosions[idx];
+      slot.active = true;
+      slot.pos = pos;
+      slot.type = type;
+      newIdToIndex.set(slot.id, idx);
 
       return {
         explosions: newExplosions,
@@ -260,11 +250,9 @@ export const usePoolStore = create<PoolState>((set, get) => ({
 
     set((state) => {
       const newExplosions = [...state.explosions];
-      newExplosions[idx] = {
-        ...newExplosions[idx],
-        active: false,
-        pos: getStoragePosition(),
-      };
+      const slot = newExplosions[idx];
+      slot.active = false;
+      slot.pos = getStoragePosition();
       const newFreeList = [...state.explosionFreeList, idx];
       const newIdToIndex = new Map(state.explosionIdToIndex);
       newIdToIndex.delete(id);
