@@ -43,7 +43,7 @@ function getRelativeId(id: string): string {
   return srcIndex >= 0 ? id.slice(srcIndex + 1) : id;
 }
 
-function getBindingName(binding: t.LVal): string {
+function getBindingName(binding: t.Node): string {
   if (t.isIdentifier(binding)) {
     return binding.name;
   }
@@ -184,7 +184,7 @@ export function devTelemetryVitePlugin(): Plugin {
       const ast = parse(code, {
         sourceType: "module",
         sourceFilename: normalizedId,
-        plugins: ["jsx", "typescript", "classProperties"],
+        plugins: ["jsx", "typescript"],
       });
 
       let mutated = false;
@@ -262,7 +262,12 @@ export function devTelemetryVitePlugin(): Plugin {
 
       return {
         code: output.code,
-        map: output.map,
+        map: output.map as unknown as {
+          version: number;
+          mappings: string;
+          names: string[];
+          sources: string[];
+        },
       };
     },
   };
