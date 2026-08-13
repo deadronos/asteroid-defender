@@ -3,10 +3,14 @@ import { describe, expect, it, beforeEach, afterEach } from "vite-plus/test";
 import { ECS, asteroidQuery, updateSpatialIndex, type GameEntity } from "../../ecs/world";
 import {
   releaseTarget,
+  calculateTurretDps,
   calculateTurretDamage,
   findTurretTarget,
   TURRET_RANGE,
   TARGETING_PENALTY,
+  TURRET_MAX_DPS,
+  TURRET_MIN_DPS,
+  MAX_DELTA_CLAMP,
 } from "./helpers";
 
 function clearWorld() {
@@ -59,18 +63,45 @@ describe("Turret Helpers", () => {
     });
   });
 
-  describe("calculateTurretDamage", () => {
-    it("should return max damage (5.0) at distance 0", () => {
-      expect(calculateTurretDamage(0)).toBeCloseTo(5.0);
+  describe("calculateTurretDps", () => {
+    it("should calculate max DPS at distance 0", () => {
+      expect(calculateTurretDps(0)).toBeCloseTo(TURRET_MAX_DPS);
     });
 
-    it("should return min damage (0.1) at max range", () => {
-      expect(calculateTurretDamage(TURRET_RANGE * TURRET_RANGE)).toBeCloseTo(0.1);
+    it("should calculate min DPS at max range", () => {
+      expect(calculateTurretDps(TURRET_RANGE * TURRET_RANGE)).toBeCloseTo(TURRET_MIN_DPS);
     });
 
-    it("should return intermediate damage correctly (midpoint)", () => {
+    it("should calculate intermediate DPS correctly (midpoint)", () => {
       const midDistSq = (TURRET_RANGE * TURRET_RANGE) / 2;
-      expect(calculateTurretDamage(midDistSq)).toBeCloseTo((5.0 + 0.1) / 2);
+      const expectedDps = (TURRET_MAX_DPS + TURRET_MIN_DPS) / 2;
+      expect(calculateTurretDps(midDistSq)).toBeCloseTo(expectedDps);
+    });
+  });
+
+  describe("calculateTurretDamage", () => {
+    it("should scale damage with delta per frame", () => {
+      const dt60 = 1 / 60;
+      const dt120 = 1 / 120;
+      const damageAt60 = calculateTurretDamage(0, dt60);
+      const damageAt120 = calculateTurretDamage(0, dt120);
+
+      expect(damageAt60).toBeCloseTo(TURRET_MAX_DPS * dt60);
+      expect(damageAt120).toBeCloseTo(TURRET_MAX_DPS * dt120);
+      expect(damageAt60).toBeCloseTo(damageAt120 * 2);
+    });
+
+    it("should default delta to 1/60s when omitted", () => {
+      expect(calculateTurretDamage(0)).toBeCloseTo(TURRET_MAX_DPS * (1 / 60));
+    });
+
+    it("should clamp large delta spikes to MAX_DELTA_CLAMP", () => {
+      const hugeDelta = 2.0;
+      expect(calculateTurretDamage(0, hugeDelta)).toBeCloseTo(TURRET_MAX_DPS * MAX_DELTA_CLAMP);
+    });
+
+    it("should clamp negative delta to 0", () => {
+      expect(calculateTurretDamage(0, -1)).toBe(0);
     });
   });
 

@@ -15,7 +15,7 @@ function pickAsteroidType(): AsteroidType {
 }
 
 const INITIAL_SPAWN_INTERVAL = 2.0;
-const MIN_SPAWN_INTERVAL = 0.5;
+const MIN_SPAWN_INTERVAL = 1.0;
 const MAX_SPAWN_INTERVAL = 5.0;
 const SPAWN_ADJUSTMENT = 0.2;
 const SPAWN_RADIUS = 40;
