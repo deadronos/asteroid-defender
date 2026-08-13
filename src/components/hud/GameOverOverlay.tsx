@@ -1,18 +1,24 @@
+import { memo } from "react";
+import { useShallow } from "zustand/react/shallow";
+import useGameStore from "../../store/gameStore";
 import OverlayBackdrop from "./OverlayBackdrop";
 import { dangerButton, overlayTitle } from "./hudStyles";
-
-interface GameOverOverlayProps {
-  asteroidsDestroyed: number;
-  runDurationLabel: string;
-  restartGame: () => void;
-}
+import { formatDuration } from "./formatDuration";
 
 /** Full-screen overlay shown when the base is destroyed. */
-export default function GameOverOverlay({
-  asteroidsDestroyed,
-  runDurationLabel,
-  restartGame,
-}: GameOverOverlayProps) {
+function GameOverOverlay() {
+  const { asteroidsDestroyed, runStartedAt, runEndedAt, restartGame } = useGameStore(
+    useShallow((state) => ({
+      asteroidsDestroyed: state.asteroidsDestroyed,
+      runStartedAt: state.runStartedAt,
+      runEndedAt: state.runEndedAt,
+      restartGame: state.restartGame,
+    })),
+  );
+
+  const runDuration = runStartedAt > 0 && runEndedAt !== null ? runEndedAt - runStartedAt : 0;
+  const runDurationLabel = formatDuration(runDuration);
+
   return (
     <OverlayBackdrop backgroundColor="rgba(0,0,0,0.85)" zIndex={100}>
       <h1
@@ -58,3 +64,5 @@ export default function GameOverOverlay({
     </OverlayBackdrop>
   );
 }
+
+export default memo(GameOverOverlay);

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import OverlayBackdrop from "./OverlayBackdrop";
 import { overlayText, overlayTitle, primaryButton, dangerButton } from "./hudStyles";
 
@@ -7,7 +8,7 @@ interface PauseOverlayProps {
 }
 
 /** Full-screen overlay shown while the game is paused. */
-export default function PauseOverlay({ resumeGame, restartGame }: PauseOverlayProps) {
+function PauseOverlay({ resumeGame, restartGame }: PauseOverlayProps) {
   return (
     <OverlayBackdrop backgroundColor="rgba(0,0,0,0.72)" zIndex={110}>
       <h1 style={{ ...overlayTitle, color: "#e2e8f0", fontSize: "clamp(1.8rem, 5vw, 3rem)" }}>
@@ -41,3 +42,5 @@ export default function PauseOverlay({ resumeGame, restartGame }: PauseOverlayPr
     </OverlayBackdrop>
   );
 }
+
+export default memo(PauseOverlay);

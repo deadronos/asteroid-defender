@@ -1,5 +1,21 @@
+import { memo } from "react";
+import { useShallow } from "zustand/react/shallow";
+import useGameStore from "../../store/gameStore";
+
 /** Pill shown at the bottom center during a cinematic camera sweep. */
-export default function CinematicIndicator() {
+function CinematicIndicator() {
+  const { cameraMode, inCinematicTransition, showCinematicIndicator } = useGameStore(
+    useShallow((state) => ({
+      cameraMode: state.cameraMode,
+      inCinematicTransition: state.inCinematicTransition,
+      showCinematicIndicator: state.showCinematicIndicator,
+    })),
+  );
+
+  if (cameraMode !== "cinematic" || !inCinematicTransition || !showCinematicIndicator) {
+    return null;
+  }
+
   return (
     <div
       aria-live="polite"
@@ -26,3 +42,5 @@ export default function CinematicIndicator() {
     </div>
   );
 }
+
+export default memo(CinematicIndicator);
