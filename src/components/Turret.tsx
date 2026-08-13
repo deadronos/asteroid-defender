@@ -108,7 +108,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
       recalibrationStartRef.current = null;
       if (barrelGroupRef.current) barrelGroupRef.current.rotation.set(0, 0, 0);
 
-      nearestEntity.health! -= calculateTurretDamage(actualDistSq);
+      nearestEntity.health! -= calculateTurretDamage(actualDistSq, delta);
     } else {
       // Clear our lock if no target
       if (currentTargetRef.current) {

@@ -46,8 +46,15 @@ export function applyIdleTurretRotation(
   );
 }
 
-export function calculateTurretDamage(actualDistSq: number) {
-  const maxDamage = 5;
-  const minDamage = 0.1;
-  return maxDamage - (actualDistSq / TURRET_RANGE_SQ) * (maxDamage - minDamage);
+export const TURRET_MAX_DPS = 180;
+export const TURRET_MIN_DPS = 10;
+export const MAX_DELTA_CLAMP = 0.1;
+
+export function calculateTurretDps(actualDistSq: number): number {
+  return TURRET_MAX_DPS - (actualDistSq / TURRET_RANGE_SQ) * (TURRET_MAX_DPS - TURRET_MIN_DPS);
+}
+
+export function calculateTurretDamage(actualDistSq: number, delta: number = 1 / 60): number {
+  const clampedDelta = Math.min(Math.max(delta, 0), MAX_DELTA_CLAMP);
+  return calculateTurretDps(actualDistSq) * clampedDelta;
 }
