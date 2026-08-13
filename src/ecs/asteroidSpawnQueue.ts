@@ -8,7 +8,8 @@ export interface SpawnData {
   type: AsteroidType;
 }
 
-const pendingSpawns: SpawnData[] = [];
+let pendingSpawns: SpawnData[] = [];
+let drainBuffer: SpawnData[] = [];
 
 /**
  * Offsets (X, Y, Z) applied to the two fragments produced by a splitter
@@ -54,12 +55,14 @@ export function enqueueAsteroidFragment(pos: [number, number, number]) {
 
 export function drainAsteroidSpawns(): SpawnData[] {
   if (pendingSpawns.length === 0) return [];
-  const drained = pendingSpawns.slice();
-  pendingSpawns.length = 0;
+  const temp = drainBuffer;
+  temp.length = 0;
+  drainBuffer = pendingSpawns;
+  pendingSpawns = temp;
   markTelemetry("spawn-queue:drain", {
-    count: drained.length,
+    count: drainBuffer.length,
   });
-  return drained;
+  return drainBuffer;
 }
 
 export function clearAsteroidSpawns() {
@@ -69,4 +72,5 @@ export function clearAsteroidSpawns() {
     });
   }
   pendingSpawns.length = 0;
+  drainBuffer.length = 0;
 }

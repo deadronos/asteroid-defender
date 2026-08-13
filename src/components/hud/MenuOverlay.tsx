@@ -1,3 +1,4 @@
+import { memo } from "react";
 import OverlayBackdrop from "./OverlayBackdrop";
 import { overlayText, overlayTitle, primaryButton } from "./hudStyles";
 
@@ -6,7 +7,7 @@ interface MenuOverlayProps {
 }
 
 /** Full-screen menu shown before the first run. */
-export default function MenuOverlay({ startGame }: MenuOverlayProps) {
+function MenuOverlay({ startGame }: MenuOverlayProps) {
   return (
     <OverlayBackdrop backgroundColor="rgba(2, 4, 12, 0.84)" zIndex={125}>
       <h1 style={{ ...overlayTitle, textShadow: "0 0 20px rgba(126,200,255,0.35)" }}>
@@ -32,3 +33,5 @@ export default function MenuOverlay({ startGame }: MenuOverlayProps) {
     </OverlayBackdrop>
   );
 }
+
+export default memo(MenuOverlay);

@@ -1,10 +1,6 @@
-interface HUDStatsProps {
-  asteroidsDestroyed: number;
-  activeAsteroids: number;
-  health: number;
-  maxHealth: number;
-  gameState: string;
-}
+import { memo } from "react";
+import { useShallow } from "zustand/react/shallow";
+import useGameStore from "../../store/gameStore";
 
 const STATE_BADGE: Record<string, { label: string; bg: string; border: string; color: string }> = {
   menu: {
@@ -34,13 +30,17 @@ const STATE_BADGE: Record<string, { label: string; bg: string; border: string; c
 };
 
 /** Top-left HUD panel: title badge, health bar, destroyed/active stats. */
-export default function HUDStats({
-  asteroidsDestroyed,
-  activeAsteroids,
-  health,
-  maxHealth,
-  gameState,
-}: HUDStatsProps) {
+function HUDStats() {
+  const { asteroidsDestroyed, activeAsteroids, health, maxHealth, gameState } = useGameStore(
+    useShallow((state) => ({
+      asteroidsDestroyed: state.asteroidsDestroyed,
+      activeAsteroids: state.activeAsteroids,
+      health: state.health,
+      maxHealth: state.maxHealth,
+      gameState: state.gameState,
+    })),
+  );
+
   const healthPercent = maxHealth > 0 ? (health / maxHealth) * 100 : 0;
   const stateBadge = STATE_BADGE[gameState] ?? STATE_BADGE.menu;
 
@@ -137,3 +137,5 @@ export default function HUDStats({
     </div>
   );
 }
+
+export default memo(HUDStats);
