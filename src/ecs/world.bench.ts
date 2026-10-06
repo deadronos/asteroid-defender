@@ -13,7 +13,7 @@
  * With 4 turrets the total cost is roughly 4× that number.
  */
 import * as THREE from "three";
-import { afterAll, beforeAll, bench, describe } from "vite-plus/test";
+import { afterAll, beforeAll, describe, test } from "vite-plus/test";
 import {
   ECS,
   asteroidQuery,
@@ -70,17 +70,23 @@ for (const scale of SCALES) {
     beforeAll(() => seedAsteroids(scale));
     afterAll(clearWorld);
 
-    bench("rebuilds spatial index", () => {
-      markAsteroidDirty();
-      updateSpatialIndex();
+    test("rebuilds spatial index", async ({ bench }) => {
+      await bench("rebuilds spatial index", () => {
+        markAsteroidDirty();
+        updateSpatialIndex();
+      }).run();
     });
 
-    bench("counts nearby asteroids", () => {
-      countAsteroidsInRange(new THREE.Vector3(0, 0, 0), 25);
+    test("counts nearby asteroids", async ({ bench }) => {
+      await bench("counts nearby asteroids", () => {
+        countAsteroidsInRange(new THREE.Vector3(0, 0, 0), 25);
+      }).run();
     });
 
-    bench("finds nearest turret target with scoring", () => {
-      findNearestAsteroidInRange(sourcePosition, TURRET_RANGE, turretScoring);
+    test("finds nearest turret target with scoring", async ({ bench }) => {
+      await bench("finds nearest turret target with scoring", () => {
+        findNearestAsteroidInRange(sourcePosition, TURRET_RANGE, turretScoring);
+      }).run();
     });
   });
 }
@@ -120,26 +126,30 @@ describe("simulated worst-case frame at 60 asteroids", () => {
   beforeAll(() => seedAsteroids(60));
   afterAll(clearWorld);
 
-  bench("full frame: spatial index rebuild + 4 turret targetings + active count", () => {
-    markAsteroidDirty();
-    updateSpatialIndex();
+  test("full frame: spatial index rebuild + 4 turret targetings + active count", async ({
+    bench,
+  }) => {
+    await bench("full frame: spatial index rebuild + 4 turret targetings + active count", () => {
+      markAsteroidDirty();
+      updateSpatialIndex();
 
-    for (let t = 0; t < 4; t++) {
-      findNearestAsteroidInRange(
-        turretPositions[t],
-        TURRET_RANGE,
-        turretScoringForPos(TURRET_POSITIONS[t][1]),
-      );
-    }
+      for (let t = 0; t < 4; t++) {
+        findNearestAsteroidInRange(
+          turretPositions[t],
+          TURRET_RANGE,
+          turretScoringForPos(TURRET_POSITIONS[t][1]),
+        );
+      }
 
-    // Active count scan (iterating all entities to check a flag — similar to
-    // the .filter() in useAsteroidManager)
-    let activeCount = 0;
-    const entities = asteroidQuery.entities;
-    for (let i = 0; i < entities.length; i++) {
-      if (entities[i].isAsteroid) activeCount++;
-    }
-    void activeCount;
+      // Active count scan (iterating all entities to check a flag — similar to
+      // the .filter() in useAsteroidManager)
+      let activeCount = 0;
+      const entities = asteroidQuery.entities;
+      for (let i = 0; i < entities.length; i++) {
+        if (entities[i].isAsteroid) activeCount++;
+      }
+      void activeCount;
+    }).run();
   });
 });
 
@@ -147,23 +157,27 @@ describe("simulated worst-case frame at 120 asteroids", () => {
   beforeAll(() => seedAsteroids(120));
   afterAll(clearWorld);
 
-  bench("full frame: spatial index rebuild + 4 turret targetings + active count", () => {
-    markAsteroidDirty();
-    updateSpatialIndex();
+  test("full frame: spatial index rebuild + 4 turret targetings + active count", async ({
+    bench,
+  }) => {
+    await bench("full frame: spatial index rebuild + 4 turret targetings + active count", () => {
+      markAsteroidDirty();
+      updateSpatialIndex();
 
-    for (let t = 0; t < 4; t++) {
-      findNearestAsteroidInRange(
-        turretPositions[t],
-        TURRET_RANGE,
-        turretScoringForPos(TURRET_POSITIONS[t][1]),
-      );
-    }
+      for (let t = 0; t < 4; t++) {
+        findNearestAsteroidInRange(
+          turretPositions[t],
+          TURRET_RANGE,
+          turretScoringForPos(TURRET_POSITIONS[t][1]),
+        );
+      }
 
-    let activeCount = 0;
-    const entities = asteroidQuery.entities;
-    for (let i = 0; i < entities.length; i++) {
-      if (entities[i].isAsteroid) activeCount++;
-    }
-    void activeCount;
+      let activeCount = 0;
+      const entities = asteroidQuery.entities;
+      for (let i = 0; i < entities.length; i++) {
+        if (entities[i].isAsteroid) activeCount++;
+      }
+      void activeCount;
+    }).run();
   });
 });

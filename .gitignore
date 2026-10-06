@@ -31,3 +31,4 @@ trace*.json
 
 # Worktrees
 .worktrees/
+.vitest/
