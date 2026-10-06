@@ -4,8 +4,10 @@ import * as THREE from "three";
 import { AsteroidType, countAsteroidsInRange } from "../ecs/world";
 import { enqueueAsteroidSpawn } from "../ecs/asteroidSpawnQueue";
 import useGameStore from "../store/gameStore";
+import { usePoolStore } from "../store/poolStore";
 import { nextId } from "../utils/id";
-import { clamp, getRandomSpherePosition } from "../utils/math";
+import { getRandomSpherePosition } from "../utils/math";
+import { INITIAL_SPAWN_INTERVAL, nextSpawnInterval, shouldEnqueueAmbient } from "./spawner/helpers";
 
 function pickAsteroidType(): AsteroidType {
   const roll = Math.random();
@@ -14,12 +16,8 @@ function pickAsteroidType(): AsteroidType {
   return "splitter";
 }
 
-const INITIAL_SPAWN_INTERVAL = 2.0;
-const MIN_SPAWN_INTERVAL = 1.0;
-const MAX_SPAWN_INTERVAL = 5.0;
-const SPAWN_ADJUSTMENT = 0.2;
 const SPAWN_RADIUS = 40;
-const PROXIMITY_THRESHOLD = 3;
+const PROXIMITY_RADIUS = 25;
 
 export default function AsteroidSpawner() {
   const originRef = useRef(new THREE.Vector3(0, 0, 0));
@@ -39,21 +37,14 @@ export default function AsteroidSpawner() {
     if (spawnTimer.current >= currentInterval.current) {
       spawnTimer.current = 0;
 
-      const closeCount = countAsteroidsInRange(originRef.current, 25);
+      const closeCount = countAsteroidsInRange(originRef.current, PROXIMITY_RADIUS);
+      currentInterval.current = nextSpawnInterval(currentInterval.current, closeCount);
 
-      // Adjust spawn rate based on proximity count
-      if (closeCount < PROXIMITY_THRESHOLD) {
-        currentInterval.current = clamp(
-          currentInterval.current - SPAWN_ADJUSTMENT,
-          MIN_SPAWN_INTERVAL,
-          MAX_SPAWN_INTERVAL,
-        );
-      } else {
-        currentInterval.current = clamp(
-          currentInterval.current + SPAWN_ADJUSTMENT,
-          MIN_SPAWN_INTERVAL,
-          MAX_SPAWN_INTERVAL,
-        );
+      // Reserve pool headroom for splitter fragments: stop ambient spawning
+      // once the ambient cap is reached. The interval still adapts above so
+      // backpressure resumes immediately when the field clears.
+      if (!shouldEnqueueAmbient(usePoolStore.getState().activeAsteroidCount)) {
+        return;
       }
 
       enqueueAsteroidSpawn({

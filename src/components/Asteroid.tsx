@@ -4,7 +4,7 @@
  * Each asteroid is a pooled React component backed by a Rapier RigidBody.  Physics
  * simulation (collision, velocity) is delegated to Rapier, which gives accurate
  * hit detection and natural tumble without manual matrix math.  A fixed-size pool
- * (see POOL_SIZE in GameScene.tsx) is pre-allocated at startup; inactive entries
+ * (see ASTEROID_POOL_SIZE in config/spawning.ts) is pre-allocated at startup; inactive entries
  * are parked far off-screen so they incur no physics cost.
  *
  * Trade-offs vs. a GPU-instanced approach:

@@ -2,6 +2,8 @@ import { create } from "zustand";
 import type { AsteroidType } from "../ecs/world";
 import { nextId } from "../utils/id";
 import { markTelemetry } from "../telemetry/runtime";
+import { recordSpawnActivations } from "../ecs/spawnStats";
+import { ASTEROID_POOL_SIZE } from "../config/spawning";
 
 // Pooled asteroid shape — must match what Asteroid component expects
 export interface PooledAsteroid {
@@ -46,6 +48,13 @@ interface PoolState {
 
 const getStoragePosition = (): [number, number, number] => [0, -1000, 0];
 
+/**
+ * Edge-triggered saturation logging. A saturated pool drops spawns every frame
+ * under sustained load, so warn once per episode instead of spamming the
+ * console. The flag is cleared whenever a slot frees (or the pool resets).
+ */
+let saturationWarned = false;
+
 function rebuildAsteroidBookkeeping(asteroids: PooledAsteroid[]): {
   freeList: number[];
   idToIndex: Map<string, number>;
@@ -81,7 +90,7 @@ function rebuildExplosionBookkeeping(explosions: PooledExplosion[]): {
 export const usePoolStore = create<PoolState>((set, get) => ({
   asteroids: [],
   explosions: [],
-  poolSize: 60,
+  poolSize: ASTEROID_POOL_SIZE,
   activeAsteroidCount: 0,
   asteroidFreeList: [],
   explosionFreeList: [],
@@ -117,6 +126,7 @@ export const usePoolStore = create<PoolState>((set, get) => ({
           activeAsteroidCount: state.activeAsteroidCount + spawns.length,
         };
       });
+      recordSpawnActivations(spawns.length, 0);
       return;
     }
 
@@ -128,9 +138,18 @@ export const usePoolStore = create<PoolState>((set, get) => ({
 
     const rebuilt = rebuildAsteroidBookkeeping(asteroids);
     const stillFree = rebuilt.freeList.length;
+    const toActivate = Math.min(spawns.length, stillFree);
 
     if (stillFree === 0) {
-      console.warn("Asteroid pool starved! Dropping spawn.");
+      recordSpawnActivations(0, spawns.length);
+      markTelemetry("asteroids:saturated", {
+        requested: spawns.length,
+        active: asteroids.length,
+      });
+      if (!saturationWarned) {
+        saturationWarned = true;
+        console.warn("Asteroid pool saturated! Dropping excess spawns.");
+      }
       return;
     }
 
@@ -144,7 +163,6 @@ export const usePoolStore = create<PoolState>((set, get) => ({
       }
 
       // Activate as many as we can
-      const toActivate = Math.min(spawns.length, state.asteroidFreeList.length);
       for (let s = 0; s < toActivate; s++) {
         const idx = state.asteroidFreeList.pop()!;
         const slot = newAsteroids[idx];
@@ -165,12 +183,16 @@ export const usePoolStore = create<PoolState>((set, get) => ({
         activeAsteroidCount: state.activeAsteroidCount + toActivate,
       };
     });
+    recordSpawnActivations(toActivate, spawns.length - toActivate);
   },
 
   deactivateAsteroid: (id) => {
     const { asteroidIdToIndex } = get();
     const idx = asteroidIdToIndex.get(id);
     if (idx === undefined) return;
+
+    // A slot is about to free up, so the pool is no longer saturated.
+    saturationWarned = false;
 
     set((state) => {
       const newAsteroids = [...state.asteroids];
@@ -254,6 +276,7 @@ export const usePoolStore = create<PoolState>((set, get) => ({
   },
 
   resetPools: (poolSize) => {
+    saturationWarned = false;
     const storagePos = getStoragePosition();
     const asteroids = Array.from({ length: poolSize }, () => ({
       id: nextId(),
