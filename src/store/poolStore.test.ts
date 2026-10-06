@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { getSpawnStatsSnapshot, resetSpawnStats } from "../ecs/spawnStats";
 import { usePoolStore } from "./poolStore";
 
 const initialState = usePoolStore.getInitialState();
@@ -6,6 +7,7 @@ const initialState = usePoolStore.getInitialState();
 beforeEach(() => {
   usePoolStore.setState(initialState, true);
   usePoolStore.getState().resetPools(60);
+  resetSpawnStats();
 });
 
 describe("poolStore: activateAsteroids", () => {
@@ -62,6 +64,56 @@ describe("poolStore: activateAsteroids", () => {
     expect(usePoolStore.getState().activeAsteroidCount).toBe(60);
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
+  });
+});
+
+describe("poolStore: saturation handling", () => {
+  const fill = (count: number) =>
+    Array.from({ length: count }, (_, i) => ({
+      pos: [i, 0, 0] as [number, number, number],
+      type: "swarmer" as const,
+    }));
+
+  it("records successful activations", () => {
+    usePoolStore.getState().activateAsteroids([
+      { pos: [1, 0, 0], type: "swarmer" },
+      { pos: [2, 0, 0], type: "tank" },
+    ]);
+
+    const snapshot = getSpawnStatsSnapshot();
+    expect(snapshot.activations).toBe(2);
+    expect(snapshot.starvedDrops).toBe(0);
+  });
+
+  it("warns only once per saturation episode and counts starved drops", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const store = usePoolStore.getState();
+      store.activateAsteroids(fill(60));
+      expect(warn).toHaveBeenCalledTimes(0);
+
+      // First drop in the episode warns.
+      store.activateAsteroids([{ pos: [99, 0, 0], type: "swarmer" }]);
+      expect(warn).toHaveBeenCalledTimes(1);
+
+      // Subsequent drops in the same episode stay quiet.
+      store.activateAsteroids([{ pos: [98, 0, 0], type: "swarmer" }]);
+      expect(warn).toHaveBeenCalledTimes(1);
+
+      // Freeing a slot ends the episode; the next activation succeeds quietly.
+      const activeId = usePoolStore.getState().asteroids.find((a) => a.active)!.id;
+      usePoolStore.getState().deactivateAsteroid(activeId);
+      store.activateAsteroids([{ pos: [97, 0, 0], type: "swarmer" }]);
+      expect(warn).toHaveBeenCalledTimes(1);
+
+      // Saturating again starts a new episode and warns once more.
+      store.activateAsteroids([{ pos: [96, 0, 0], type: "swarmer" }]);
+      expect(warn).toHaveBeenCalledTimes(2);
+
+      expect(getSpawnStatsSnapshot().starvedDrops).toBeGreaterThanOrEqual(2);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 

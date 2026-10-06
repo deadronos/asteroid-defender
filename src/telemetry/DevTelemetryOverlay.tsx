@@ -1,4 +1,7 @@
 import { useSyncExternalStore } from "react";
+import { AMBIENT_ACTIVE_CAP, ASTEROID_POOL_SIZE } from "../config/spawning";
+import { getSpawnStatsSnapshot, subscribeSpawnStats } from "../ecs/spawnStats";
+import { usePoolStore } from "../store/poolStore";
 import type { TelemetryEvent, TelemetryFunctionSummary, TelemetrySnapshot } from "./core";
 import { getDevTelemetryStore } from "./runtime";
 import "./DevTelemetryOverlay.css";
@@ -79,6 +82,12 @@ export default function DevTelemetryOverlay() {
     () => telemetryStore?.getSnapshot() ?? EMPTY_SNAPSHOT,
     () => EMPTY_SNAPSHOT,
   );
+  const spawnStats = useSyncExternalStore(
+    subscribeSpawnStats,
+    getSpawnStatsSnapshot,
+    getSpawnStatsSnapshot,
+  );
+  const activeAsteroids = usePoolStore((state) => state.activeAsteroidCount);
 
   if (!telemetryStore || !snapshot.overlayVisible) {
     return null;
@@ -150,6 +159,55 @@ export default function DevTelemetryOverlay() {
       </div>
 
       <div className="dev-telemetry__hint">Hotkeys: `Alt+Shift+T` overlay, `Alt+Shift+P` pause</div>
+
+      <section className="dev-telemetry__section">
+        <div className="dev-telemetry__section-title">Spawning</div>
+        <ul className="dev-telemetry__list">
+          <li className="dev-telemetry__item">
+            <div className="dev-telemetry__row">
+              <span className="dev-telemetry__label">Active / pool</span>
+              <span className="dev-telemetry__duration">
+                {activeAsteroids} / {ASTEROID_POOL_SIZE}
+              </span>
+            </div>
+          </li>
+          <li className="dev-telemetry__item">
+            <div className="dev-telemetry__row">
+              <span className="dev-telemetry__label">Ambient cap</span>
+              <span className="dev-telemetry__duration">{AMBIENT_ACTIVE_CAP}</span>
+            </div>
+          </li>
+          <li className="dev-telemetry__item">
+            <div className="dev-telemetry__row">
+              <span className="dev-telemetry__label">Queue depth</span>
+              <span className="dev-telemetry__duration">{spawnStats.queueDepth}</span>
+            </div>
+          </li>
+          <li className="dev-telemetry__item">
+            <div className="dev-telemetry__row">
+              <span className="dev-telemetry__label">Enqueued (ambient / fragments)</span>
+              <span className="dev-telemetry__duration">
+                {formatCount(spawnStats.ambientEnqueued)} /{" "}
+                {formatCount(spawnStats.fragmentsEnqueued)}
+              </span>
+            </div>
+          </li>
+          <li className="dev-telemetry__item">
+            <div className="dev-telemetry__row">
+              <span className="dev-telemetry__label">Activations</span>
+              <span className="dev-telemetry__duration">{formatCount(spawnStats.activations)}</span>
+            </div>
+          </li>
+          <li className="dev-telemetry__item">
+            <div className="dev-telemetry__row">
+              <span className="dev-telemetry__label">Drops (starved / overflow)</span>
+              <span className="dev-telemetry__duration">
+                {formatCount(spawnStats.starvedDrops)} / {formatCount(spawnStats.overflowDrops)}
+              </span>
+            </div>
+          </li>
+        </ul>
+      </section>
 
       <section className="dev-telemetry__section">
         <div className="dev-telemetry__section-title">Recent slow returns</div>

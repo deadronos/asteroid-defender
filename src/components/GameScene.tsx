@@ -6,6 +6,7 @@ import AsteroidSpawner from "./AsteroidSpawner";
 import type { EffectsQuality } from "../utils/visualQuality";
 import { useShieldImpacts } from "./gameScene/useShieldImpacts";
 import { usePoolStore } from "../store/poolStore";
+import { ASTEROID_POOL_SIZE } from "../config/spawning";
 import { useAsteroidManager } from "./gameScene/useAsteroidManager";
 import AsteroidLayer from "./gameScene/AsteroidLayer";
 import ExplosionLayer from "./gameScene/ExplosionLayer";
@@ -14,11 +15,9 @@ import ExplosionLayer from "./gameScene/ExplosionLayer";
 const SpaceBackground = lazy(() => import("./SpaceBackground"));
 
 // Pool of pre-mounted Asteroid components. Inactive entries are parked off-screen
-// so Rapier does not simulate them. Increase this value if waves grow beyond 60
-// simultaneous asteroids; see Asteroid.tsx for a full explanation of the chosen
-// per-component rendering strategy.
-const POOL_SIZE = 60;
-
+// so Rapier does not simulate them. The size lives in `config/spawning` so the
+// spawner, pool, and store all agree on the cap; see Asteroid.tsx for a full
+// explanation of the chosen per-component rendering strategy.
 interface GameSceneProps {
   asteroidEffectsQuality: EffectsQuality;
   backgroundEffectsQuality: EffectsQuality;
@@ -60,13 +59,13 @@ export default function GameScene({
   // useAsteroidManager drives spawn queue draining and active count sync.
   // It does NOT render asteroids — that's AsteroidLayer's job.
   useAsteroidManager({
-    poolSize: POOL_SIZE,
+    poolSize: ASTEROID_POOL_SIZE,
     onShieldImpact: addShieldImpact,
   });
 
   // Reset pool state when session changes
   useEffect(() => {
-    usePoolStore.getState().resetPools(POOL_SIZE);
+    usePoolStore.getState().resetPools(ASTEROID_POOL_SIZE);
   }, [sessionId]);
 
   return (

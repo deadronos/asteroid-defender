@@ -9,6 +9,7 @@ import {
   asteroidQuery,
 } from "../../ecs/world";
 import { clearAsteroidSpawns, drainAsteroidSpawns } from "../../ecs/asteroidSpawnQueue";
+import { MAX_ACTIVATIONS_PER_FRAME } from "../../config/spawning";
 import { markTelemetry } from "../../telemetry/runtime";
 import { usePoolStore } from "../../store/poolStore";
 
@@ -66,7 +67,9 @@ export function useAsteroidManager({ poolSize, onShieldImpact }: AsteroidManager
     if (asteroidQuery.entities.length >= SPATIAL_INDEX_THRESHOLD) {
       updateSpatialIndex();
     }
-    const spawns = drainAsteroidSpawns();
+    // Budget activations per frame so splitter bursts spread over frames
+    // instead of all activating at once. Any remainder stays queued.
+    const spawns = drainAsteroidSpawns(MAX_ACTIVATIONS_PER_FRAME);
     if (spawns.length > 0) {
       markTelemetry("asteroids:drain-spawns", {
         count: spawns.length,

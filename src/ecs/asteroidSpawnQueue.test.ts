@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vite-plus/test";
+import { MAX_PENDING_SPAWNS } from "../config/spawning";
 import {
   clearAsteroidSpawns,
   drainAsteroidSpawns,
@@ -6,6 +7,7 @@ import {
   enqueueAsteroidSpawn,
   type SpawnData,
 } from "./asteroidSpawnQueue";
+import { getSpawnStatsSnapshot, resetSpawnStats } from "./spawnStats";
 
 describe("asteroidSpawnQueue", () => {
   beforeEach(() => {
@@ -58,6 +60,65 @@ describe("asteroidSpawnQueue", () => {
     drained.push({ id: "2", pos: [1, 1, 1], type: "tank" });
 
     expect(drainAsteroidSpawns()).toHaveLength(0);
+  });
+});
+
+describe("asteroidSpawnQueue: partial drain", () => {
+  beforeEach(() => {
+    clearAsteroidSpawns();
+  });
+
+  it("returns at most maxCount and leaves the rest queued in FIFO order", () => {
+    enqueueAsteroidSpawn({ id: "1", pos: [1, 0, 0], type: "swarmer" });
+    enqueueAsteroidSpawn({ id: "2", pos: [2, 0, 0], type: "tank" });
+    enqueueAsteroidSpawn({ id: "3", pos: [3, 0, 0], type: "splitter" });
+
+    expect(drainAsteroidSpawns(2).map((spawn) => spawn.id)).toEqual(["1", "2"]);
+    expect(drainAsteroidSpawns(2).map((spawn) => spawn.id)).toEqual(["3"]);
+    expect(drainAsteroidSpawns(2)).toHaveLength(0);
+  });
+
+  it("drains everything when no maxCount is given", () => {
+    enqueueAsteroidSpawn({ id: "1", pos: [0, 0, 0], type: "swarmer" });
+    enqueueAsteroidSpawn({ id: "2", pos: [1, 0, 0], type: "tank" });
+
+    expect(drainAsteroidSpawns()).toHaveLength(2);
+  });
+});
+
+describe("asteroidSpawnQueue: safety valve and telemetry", () => {
+  beforeEach(() => {
+    clearAsteroidSpawns();
+    resetSpawnStats();
+  });
+
+  it("caps the queue at MAX_PENDING_SPAWNS and counts overflow drops", () => {
+    const excess = 5;
+
+    for (let i = 0; i < MAX_PENDING_SPAWNS + excess; i++) {
+      enqueueAsteroidSpawn({ id: String(i), pos: [i, 0, 0], type: "swarmer" });
+    }
+
+    expect(drainAsteroidSpawns()).toHaveLength(MAX_PENDING_SPAWNS);
+    expect(getSpawnStatsSnapshot().overflowDrops).toBe(excess);
+  });
+
+  it("reports ambient and fragment enqueues separately", () => {
+    enqueueAsteroidSpawn({ id: "a", pos: [0, 0, 0], type: "tank" });
+    enqueueAsteroidFragment([0, 0, 0]);
+
+    const snapshot = getSpawnStatsSnapshot();
+    expect(snapshot.ambientEnqueued).toBe(1);
+    expect(snapshot.fragmentsEnqueued).toBe(2);
+  });
+
+  it("tracks queue depth as spawns are enqueued and drained", () => {
+    enqueueAsteroidSpawn({ id: "1", pos: [0, 0, 0], type: "swarmer" });
+    enqueueAsteroidSpawn({ id: "2", pos: [1, 0, 0], type: "tank" });
+    expect(getSpawnStatsSnapshot().queueDepth).toBe(2);
+
+    drainAsteroidSpawns(1);
+    expect(getSpawnStatsSnapshot().queueDepth).toBe(1);
   });
 });
 
