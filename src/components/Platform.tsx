@@ -6,6 +6,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import useGameStore from "../store/gameStore";
 import { asteroidQuery } from "../ecs/world";
+import { markBaseHit } from "../game/combat";
 
 // Pre-allocated scratch colours to avoid per-frame GC pressure
 const _shieldHealthy = new THREE.Color("#7ec8ff");
@@ -86,15 +87,7 @@ export default function Platform({ shieldImpacts }: PlatformProps) {
     if (!ud?.asteroidId) return;
 
     // Find the ECS entity and mark it as a base hit
-    const entities = asteroidQuery.entities;
-    for (let i = 0; i < entities.length; i++) {
-      const entity = entities[i];
-      if (entity.id === ud.asteroidId && entity.health! > 0) {
-        entity.isBaseHit = true;
-        entity.health = 0;
-        return;
-      }
-    }
+    markBaseHit(asteroidQuery.entities, ud.asteroidId);
   }, []);
 
   useFrame((state) => {
