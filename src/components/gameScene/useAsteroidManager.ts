@@ -1,9 +1,8 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useFrame } from "@react-three/fiber";
 import useGameStore from "../../store/gameStore";
 import {
-  AsteroidType,
   updateSpatialIndex,
   SPATIAL_INDEX_THRESHOLD,
   asteroidQuery,
@@ -17,12 +16,6 @@ export interface AsteroidManagerOptions {
   poolSize: number;
 }
 
-// Keep for backwards compatibility — activeCount now derived from store
-export interface AsteroidPoolState {
-  items: Array<{ id: string; active: boolean; pos: [number, number, number]; type: AsteroidType }>;
-  activeCount: number;
-}
-
 /**
  * Manages the lifecycle of asteroids in the game scene, including spawning,
  * destruction, and synchronization with the global game store.
@@ -34,9 +27,8 @@ export function useAsteroidManager({ poolSize }: AsteroidManagerOptions) {
   // Track active count locally and sync to gameStore
   const [activeCount, setActiveAsteroidsCount] = useState(0);
 
-  const { incrementDestroyed, setActiveAsteroids, sessionId } = useGameStore(
+  const { setActiveAsteroids, sessionId } = useGameStore(
     useShallow((state) => ({
-      incrementDestroyed: state.incrementDestroyed,
       setActiveAsteroids: state.setActiveAsteroids,
       sessionId: state.sessionId,
     })),
@@ -86,23 +78,4 @@ export function useAsteroidManager({ poolSize }: AsteroidManagerOptions) {
       setActiveAsteroids(count);
     }
   });
-
-  const handleDestroy = useCallback(
-    (id: string, _pos: [number, number, number], isBaseHit = false, _type: AsteroidType) => {
-      if (!isBaseHit) {
-        incrementDestroyed();
-      }
-
-      usePoolStore.getState().deactivateAsteroid(id);
-    },
-    [incrementDestroyed],
-  );
-
-  // Expose asteroids from store for rendering
-  const asteroids = usePoolStore((state) => state.asteroids);
-
-  return {
-    asteroids,
-    handleDestroy,
-  };
 }
