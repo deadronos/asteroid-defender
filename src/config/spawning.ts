@@ -4,6 +4,7 @@
  * The pool is a fixed set of pre-allocated slots reused across spawns, so
  * raising `ASTEROID_POOL_SIZE` increases steady-state React/Rapier cost.
  * Keep it aligned with the performance budget in docs/PERFORMANCE.md.
+ * Spawn geometry (spawn radius, turret range) lives in `config/arena.ts`.
  */
 
 /** Number of pre-allocated asteroid (and explosion) slots. */
@@ -33,3 +34,17 @@ export const MAX_ACTIVATIONS_PER_FRAME = 4;
  * at most ~60 splitters) stay well under this.
  */
 export const MAX_PENDING_SPAWNS = 128;
+
+/** Spawn interval at the start of a run, before backpressure adapts it. */
+export const INITIAL_SPAWN_INTERVAL = 2.0;
+export const MIN_SPAWN_INTERVAL = 1.0;
+export const MAX_SPAWN_INTERVAL = 5.0;
+
+/** Step the spawn interval moves by on each spawn decision. */
+export const SPAWN_ADJUSTMENT = 0.2;
+
+/**
+ * Number of asteroids inside the proximity probe radius at which the spawner
+ * stops speeding up and starts slowing down.
+ */
+export const PROXIMITY_TARGET_COUNT = 3;

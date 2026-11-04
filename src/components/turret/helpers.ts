@@ -1,10 +1,8 @@
 import * as THREE from "three";
 import { findNearestAsteroidInRange, type GameEntity } from "../../ecs/world";
+import { TARGETING_PENALTY, TURRET_RANGE, TURRET_RANGE_SQ } from "../../config/arena";
 
 export const LASER_ORIGIN_Z = 3.5;
-export const TURRET_RANGE = 50;
-export const TURRET_RANGE_SQ = TURRET_RANGE * TURRET_RANGE; // 2500
-export const TARGETING_PENALTY = 400;
 
 export function releaseTarget(target: GameEntity | null, turretId: string) {
   if (target?.targetedBy === turretId) {
