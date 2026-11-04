@@ -6,6 +6,7 @@ import { updateSpatialIndex, SPATIAL_INDEX_THRESHOLD, asteroidQuery } from "../.
 import { clearAsteroidSpawns, drainAsteroidSpawns } from "../../ecs/asteroidSpawnQueue";
 import { MAX_ACTIVATIONS_PER_FRAME } from "../../config/spawning";
 import { markTelemetry } from "../../telemetry/runtime";
+import { resetSpawnStats } from "../../ecs/spawnStats";
 import { usePoolStore } from "../../store/poolStore";
 
 export interface AsteroidManagerOptions {
@@ -41,6 +42,7 @@ export function useAsteroidManager({ poolSize }: AsteroidManagerOptions) {
       sessionId,
     });
     clearAsteroidSpawns();
+    resetSpawnStats();
     return () => {
       clearAsteroidSpawns();
     };
