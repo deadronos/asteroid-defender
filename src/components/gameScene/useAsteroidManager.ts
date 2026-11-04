@@ -12,6 +12,7 @@ import { clearAsteroidSpawns, drainAsteroidSpawns } from "../../ecs/asteroidSpaw
 import { MAX_ACTIVATIONS_PER_FRAME } from "../../config/spawning";
 import { markTelemetry } from "../../telemetry/runtime";
 import { usePoolStore } from "../../store/poolStore";
+import { resetSpawnStats } from "../../ecs/spawnStats";
 
 export interface AsteroidManagerOptions {
   poolSize: number;
@@ -52,6 +53,7 @@ export function useAsteroidManager({ poolSize }: AsteroidManagerOptions) {
       sessionId,
     });
     clearAsteroidSpawns();
+    resetSpawnStats();
     return () => {
       clearAsteroidSpawns();
     };
