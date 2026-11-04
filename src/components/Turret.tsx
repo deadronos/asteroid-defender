@@ -6,11 +6,11 @@ import { GameEntity } from "../ecs/world";
 import useGameStore from "../store/gameStore";
 import {
   applyIdleTurretRotation,
-  calculateTurretDamage,
   findTurretTarget,
   LASER_ORIGIN_Z,
   releaseTarget,
 } from "./turret/helpers";
+import { applyTurretDamage } from "../game/combat";
 
 const LASER_COLOR = new THREE.Color(10, 2, 2);
 const HOLOGRAM_POINTS_X: [number, number, number][] = [
@@ -109,7 +109,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
       recalibrationStartRef.current = null;
       if (barrelGroupRef.current) barrelGroupRef.current.rotation.set(0, 0, 0);
 
-      nearestEntity.health! -= calculateTurretDamage(actualDistSq, delta);
+      applyTurretDamage(nearestEntity, actualDistSq, delta);
     } else {
       // Clear our lock if no target
       if (currentTargetRef.current) {
