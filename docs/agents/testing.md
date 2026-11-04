@@ -3,7 +3,7 @@
 ## Automated tests
 
 - Tests sit next to the code as `*.test.ts` or `*.test.tsx`, and benchmarks as `*.bench.ts`.
-- There is no DOM test environment. `@react-three/test-renderer` can still mount an R3F scene without a browser (see `src/components/gameScene/AsteroidLayer.test.tsx`); the rest of the suite covers stores, helpers and plugins.
+- There is no global DOM environment. HUD tests opt into jsdom per file with `// @vitest-environment jsdom` and `@testing-library/react` (see `src/components/hud/HUDStats.test.tsx`), so the scene tests keep the node environment and `@react-three/test-renderer` still mounts R3F without a browser (`src/components/gameScene/AsteroidLayer.test.tsx`). jsdom was chosen over happy-dom because its CSSOM normalizes inline colours, so the critical-health colour assertion checks a real computed value; reset `useGameStore` and `localStorage` in `beforeEach` to keep the HUD tests order-independent.
 - Test behaviour at the seam that can break. For a bug fix, confirm the new test fails without the fix.
 - When proving a test catches an old bug, restore the real old source with `git show <commit>^:<path>`, not a hand-made imitation. Check that a behavioural assertion is what fails: an earlier assertion can stop the test before it reaches them.
 

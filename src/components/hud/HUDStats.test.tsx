@@ -1,22 +1,61 @@
-import { describe, expect, it } from "vite-plus/test";
-import { healthReadout } from "./healthReadout";
+// @vitest-environment jsdom
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+import { cleanup, render, screen } from "@testing-library/react";
+import HUDStats from "./HUDStats";
+import useGameStore from "../../store/gameStore";
 
-// The readout is a pure mapping, so it is tested directly: the repo's component renderer
-// (ReactThreeTestRenderer) mounts THREE elements only and cannot render the HUD's span/div.
-describe("HUDStats health readout", () => {
-  it("shows the ratio, not the raw health, when maxHealth is not 100", () => {
-    expect(healthReadout(100, 200).label).toBe("50%");
-    expect(healthReadout(100, 100).label).toBe("100%");
+// Per-file jsdom: the rest of the suite keeps the node environment.
+const initialGameState = useGameStore.getState();
+
+beforeEach(() => {
+  useGameStore.setState(initialGameState, true);
+  localStorage.clear();
+});
+
+afterEach(cleanup);
+
+const healthLabel = () => screen.getByText(/^\d+%$/);
+
+/** The bar track follows the label's row, and its first child is the fill. */
+const healthBarFill = () =>
+  healthLabel().parentElement?.nextElementSibling?.firstElementChild as HTMLElement;
+
+describe("HUDStats", () => {
+  it("shows the health ratio and the critical colour with a non-100 maxHealth", () => {
+    useGameStore.setState({ health: 40, maxHealth: 200 });
+    render(<HUDStats />);
+
+    const label = healthLabel();
+    expect(label.textContent).toBe("20%");
+    // jsdom normalizes the component's hex colours to rgb() in the style attribute.
+    expect(label.style.color).toBe("rgb(239, 68, 68)");
+    expect(healthBarFill().style.width).toBe("20%");
+    expect(healthBarFill().style.backgroundColor).toBe("rgb(239, 68, 68)");
   });
 
-  it("is critical on the ratio, not the raw health", () => {
-    expect(healthReadout(40, 200).isCritical).toBe(true); // 20%: below the band, though health > 30
-    expect(healthReadout(40, 100).isCritical).toBe(false); // 40%: above the band
-    expect(healthReadout(30, 100).isCritical).toBe(true); // exactly 30%: the band is inclusive
+  it("keeps healthy integrity green", () => {
+    useGameStore.setState({ health: 160, maxHealth: 200 });
+    render(<HUDStats />);
+
+    expect(healthLabel().textContent).toBe("80%");
+    expect(healthLabel().style.color).toBe("rgb(74, 222, 128)");
+    expect(healthBarFill().style.width).toBe("80%");
   });
 
-  it("guards a non-positive maxHealth", () => {
-    expect(healthReadout(100, 0).label).toBe("0%");
-    expect(healthReadout(100, 0).isCritical).toBe(true);
+  it("shows the run counters", () => {
+    useGameStore.setState({ asteroidsDestroyed: 7, activeAsteroids: 3 });
+    render(<HUDStats />);
+
+    expect(screen.getByText("Destroyed:").parentElement?.textContent).toBe("Destroyed: 7");
+    expect(screen.getByText("Warning | Active Swarm:").parentElement?.textContent).toBe(
+      "Warning | Active Swarm: 3",
+    );
+  });
+
+  it("names the current game state", () => {
+    useGameStore.setState({ gameState: "playing" });
+    render(<HUDStats />);
+
+    expect(screen.getByLabelText("Game state: PLAYING").textContent).toBe("PLAYING");
   });
 });
