@@ -1,14 +1,14 @@
 # What to do next
 
-Reviewed: 2026-11-04 @ `5681aa3`, after #192-#196 merged and `v1.0.21` released from `32cfa2d`.
+Reviewed: 2026-11-04 @ `d8e913d`, after #205-#207 and #209 merged. `v1.0.21` was released from `32cfa2d`, so everything merged since then is not live yet.
 Working note, not documentation: delete it once the items below are done or filed.
 
 ## The short version
 
 - `v1.0.21` is live from `32cfa2d` and includes the #156 jam fix (#184), so "fixed but not released" is no longer true.
 - `check` is a required status check on `main`, through the "main: require CI" ruleset, which has an admin bypass.
-- The render smoke test (#167 step 2) merged in #192. Step 1, the DOM/render harness, is still open.
-- Balance: four 10-minute production runs in headless software rendering at about 25 fps ended at base 100%, 95%, 100%, 100%, with 830-883 destroyed, a peak Active Swarm of 2-4, and a steady kill rate of about 1.4/s. The game plays correctly but in practice can't be lost and doesn't get harder. #126 waves is the real fix.
+- Scene tests (#192) and DOM tests for the HUD (#206) now exist. Session restart at scene level, mounting the full `GameScene`, keyboard shortcuts, `PauseOverlay` and `CinematicIndicator` are still untested.
+- Balance: on a real Metal GPU at about 39 fps, 12 production runs of 3 minutes took no damage at all (kill rate about 1.4/s, peak Active Swarm 3). Four 10-minute software-rendered runs took one hit in total. In 18 software-rendered side-by-side runs, all damage came in the first minute at 1-8 fps, so early damage looks like a very-low-frame-rate problem. A real low-end device is untested. The game plays correctly, but it is not threatening and does not get harder. #126 is the real fix.
 
 All checks stayed green while the game was jammed (#156), because nothing runs the game loop. The smoke test in #192 now covers the pool lifecycle and would have caught it.
 
@@ -18,33 +18,39 @@ All checks stayed green while the game was jammed (#156), because nothing runs t
 - #165, PRs ungated: fixed in #188, then made required on `main` (see above).
 - #186, shield impact never fired: fixed in #196, including the base-hit ripple wiring.
 - #169, #159 and #160: merged in #193, #194 and #195, in that order.
-- #167 step 2: merged in #192; step 1 stays open.
-- `v1.0.21`: tagged from `32cfa2d`; contains #184 and #192.
+- #157, #162 and #158: merged in #202, #203 and #204, in that order.
+- #166, #167 and #168: merged in #205, #206 and #207, in that order; #167 step 2 merged earlier in #192.
+- #178: merged in #198, an outside contribution.
+- #161: merged in #209, adding `src/game/combat.ts`.
+- `v1.0.21`: tagged from `32cfa2d`; contains #184 and #192, and nothing merged after #192.
 - #197 tracks the shield ripple that draws near the platform centre instead of at the impact.
 
 ## Open work
 
-| Item        | Note                                                                                                                        |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------- |
-| #167 step 1 | DOM/render harness; the smoke test currently covers `AsteroidLayer` only                                                    |
-| #126 waves  | The real difficulty fix. #4 is a duplicate; #168 and #181 are groundwork                                                    |
-| #172, #173  | Unblocked by #184: slots are copy-on-write, so the layer can stop subscribing to the raw count                              |
-| #166        | Docs truth; easier once the above has landed                                                                                |
-| #125 audio  | No dependencies, biggest cheap feel upgrade. Kill and base-hit events exist; a continuous laser needs a loop, not one-shots |
+| Item       | Note                                                                                                                        |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------- |
+| #126 waves | The real difficulty fix. #4 is a duplicate; #161 and #181 are groundwork                                                    |
+| #172, #173 | Unblocked by #184: slots are copy-on-write, so the layer can stop subscribing to the raw count                              |
+| #125 audio | No dependencies, biggest cheap feel upgrade. Kill and base-hit events exist; a continuous laser needs a loop, not one-shots |
+
+### Modularity, in suggested order
+
+1. **#164:** split `Asteroid.tsx`. This file also holds the frame-order risk below, so keep the scene tests green. #170 and #173 touch the same file. The issue proposes hooks but also a single `useFrame` calling three functions; pick one.
+2. **#163:** extract the camera state machine. It touches none of the above, so it can run at any time, but it has no player benefit and needs checking by eye.
 
 ### Later or only on demand
 
-- **#161 + #182:** merge these. Both define `src/game/combat.ts` and `applyTurretDamage`.
+- **#182:** both this and #161 define `src/game/combat.ts` and `applyTurretDamage`, but #182 changes how damage works, so do it after #161 rather than together.
 - **#170 + #180:** do these together, since both change physics.
-- **#163, #164:** real refactors, but no player benefit. Do them when next changing those files.
 - **#177, #174, #178:** #178 has no visible effect while `maxHealth` is always 100.
 - **#179:** gameplay RNG pass only (see below).
 
 ## Known risks and small findings
 
 - **Slot reuse is still only protected by frame order.** A slot that dies and is reused in the same React batch with the same type keeps `active`, `id` and `type`, so the effect in `src/components/Asteroid.tsx` wouldn't re-run. This didn't happen (0 of 169 reuses in a 121s measurement) because spawns currently run before deaths each frame. That order may come from `<group key={sessionId}>` remounting the children, so a refactor could change it unnoticed. #192 doesn't pin this.
-- **Limits of the runtime evidence:** headless Chrome with software rendering and few runs. The live site got one 60s check on `v1.0.21`; nothing has been measured on a real GPU.
+- **Limits of the runtime evidence:** one Apple GPU in headless Chromium and software rendering, few runs. The live site got one 60s check on `v1.0.21`. No real low-end device or other browser has been tested.
 - **Not filed yet:** load-time work, most likely `createNebulaTexture.ts`, records about 14.6M telemetry events and overflows the buffer before play starts.
+- **Not filed yet:** Pi reports the dev telemetry overlay covers the onboarding dialog\'s Close help button in `vp dev`. Not checked.
 
 ## Quick housekeeping (about 10 minutes)
 
@@ -57,7 +63,6 @@ All checks stayed green while the game was jammed (#156), because nothing runs t
 
 Worth fixing in the issue text before anyone implements from it.
 
-- **#168:** contradicts itself. It notes `SPAWN_RADIUS` (40) is less than `TURRET_RANGE` (50), then proposes a test asserting `SPAWN_RADIUS > TURRET_RANGE`, which would fail. Decide the intended relationship first. Also, range is measured from each turret and spawn radius from the origin, so the two numbers don't compare directly.
 - **#183 math:** the penalty is not "exactly 20 units". It's `D² < d² + 400`, so the allowance is 10 units at d=15 and about 4 at d=45. The real effect is weaker than the issue says.
 - **#183 blocker:** the claim that a test is impossible until #161 is wrong. `src/components/turret/helpers.test.ts:108-165` already calls `findTurretTarget` with a `THREE.Group`. #161 also never proposes that signature change. The test at `:136-165` pins the current penalty and will need updating.
 - **#183 fix:** "DPS loss" is doubtful. Stacking wastes little beyond overkill, and damage falls with distance, so splitting can lower total DPS. Hard reservation also leaves a turret idle with a target in range, which will look like a bug. Simpler: set the penalty to `TURRET_RANGE_SQ`, so a free target in range always wins, and stacking happens only when nothing else is available. This changes balance, so playtest it.
@@ -71,4 +76,4 @@ Worth fixing in the issue text before anyone implements from it.
 - **#176:** is starting at `reduced` deliberate? I'd keep it (option A) and delete the dead ternary.
 - **#180:** should asteroids hit each other? I'd say no: it's cheaper and keeps approach lines predictable. It also makes the ±2 fragment offset unnecessary. It changes difficulty, so decide alongside #126.
 - **#183:** focus fire or spread? This decides the targeting policy, more than the penalty's maths does.
-- **Root-level review docs:** `PERFORMANCE-REVIEW*.md`, `idea.md` and `refactoring_suggestions.md` need a call on whether to archive them (#166 covers only part of this).
+- **Root-level review docs:** `idea.md` and `refactoring_suggestions.md` need a call on whether to archive them. The performance reviews moved to `docs/reviews/` in #205.
