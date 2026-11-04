@@ -28,8 +28,8 @@ import {
  *
  * This component is glue only: it reads the store, steps the pure state
  * machine in `cinematic/controller.ts`, applies the resulting pose and
- * mirrors the reported store writes.  `cinematic/controller.test.ts` covers
- * the timing rules and `cameraTrace.test.tsx` pins the old per-frame output.
+ * mirrors the reported store writes. `cinematic/controller.test.ts` covers
+ * the timing rules.
  *
  * Returns null – no rendered geometry.
  */
