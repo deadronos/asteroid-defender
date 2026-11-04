@@ -9,7 +9,6 @@ Working note, not documentation: delete it once the items below are done or file
 - `check` is a required status check on `main`, through the "main: require CI" ruleset, which has an admin bypass.
 - The render smoke test (#167 step 2) merged in #192. Step 1, the DOM/render harness, is still open.
 - Balance: four 10-minute production runs in headless software rendering at about 25 fps ended at base 100%, 95%, 100%, 100%, with 830-883 destroyed, a peak Active Swarm of 2-4, and a steady kill rate of about 1.4/s. The game plays correctly but in practice can't be lost and doesn't get harder. #126 waves is the real fix.
-- Next up: #157, then #162, then #158.
 
 All checks stayed green while the game was jammed (#156), because nothing runs the game loop. The smoke test in #192 now covers the pool lifecycle and would have caught it.
 
@@ -25,15 +24,13 @@ All checks stayed green while the game was jammed (#156), because nothing runs t
 
 ## Open work
 
-| Item            | Note                                                                                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| #157            | Dead compatibility surface: `useExplosionPool`, `AsteroidPoolState`, the unused `useAsteroidManager` return, and three math exports. Do it first |
-| #162, then #158 | #158's one-line fix goes in the effect #162 makes the single owner                                                                               |
-| #167 step 1     | DOM/render harness; the smoke test currently covers `AsteroidLayer` only                                                                         |
-| #126 waves      | The real difficulty fix. #4 is a duplicate; #168 and #181 are groundwork                                                                         |
-| #172, #173      | Unblocked by #184: slots are copy-on-write, so the layer can stop subscribing to the raw count                                                   |
-| #166            | Docs truth; easier once the above has landed                                                                                                     |
-| #125 audio      | No dependencies, biggest cheap feel upgrade. Kill and base-hit events exist; a continuous laser needs a loop, not one-shots                      |
+| Item        | Note                                                                                                                        |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| #167 step 1 | DOM/render harness; the smoke test currently covers `AsteroidLayer` only                                                    |
+| #126 waves  | The real difficulty fix. #4 is a duplicate; #168 and #181 are groundwork                                                    |
+| #172, #173  | Unblocked by #184: slots are copy-on-write, so the layer can stop subscribing to the raw count                              |
+| #166        | Docs truth; easier once the above has landed                                                                                |
+| #125 audio  | No dependencies, biggest cheap feel upgrade. Kill and base-hit events exist; a continuous laser needs a loop, not one-shots |
 
 ### Later or only on demand
 
@@ -47,7 +44,6 @@ All checks stayed green while the game was jammed (#156), because nothing runs t
 
 - **Slot reuse is still only protected by frame order.** A slot that dies and is reused in the same React batch with the same type keeps `active`, `id` and `type`, so the effect in `src/components/Asteroid.tsx` wouldn't re-run. This didn't happen (0 of 169 reuses in a 121s measurement) because spawns currently run before deaths each frame. That order may come from `<group key={sessionId}>` remounting the children, so a refactor could change it unnoticed. #192 doesn't pin this.
 - **Limits of the runtime evidence:** headless Chrome with software rendering and few runs. The live site got one 60s check on `v1.0.21`; nothing has been measured on a real GPU.
-- **False comment in `src/components/gameScene/AsteroidLayer.test.tsx`:** it says `World.clear()` leaves queries stale. It doesn't: `ECS.clear()` empties the query, and the scene tests still pass using it. Fix the comment, and optionally the loop, with the next change to that file.
 - **Not filed yet:** load-time work, most likely `createNebulaTexture.ts`, records about 14.6M telemetry events and overflows the buffer before play starts.
 
 ## Quick housekeeping (about 10 minutes)
