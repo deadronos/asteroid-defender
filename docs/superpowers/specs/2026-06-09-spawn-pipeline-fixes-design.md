@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-09
 **Branch:** `perf/spawn-pipeline-fixes`
-**Source review:** [`PERFORMANCE-REVIEW-spawn-burstiness.md`](../../PERFORMANCE-REVIEW-spawn-burstiness.md)
+**Source review:** [`PERFORMANCE-REVIEW-spawn-burstiness.md`](../../reviews/PERFORMANCE-REVIEW-spawn-burstiness.md)
 **Status:** Approved (user gave explicit "iterate until done" directive)
 
 ## Goal
@@ -36,7 +36,7 @@ telemetry event names where observable by the existing test suite) stable.
 ### F1 — Fragment enqueue
 
 `enqueueAsteroidFragment(pos)` lives in
-[`src/ecs/asteroidSpawnQueue.ts`](../../src/ecs/asteroidSpawnQueue.ts) and
+[`src/ecs/asteroidSpawnQueue.ts`](../../../src/ecs/asteroidSpawnQueue.ts) and
 emits a new `SpawnData` with `type: "swarmer"` and `id: nextId()`. The
 queue is drained by the manager's `useFrame`, so fragments now respect
 the same per-frame cadence and pool-starvation telemetry as regular

@@ -1,5 +1,7 @@
 # Performance Review: Hot Paths & Optimization Opportunities
 
+> **Historical.** This review is dated **2026-05-31**. It is kept as a record only: it can cite files and APIs that have since been deleted, and its numbers are not a baseline for current performance. See [#166](https://github.com/deadronos/asteroid-defender/issues/166) and [docs/PERFORMANCE.md](../PERFORMANCE.md).
+
 **Branch:** `review/performance-hot-paths`
 **Date:** 2026-05-31
 **Reviewed by:** Claude Code + Chrome DevTools profiling + benchmark suite
@@ -32,7 +34,7 @@ The pool operations are ~100x slower than ECS operations because they allocate n
 
 ## Finding #1 — Full spatial index rebuild every frame (HIGH PRIORITY)
 
-**File:** [src/ecs/world.ts:113](src/ecs/world.ts#L113)
+**File:** [src/ecs/world.ts:113](../../src/ecs/world.ts#L113)
 
 ```ts
 export function updateSpatialIndex() {
@@ -58,7 +60,7 @@ export function updateSpatialIndex() {
 
 ## Finding #2 — Pool array spread on every mutation (HIGH PRIORITY)
 
-**File:** [src/components/gameScene/pools.ts:51](src/components/gameScene/pools.ts#L51), [108](src/components/gameScene/pools.ts#L108), [121](src/components/gameScene/pools.ts#L121)
+**File:** [src/components/gameScene/pools.ts:51](../../src/components/gameScene/pools.ts#L51), [108](../../src/components/gameScene/pools.ts#L108), [121](../../src/components/gameScene/pools.ts#L121)
 
 ```ts
 const nextPool = [...pool]; // allocates a new 60-element array every time
@@ -74,7 +76,7 @@ Every `activateQueuedAsteroidsWithDelta`, `deactivateAsteroidWithDelta`, and `sp
 
 ## Finding #3 — `tempVec.length()` computed twice per asteroid per frame (MEDIUM)
 
-**File:** [src/components/Asteroid.tsx:146](src/components/Asteroid.tsx#L146) and [155](src/components/Asteroid.tsx#L155)
+**File:** [src/components/Asteroid.tsx:146](../../src/components/Asteroid.tsx#L146) and [155](../../src/components/Asteroid.tsx#L155)
 
 ```ts
 // line 146
@@ -93,7 +95,7 @@ const imminentRatio = Math.max(0, 1 - dist / 35);
 
 ## Finding #4 — `TURRET_RANGE * TURRET_RANGE` recomputed every frame (MEDIUM)
 
-**File:** [src/components/turret/helpers.ts:41](src/components/turret/helpers.ts#L41)
+**File:** [src/components/turret/helpers.ts:41](../../src/components/turret/helpers.ts#L41)
 
 ```ts
 return maxDamage - (actualDistSq / (TURRET_RANGE * TURRET_RANGE)) * (maxDamage - minDamage);
@@ -105,7 +107,7 @@ return maxDamage - (actualDistSq / (TURRET_RANGE * TURRET_RANGE)) * (maxDamage -
 
 ## Finding #5 — `findIndex` O(n) scan on every pool deactivation (LOW-MEDIUM)
 
-**File:** [src/components/gameScene/pools.ts:46](src/components/gameScene/pools.ts#L46), [103](src/components/gameScene/pools.ts#L103)
+**File:** [src/components/gameScene/pools.ts:46](../../src/components/gameScene/pools.ts#L46), [103](../../src/components/gameScene/pools.ts#L103)
 
 ```ts
 const idx = pool.findIndex((asteroid) => asteroid.id === id); // O(n) each time
@@ -119,7 +121,7 @@ With POOL_SIZE=60, this is not catastrophic. But it's called on every asteroid d
 
 ## Finding #6 — `Math.acos(-1 + 2 * Math.random())` per spawn (LOW)
 
-**File:** [src/utils/math.ts:47](src/utils/math.ts)
+**File:** [src/utils/math.ts:47](../../src/utils/math.ts)
 
 ```ts
 Math.acos(-1 + 2 * Math.random()); // expensive trig per spawn
@@ -131,7 +133,7 @@ Called once per asteroid spawn. Not a per-frame cost, but could be replaced with
 
 ## Finding #7 — Camera system doesn't reuse THREE.Vector3 scratchpads (LOW)
 
-**File:** [src/components/camera/useDynamicCamera.ts](src/components/camera/useDynamicCamera.ts)
+**File:** [src/components/camera/useDynamicCamera.ts](../../src/components/camera/useDynamicCamera.ts)
 
 Many camera helpers allocate temporary `THREE.Vector3` objects. These should use module-level scratch vectors to avoid GC pressure in the animation loop.
 

@@ -1,5 +1,7 @@
 # Performance Guide
 
+Reviewed: 2026-11-04 @ 855355f
+
 This document tracks Asteroid Defender's front-end performance targets and records the bundle analysis carried out as part of the initial JS payload audit (see [issue #46](https://github.com/deadronos/asteroid-defender/issues/46)).
 
 ---
@@ -20,7 +22,7 @@ All 3.5 MB had to be downloaded, parsed, and executed before the page became int
 
 Three targeted changes were made:
 
-1. **Manual chunk splitting** – `build.rollupOptions.output.manualChunks` in `vite.config.ts` groups heavy vendor libraries into separate chunks.
+1. **Manual chunk splitting** – `build.rollupOptions.output.manualChunks` in `vite.config.js` groups heavy vendor libraries into separate chunks.
 2. **Lazy-load `PostEffects`** – `EffectComposer`, `Bloom`, and `DepthOfField` were extracted into `src/components/PostEffects.tsx` and imported via `React.lazy()` so the heavy postprocessing chunk is fetched _after_ the first frame renders.
 3. **Lazy-load `SpaceBackground`** – The cosmetic nebula/star backdrop is now a `React.lazy` import inside `GameScene`, letting core gameplay geometry render first.
 
@@ -76,7 +78,7 @@ These are the targets for the production build. Measurements should be taken on 
 - **Background visuals now follow those same tiers** – on **reduced** quality the star field becomes sparser, dust particles are cut roughly in half and stop updating every frame, and reduced-motion disables shooting stars entirely. On **off**, the scene keeps only a sparse static star field and skips the nebula shader, dust system, and shooting-star spawns to preserve readability under fallback mode.
 - **`<Suspense fallback={null}>`** wraps the physics world, postprocessing, and background so the canvas is presented immediately while heavier assets hydrate in the background.
 - **Reduced motion lowers the quality ceiling** – when `reducedMotion` is enabled, the app avoids the expensive Depth of Field tier entirely and clamps the adaptive profile to the cheaper Bloom-only path with lower DPR.
-- **Explosion effects only mount while active** – `src/components/Explosion.tsx` now mounts the point light and fragment particles only for live detonations, so the pre-allocated explosion pool does not keep hundreds of idle `useFrame` subscribers alive between blasts.
+- **Explosion effects are hidden while idle** – the pre-allocated explosion pool stays mounted, but inactive slots hide their group (including the point light and fragments) and return from `useFrame` without running animation work, so idle slots cost little between blasts.
 
 ---
 
