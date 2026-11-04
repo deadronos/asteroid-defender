@@ -2,9 +2,15 @@
 
 ## Automated tests
 
-- Tests sit next to the code as `*.test.ts`, and benchmarks as `*.bench.ts`.
+- Tests sit next to the code as `*.test.ts` or `*.test.tsx`, and benchmarks as `*.bench.ts`.
 - There is no DOM test environment. `@react-three/test-renderer` can still mount an R3F scene without a browser (see `src/components/gameScene/AsteroidLayer.test.tsx`); the rest of the suite covers stores, helpers and plugins.
 - Test behaviour at the seam that can break. For a bug fix, confirm the new test fails without the fix.
+- When proving a test catches an old bug, restore the real old source with `git show <commit>^:<path>`, not a hand-made imitation. Check that a behavioural assertion is what fails: an earlier assertion can stop the test before it reaches them.
+
+## Scene tests
+
+- Physics mounts asynchronously. In `src/components/gameScene/AsteroidLayer.test.tsx`, `settle()` waits until every pooled asteroid has its rigid body before the test asserts or advances frames.
+- Call `act()` once per frame. Several frames inside one `act()` don't render between frames, so a dying asteroid keeps its `active` prop and runs its destroy path on every frame. Use one frame per `act()` to count destroys; `AsteroidLayer.test.tsx` does this in the shield impact test.
 
 ## Why tests aren't enough
 

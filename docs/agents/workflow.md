@@ -2,14 +2,14 @@
 
 ## Branches and PRs
 
-- Branch from `main`, and open a PR that says `Closes #<issue>`.
+- Branch from `main`, and open a PR that says `Closes #<issue>`. For partial work, say `Refs #<issue>` so the issue stays open.
 - Keep a PR to one concern, and file anything else you find as its own issue.
 - Commit messages are Conventional Commits with the issue number: `fix(pool): copy-on-write asteroid and explosion slots (#156)`.
 - In the PR, describe what you verified and how, including anything you didn't test.
 
 ## Before pushing
 
-Run `vp check`, `vp test` and `vp build`. `.github/workflows/ci.yml` runs the same three on every PR and on pushes to `main`, as the `check` job. CI doesn't start the game, so a green run doesn't replace [checking in the browser](testing.md).
+Run `vp check`, `vp test` and `vp build`. `.github/workflows/ci.yml` runs the same three on every PR and on pushes to `main`, as the `check` job. `check` is a required status check on `main`, through a ruleset with an admin bypass. CI doesn't start the game, so a green run doesn't replace [checking in the browser](testing.md).
 
 - `vp check` must report 0 errors. Don't add to the existing warnings.
 - If it reports formatting problems, run `vp fmt <file>`.

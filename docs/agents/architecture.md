@@ -18,7 +18,7 @@
 4. `src/components/Turret.tsx` finds targets through ECS queries and applies damage.
 5. When the asteroid dies, `Asteroid` calls `onDestroy`. The handler in `src/components/gameScene/AsteroidLayer.tsx` frees the slot, updates the score or base health and triggers the explosion. A splitter destroyed by a turret also enqueues fragments through the same queue.
 
-`useAsteroidManager` also has a `handleDestroy`, but nothing uses it (#186).
+`useAsteroidManager` also has a `handleDestroy`, but nothing uses it; #157 would remove it.
 
 ## Rules
 
