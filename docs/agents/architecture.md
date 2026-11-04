@@ -2,13 +2,14 @@
 
 ## Where state lives
 
-| State                                | Owner                           | Notes                                                           |
-| ------------------------------------ | ------------------------------- | --------------------------------------------------------------- |
-| Run state: score, health, game phase | `src/store/gameStore.ts`        | Low-frequency values for the HUD and game flow                  |
-| Asteroid and explosion slots         | `src/store/poolStore.ts`        | Fixed pools of pre-mounted components                           |
-| Per-frame combat data                | `src/ecs/world.ts`              | Miniplex entities and spatial index; mutated without re-renders |
-| Pending spawns                       | `src/ecs/asteroidSpawnQueue.ts` | Module-level queue, drained with a per-frame budget             |
-| Spawn and pool tuning                | `src/config/spawning.ts`        | Keep aligned with the budget in `docs/PERFORMANCE.md`           |
+| State                                      | Owner                           | Notes                                                           |
+| ------------------------------------------ | ------------------------------- | --------------------------------------------------------------- |
+| Run state: score, health, game phase       | `src/store/gameStore.ts`        | Low-frequency values for the HUD and game flow                  |
+| Asteroid and explosion slots               | `src/store/poolStore.ts`        | Fixed pools of pre-mounted components                           |
+| Per-frame combat data                      | `src/ecs/world.ts`              | Miniplex entities and spatial index; mutated without re-renders |
+| Pending spawns                             | `src/ecs/asteroidSpawnQueue.ts` | Module-level queue, drained with a per-frame budget             |
+| Spawn and pool tuning                      | `src/config/spawning.ts`        | Keep aligned with the budget in `docs/PERFORMANCE.md`           |
+| Arena geometry: spawn radius, turret range | `src/config/arena.ts`           | These values interact; relationships are documented there       |
 
 ## An asteroid's life
 

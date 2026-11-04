@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
-import { AMBIENT_ACTIVE_CAP } from "../../config/spawning";
 import {
+  AMBIENT_ACTIVE_CAP,
   MAX_SPAWN_INTERVAL,
   MIN_SPAWN_INTERVAL,
-  nextSpawnInterval,
-  PROXIMITY_THRESHOLD,
-  shouldEnqueueAmbient,
-} from "./helpers";
+  PROXIMITY_TARGET_COUNT,
+} from "../../config/spawning";
+import { nextSpawnInterval, shouldEnqueueAmbient } from "./helpers";
 
 describe("nextSpawnInterval", () => {
   it("speeds up (shrinks) when fewer than the threshold are nearby", () => {
@@ -14,7 +13,7 @@ describe("nextSpawnInterval", () => {
   });
 
   it("slows down (grows) when the threshold is reached", () => {
-    expect(nextSpawnInterval(2.0, PROXIMITY_THRESHOLD)).toBeCloseTo(2.2);
+    expect(nextSpawnInterval(2.0, PROXIMITY_TARGET_COUNT)).toBeCloseTo(2.2);
   });
 
   it("never drops below the floor", () => {

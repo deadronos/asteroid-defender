@@ -6,12 +6,11 @@ import {
   calculateTurretDps,
   calculateTurretDamage,
   findTurretTarget,
-  TURRET_RANGE,
-  TARGETING_PENALTY,
   TURRET_MAX_DPS,
   TURRET_MIN_DPS,
   MAX_DELTA_CLAMP,
 } from "./helpers";
+import { TARGETING_PENALTY, TURRET_RANGE } from "../../config/arena";
 
 function clearWorld() {
   for (const entity of Array.from(asteroidQuery)) {

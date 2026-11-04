@@ -22,8 +22,9 @@ import {
   markAsteroidDirty,
   updateSpatialIndex,
 } from "./world";
+import { PROXIMITY_PROBE_RADIUS, TARGETING_PENALTY, TURRET_RANGE } from "../config/arena";
+import { ASTEROID_POOL_SIZE } from "../config/spawning";
 
-const TURRET_RANGE = 50;
 const sourcePosition = new THREE.Vector3(5, 1, 0);
 
 function clearWorld() {
@@ -58,7 +59,9 @@ function turretScoring(
 ) {
   if (!entity.position) return Infinity;
   if (entity.position.y > 0 !== true) return Infinity;
-  return distSq + (entity.targetedBy && entity.targetedBy !== "bench-turret" ? 400 : 0);
+  return (
+    distSq + (entity.targetedBy && entity.targetedBy !== "bench-turret" ? TARGETING_PENALTY : 0)
+  );
 }
 
 const SCALES = [10, 30, 60, 80, 90, 120, 200, 400];
@@ -79,7 +82,7 @@ for (const scale of SCALES) {
 
     test("counts nearby asteroids", async ({ bench }) => {
       await bench("counts nearby asteroids", () => {
-        countAsteroidsInRange(new THREE.Vector3(0, 0, 0), 25);
+        countAsteroidsInRange(new THREE.Vector3(0, 0, 0), PROXIMITY_PROBE_RADIUS);
       }).run();
     });
 
@@ -94,7 +97,7 @@ for (const scale of SCALES) {
 // ---------------------------------------------------------------------------
 // Aggregate frame-time benchmarks
 // ---------------------------------------------------------------------------
-// Simulates a "worst-case" frame workload at 60 asteroids (current pool cap):
+// Simulates a "worst-case" frame workload at the current pool cap:
 //   - Spatial index rebuild
 //   - 4× turret target finds (matching real turret positions)
 //   - Active count scan (iterating all entities to filter active ones)
@@ -118,12 +121,14 @@ function turretScoringForPos(turretY: number) {
   return (entity: { position?: THREE.Vector3; targetedBy?: string | null }, distSq: number) => {
     if (!entity.position) return Infinity;
     if (entity.position.y > 0 !== isTopTurret) return Infinity;
-    return distSq + (entity.targetedBy && entity.targetedBy !== "bench-turret" ? 400 : 0);
+    return (
+      distSq + (entity.targetedBy && entity.targetedBy !== "bench-turret" ? TARGETING_PENALTY : 0)
+    );
   };
 }
 
-describe("simulated worst-case frame at 60 asteroids", () => {
-  beforeAll(() => seedAsteroids(60));
+describe(`simulated worst-case frame at ${ASTEROID_POOL_SIZE} asteroids`, () => {
+  beforeAll(() => seedAsteroids(ASTEROID_POOL_SIZE));
   afterAll(clearWorld);
 
   test("full frame: spatial index rebuild + 4 turret targetings + active count", async ({

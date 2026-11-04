@@ -1,19 +1,19 @@
-import { AMBIENT_ACTIVE_CAP } from "../../config/spawning";
+import {
+  AMBIENT_ACTIVE_CAP,
+  MAX_SPAWN_INTERVAL,
+  MIN_SPAWN_INTERVAL,
+  PROXIMITY_TARGET_COUNT,
+  SPAWN_ADJUSTMENT,
+} from "../../config/spawning";
 import { clamp } from "../../utils/math";
 
-export const INITIAL_SPAWN_INTERVAL = 2.0;
-export const MIN_SPAWN_INTERVAL = 1.0;
-export const MAX_SPAWN_INTERVAL = 5.0;
-export const SPAWN_ADJUSTMENT = 0.2;
-export const PROXIMITY_THRESHOLD = 3;
-
 /**
- * Proximity backpressure: when fewer than `PROXIMITY_THRESHOLD` asteroids are
- * within the probe radius the spawner speeds up, otherwise it slows down. The
- * result is always clamped to `[MIN_SPAWN_INTERVAL, MAX_SPAWN_INTERVAL]`.
+ * Proximity backpressure: when fewer than `PROXIMITY_TARGET_COUNT` asteroids
+ * are within the probe radius the spawner speeds up, otherwise it slows down.
+ * The result is always clamped to `[MIN_SPAWN_INTERVAL, MAX_SPAWN_INTERVAL]`.
  */
 export function nextSpawnInterval(currentInterval: number, closeCount: number): number {
-  if (closeCount < PROXIMITY_THRESHOLD) {
+  if (closeCount < PROXIMITY_TARGET_COUNT) {
     return clamp(currentInterval - SPAWN_ADJUSTMENT, MIN_SPAWN_INTERVAL, MAX_SPAWN_INTERVAL);
   }
 

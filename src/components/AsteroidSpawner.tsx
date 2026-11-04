@@ -7,7 +7,9 @@ import useGameStore from "../store/gameStore";
 import { usePoolStore } from "../store/poolStore";
 import { nextId } from "../utils/id";
 import { getRandomSpherePosition } from "../utils/math";
-import { INITIAL_SPAWN_INTERVAL, nextSpawnInterval, shouldEnqueueAmbient } from "./spawner/helpers";
+import { INITIAL_SPAWN_INTERVAL } from "../config/spawning";
+import { PROXIMITY_PROBE_RADIUS, SPAWN_RADIUS } from "../config/arena";
+import { nextSpawnInterval, shouldEnqueueAmbient } from "./spawner/helpers";
 
 function pickAsteroidType(): AsteroidType {
   const roll = Math.random();
@@ -15,9 +17,6 @@ function pickAsteroidType(): AsteroidType {
   if (roll < 0.75) return "tank";
   return "splitter";
 }
-
-const SPAWN_RADIUS = 40;
-const PROXIMITY_RADIUS = 25;
 
 export default function AsteroidSpawner() {
   const originRef = useRef(new THREE.Vector3(0, 0, 0));
@@ -37,7 +36,7 @@ export default function AsteroidSpawner() {
     if (spawnTimer.current >= currentInterval.current) {
       spawnTimer.current = 0;
 
-      const closeCount = countAsteroidsInRange(originRef.current, PROXIMITY_RADIUS);
+      const closeCount = countAsteroidsInRange(originRef.current, PROXIMITY_PROBE_RADIUS);
       currentInterval.current = nextSpawnInterval(currentInterval.current, closeCount);
 
       // Reserve pool headroom for splitter fragments: stop ambient spawning
