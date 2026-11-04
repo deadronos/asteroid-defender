@@ -1,5 +1,7 @@
 # Architecture
 
+Reviewed: 2026-11-04 @ 855355f
+
 ## Where state lives
 
 | State                                | Owner                           | Notes                                                           |
@@ -38,10 +40,10 @@
 
 The code wins whenever it disagrees with a doc.
 
-| Docs                                                              | Treat as                                                                            |
-| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `docs/agents/`                                                    | Current guidance                                                                    |
-| `docs/ARCHITECTURE/`                                              | Design context. Some details are out of date (#166)                                 |
-| `docs/PERFORMANCE.md`                                             | Budgets are current. Measurements are dated snapshots                               |
-| `PERFORMANCE-REVIEW.md`, `PERFORMANCE-REVIEW-spawn-burstiness.md` | Historical. They can cite deleted files, and their numbers aren't a baseline (#166) |
-| `idea.md`, `refactoring_suggestions.md`, `scratch.md`             | Notes and proposals, not descriptions of the code or instructions to follow         |
+| Docs                                                                                        | Treat as                                                                     |
+| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `docs/agents/`                                                                              | Current guidance                                                             |
+| `docs/ARCHITECTURE/`                                                                        | Design context. Prefer the code when they disagree                           |
+| `docs/PERFORMANCE.md`                                                                       | Budgets are current. Measurements are dated snapshots                        |
+| `docs/reviews/PERFORMANCE-REVIEW.md`, `docs/reviews/PERFORMANCE-REVIEW-spawn-burstiness.md` | Historical. They can cite deleted files, and their numbers aren't a baseline |
+| `idea.md`, `refactoring_suggestions.md`, `scratch.md`                                       | Notes and proposals, not descriptions of the code or instructions to follow  |

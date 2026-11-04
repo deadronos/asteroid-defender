@@ -1,5 +1,7 @@
 # Architecture Decision Record: 001 - Technology Stack
 
+Reviewed: 2026-11-04 @ 855355f
+
 ## Context
 
 Building a real-time 3D game in the browser requires a stack that can maintain 60 frames per second while handling complex data flows (physics, input, rendering, and game logic). Traditional React state management inherently causes re-renders, which dramatically impacts the performance of a `requestAnimationFrame` based game loop.
@@ -27,7 +29,7 @@ We elected to use the **React Three Fiber (R3F)** ecosystem coupled with an **En
 ### High-Level UI State
 
 - **`zustand`**: A minimal global state manager.
-- _Why:_ Used strictly for high-level, low-frequency UI updates like Score and HUD indicators.
+- _Why:_ Used for high-level, low-frequency UI and game-flow state such as score, health, game phase and HUD indicators.
 
 ## Consequences
 

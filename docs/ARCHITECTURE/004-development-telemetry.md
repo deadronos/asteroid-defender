@@ -1,5 +1,7 @@
 # Architecture Decision Record: 004 - Development Telemetry
 
+Reviewed: 2026-11-04 @ 855355f
+
 ## Context
 
 Investigating frame pacing in a real-time browser game is awkward when all we have is an occasional DevTools trace. We need first-party telemetry that can run automatically during local development, expose the game's own control flow, and help correlate gameplay events with hot paths such as spawning, pool pressure, and postprocessing.
@@ -20,7 +22,7 @@ We will add a **development-only telemetry system** with three parts:
 
 - The runtime stores `call`, `return`, `throw`, and `mark` events in a circular buffer.
 - Events use a high-resolution clock so timings line up with frame-level investigations.
-- Telemetry starts automatically in `npm run dev` and can be disabled with `?telemetry=off` or a persisted local flag.
+- Telemetry starts automatically in `vp dev` and can be disabled with `?telemetry=off` or a persisted local flag.
 - The runtime exposes controls on `window.__DEV_TELEMETRY__` for export, clear, pause, resume, overlay visibility, and manual marks.
 
 ### Overlay
