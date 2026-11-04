@@ -18,7 +18,7 @@ All checks stayed green while the game was jammed (#156), because nothing runs t
 - #185, `vp dev` crashed on load: fixed in #187.
 - #165, PRs ungated: fixed in #188, then made required on `main` (see above).
 - #186, shield impact never fired: fixed in #196, including the base-hit ripple wiring.
-- #159, #160 and #169: merged in #193, #194 and #195.
+- #169, #159 and #160: merged in #193, #194 and #195, in that order.
 - #167 step 2: merged in #192; step 1 stays open.
 - `v1.0.21`: tagged from `32cfa2d`; contains #184 and #192.
 - #197 tracks the shield ripple that draws near the platform centre instead of at the impact.
@@ -34,6 +34,21 @@ All checks stayed green while the game was jammed (#156), because nothing runs t
 | #172, #173      | Unblocked by #184: slots are copy-on-write, so the layer can stop subscribing to the raw count                                                   |
 | #166            | Docs truth; easier once the above has landed                                                                                                     |
 | #125 audio      | No dependencies, biggest cheap feel upgrade. Kill and base-hit events exist; a continuous laser needs a loop, not one-shots                      |
+
+### Later or only on demand
+
+- **#161 + #182:** merge these. Both define `src/game/combat.ts` and `applyTurretDamage`.
+- **#170 + #180:** do these together, since both change physics.
+- **#163, #164:** real refactors, but no player benefit. Do them when next changing those files.
+- **#177, #174, #178:** #178 has no visible effect while `maxHealth` is always 100.
+- **#179:** gameplay RNG pass only (see below).
+
+## Known risks and small findings
+
+- **Slot reuse is still only protected by frame order.** A slot that dies and is reused in the same React batch with the same type keeps `active`, `id` and `type`, so the effect in `src/components/Asteroid.tsx` wouldn't re-run. This didn't happen (0 of 169 reuses in a 121s measurement) because spawns currently run before deaths each frame. That order may come from `<group key={sessionId}>` remounting the children, so a refactor could change it unnoticed. #192 doesn't pin this.
+- **Limits of the runtime evidence:** headless Chrome with software rendering and few runs. The live site got one 60s check on `v1.0.21`; nothing has been measured on a real GPU.
+- **False comment in `src/components/gameScene/AsteroidLayer.test.tsx`:** it says `World.clear()` leaves queries stale. It doesn't: `ECS.clear()` empties the query, and the scene tests still pass using it. Fix the comment, and optionally the loop, with the next change to that file.
+- **Not filed yet:** load-time work, most likely `createNebulaTexture.ts`, records about 14.6M telemetry events and overflows the buffer before play starts.
 
 ## Quick housekeeping (about 10 minutes)
 
@@ -58,6 +73,6 @@ Worth fixing in the issue text before anyone implements from it.
 ## Decisions only you can make
 
 - **#176:** is starting at `reduced` deliberate? I'd keep it (option A) and delete the dead ternary.
-- **#180:** should asteroids hit each other? I'd say no: it's cheaper and keeps approach lines predictable. It also makes the ±2 fragment offset unnecessary. It changes difficulty, so decide after the balance check.
+- **#180:** should asteroids hit each other? I'd say no: it's cheaper and keeps approach lines predictable. It also makes the ±2 fragment offset unnecessary. It changes difficulty, so decide alongside #126.
 - **#183:** focus fire or spread? This decides the targeting policy, more than the penalty's maths does.
 - **Root-level review docs:** `PERFORMANCE-REVIEW*.md`, `idea.md` and `refactoring_suggestions.md` need a call on whether to archive them (#166 covers only part of this).
