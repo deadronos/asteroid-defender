@@ -48,10 +48,24 @@ const LOAD_TRAIL_DROP_COUNT = 20;
 const LOAD_EDGES_DROP_COUNT = 40;
 const LOAD_SPLITTER_RINGS_DROP_COUNT = 50;
 
+/**
+ * Coarse load band derived from the active count. Renders depend on this rather
+ * than the raw count, so a spawn or death only re-renders the pool when it
+ * crosses a threshold (#173).
+ */
+export type LoadTier = 0 | 1 | 2 | 3;
+
+export function getLoadTier(activeAsteroidCount: number): LoadTier {
+  if (activeAsteroidCount >= LOAD_SPLITTER_RINGS_DROP_COUNT) return 3;
+  if (activeAsteroidCount >= LOAD_EDGES_DROP_COUNT) return 2;
+  if (activeAsteroidCount >= LOAD_TRAIL_DROP_COUNT) return 1;
+  return 0;
+}
+
 export function getAsteroidVisualProfile(
   type: AsteroidType,
   quality: EffectsQuality,
-  activeAsteroidCount?: number,
+  tier: LoadTier = 0,
 ): AsteroidVisualProfile {
   // Start from the quality-tier base profile
   let profile: AsteroidVisualProfile;
@@ -77,18 +91,10 @@ export function getAsteroidVisualProfile(
   }
 
   // Apply load-based degradation on top of the quality tier
-  if (activeAsteroidCount !== undefined) {
-    if (activeAsteroidCount >= LOAD_TRAIL_DROP_COUNT) {
-      profile.showTrail = false;
-    }
-    if (activeAsteroidCount >= LOAD_EDGES_DROP_COUNT) {
-      profile.showEdges = false;
-    }
-    if (activeAsteroidCount >= LOAD_SPLITTER_RINGS_DROP_COUNT) {
-      profile.showSplitterRings = false;
-    }
-    // Tank ring is a critical threat cue — keep it regardless of load
-  }
+  if (tier >= 1) profile.showTrail = false;
+  if (tier >= 2) profile.showEdges = false;
+  if (tier >= 3) profile.showSplitterRings = false;
+  // Tank ring is a critical threat cue — keep it regardless of load
 
   return profile;
 }

@@ -93,7 +93,7 @@ describe("Asteroid frame behaviour", () => {
           type="swarmer"
           active
           effectsQuality="reduced"
-          activeAsteroidCount={3}
+          loadTier={0}
           onDestroy={recordDestroy as never}
         />
         <Asteroid
@@ -102,7 +102,7 @@ describe("Asteroid frame behaviour", () => {
           type="tank"
           active
           effectsQuality="reduced"
-          activeAsteroidCount={3}
+          loadTier={0}
           onDestroy={recordDestroy as never}
         />
         <Asteroid
@@ -111,7 +111,7 @@ describe("Asteroid frame behaviour", () => {
           type="splitter"
           active
           effectsQuality="reduced"
-          activeAsteroidCount={3}
+          loadTier={0}
           onDestroy={recordDestroy as never}
         />
       </Physics>,
@@ -208,7 +208,7 @@ describe("Asteroid frame behaviour", () => {
           type="swarmer"
           active
           effectsQuality="reduced"
-          activeAsteroidCount={1}
+          loadTier={0}
           onDestroy={recordDestroy as never}
         />
       </Physics>,
@@ -244,7 +244,7 @@ describe("Asteroid frame behaviour", () => {
           type="swarmer"
           active
           effectsQuality="reduced"
-          activeAsteroidCount={1}
+          loadTier={0}
           onDestroy={recordDestroy as never}
         />
       </Physics>,
@@ -274,7 +274,7 @@ describe("Asteroid frame behaviour", () => {
           type="tank"
           active
           effectsQuality="reduced"
-          activeAsteroidCount={1}
+          loadTier={0}
           onDestroy={recordDestroy as never}
         />
       </Physics>,
