@@ -55,15 +55,21 @@ describe("spawnStats", () => {
 
   it("resets all counters", () => {
     recordSpawnEnqueued("ambient");
-    recordSpawnOverflow(1);
+    recordSpawnEnqueued("fragment");
+    recordSpawnActivations(4, 2);
+    recordSpawnOverflow(3);
     setSpawnQueueDepth(5);
 
     resetSpawnStats();
 
-    const snapshot = getSpawnStatsSnapshot();
-    expect(snapshot.ambientEnqueued).toBe(0);
-    expect(snapshot.overflowDrops).toBe(0);
-    expect(snapshot.queueDepth).toBe(0);
+    expect(getSpawnStatsSnapshot()).toEqual({
+      ambientEnqueued: 0,
+      fragmentsEnqueued: 0,
+      activations: 0,
+      starvedDrops: 0,
+      overflowDrops: 0,
+      queueDepth: 0,
+    });
   });
 
   it("notifies subscribers after a throttled delay and stops after unsubscribe", () => {
