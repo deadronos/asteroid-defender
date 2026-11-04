@@ -3,27 +3,6 @@
  */
 
 /**
- * Returns a random number between min (inclusive) and max (exclusive).
- */
-export function getRandomRange(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
-
-/**
- * Returns a random boolean based on a probability (0 to 1).
- */
-export function getRandomBoolean(probability = 0.5): boolean {
-  return Math.random() < probability;
-}
-
-/**
- * Linearly interpolates between two numbers.
- */
-export function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
-}
-
-/**
  * Clamps a number between min and max.
  */
 export function clamp(val: number, min: number, max: number): number {
