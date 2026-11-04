@@ -1,11 +1,10 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense } from "react";
 import CinematicCamera from "./CinematicCamera";
 import Platform from "./Platform";
 import Turret from "./Turret";
 import AsteroidSpawner from "./AsteroidSpawner";
 import type { EffectsQuality } from "../utils/visualQuality";
 import { useShieldImpacts } from "./gameScene/useShieldImpacts";
-import { usePoolStore } from "../store/poolStore";
 import { ASTEROID_POOL_SIZE } from "../config/spawning";
 import { useAsteroidManager } from "./gameScene/useAsteroidManager";
 import AsteroidLayer from "./gameScene/AsteroidLayer";
@@ -22,6 +21,7 @@ interface GameSceneProps {
   asteroidEffectsQuality: EffectsQuality;
   backgroundEffectsQuality: EffectsQuality;
   reducedMotion: boolean;
+  /** Keys the scene subtree on restart; useAsteroidManager owns the session reset. */
   sessionId: number;
 }
 
@@ -61,11 +61,6 @@ export default function GameScene({
   useAsteroidManager({
     poolSize: ASTEROID_POOL_SIZE,
   });
-
-  // Reset pool state when session changes
-  useEffect(() => {
-    usePoolStore.getState().resetPools(ASTEROID_POOL_SIZE);
-  }, [sessionId]);
 
   return (
     <>
