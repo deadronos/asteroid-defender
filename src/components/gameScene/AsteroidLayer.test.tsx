@@ -3,6 +3,8 @@ import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { act } from "react";
 import { Physics } from "@react-three/rapier";
 import AsteroidLayer from "./AsteroidLayer";
+import Turret from "../Turret";
+import { markBaseHit } from "../../game/combat";
 import { ECS, asteroidQuery } from "../../ecs/world";
 import { usePoolStore } from "../../store/poolStore";
 import useGameStore from "../../store/gameStore";
@@ -234,5 +236,64 @@ describe("AsteroidLayer pool smoke test", () => {
 
     expect(impacts).toHaveLength(1);
     expect(useGameStore.getState().asteroidsDestroyed).toBe(1);
+  }, 20000);
+});
+
+describe("combat rules at the scene seam", () => {
+  it("a turret kills an asteroid and the kill counts once", async () => {
+    const renderer = await ReactThreeTestRenderer.create(
+      <Physics>
+        <Turret id="test-turret" position={[0, -1, 0]} rotation={[Math.PI / 2, 0, 0]} />
+        <AsteroidLayer effectsQuality="off" />
+      </Physics>,
+    );
+    await settle(renderer);
+    mounted.push(renderer);
+
+    activate([10, 0, 0]);
+    await advance(renderer, 2);
+    expect(liveIds()).toHaveLength(1);
+
+    // One frame per act(); a real turret deals damage every frame until the
+    // asteroid's destroy frame runs.
+    for (let frame = 0; frame < 120; frame++) {
+      if (useGameStore.getState().asteroidsDestroyed > 0) break;
+      await advance(renderer, 1);
+    }
+
+    expect(useGameStore.getState().asteroidsDestroyed).toBe(1);
+    expect(liveIds()).toEqual([]);
+    expect(visibleAsteroids(renderer)).toHaveLength(0);
+
+    for (let frame = 0; frame < 5; frame++) await advance(renderer, 1);
+    expect(useGameStore.getState().asteroidsDestroyed).toBe(1);
+  }, 20000);
+
+  it("a base hit damages the base once, not once per frame, and is not a kill", async () => {
+    const impacts: Array<[number, number, number]> = [];
+    const renderer = await mountLayer((pos) => impacts.push(pos));
+    useGameStore.setState({ health: 100, maxHealth: 100 });
+
+    act(() => {
+      usePoolStore.getState().activateAsteroids([{ pos: [10, 0, 0], type: "tank" }]);
+    });
+    await advance(renderer, 2);
+    const entity = asteroidQuery.entities[0];
+    expect(entity.health).toBe(350);
+
+    // The collision callback may run again before the asteroid's destroy frame.
+    expect(markBaseHit(asteroidQuery.entities, entity.id)).toBe(true);
+    expect(markBaseHit(asteroidQuery.entities, entity.id)).toBe(false);
+
+    for (let frame = 0; frame < 3; frame++) await advance(renderer, 1);
+
+    expect(useGameStore.getState().health).toBe(70);
+    expect(useGameStore.getState().asteroidsDestroyed).toBe(0);
+    expect(impacts).toHaveLength(1);
+
+    for (let frame = 0; frame < 5; frame++) await advance(renderer, 1);
+    expect(useGameStore.getState().health).toBe(70);
+    expect(useGameStore.getState().asteroidsDestroyed).toBe(0);
+    expect(impacts).toHaveLength(1);
   }, 20000);
 });
