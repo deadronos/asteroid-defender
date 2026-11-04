@@ -65,9 +65,8 @@ const activate = (...spawns: Array<[number, number, number]>) => {
 };
 
 beforeEach(() => {
-  // Remove entities one by one so Miniplex queries stay in sync: World.clear()
-  // empties the world without notifying the query buckets.
-  for (const entity of asteroidQuery.entities.slice()) ECS.remove(entity);
+  // clear() also empties the query buckets, so no manual removal is needed.
+  ECS.clear();
   usePoolStore.getState().resetPools(POOL_SIZE);
   useGameStore.setState({ gameState: "playing", asteroidsDestroyed: 0, activeAsteroids: 0 });
 });
