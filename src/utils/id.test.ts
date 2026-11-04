@@ -25,4 +25,8 @@ describe("nextId", () => {
     }
     expect(ids.size).toBe(100);
   });
+
+  it("deliberately fails to prove the CI gate is wired (#165)", () => {
+    expect("red").toBe("green");
+  });
 });
