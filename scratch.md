@@ -25,7 +25,9 @@ All checks stayed green while the game was jammed (#156), because nothing runs t
 - #164 and #163: merged in #210 and #211. The camera trace that proved #211 is in history at `2858b83`.
 - #173, #172, #171 and #170: merged in #212, #213, #214 and #215.
 - Umbrellas #151 and #153: closed.
-- `v1.0.21` from `32cfa2d` carried the jam fix. `v1.0.22` from `47ea5cb` carries everything above.
+- #216, order-dependent spatial index tests: fixed in #218, not yet released (test only).
+- Housekeeping: #145, #119 and #4 closed, with #4's pacing ideas copied to #126. The obsolete `fix-ci-workflow` branch is deleted.
+- `v1.0.21` from `32cfa2d` carried the jam fix. `v1.0.22` from `47ea5cb` carries everything above except #218 and the housekeeping.
 
 ## Open work
 
@@ -35,7 +37,6 @@ All checks stayed green while the game was jammed (#156), because nothing runs t
 | #197 ripple  | The shield ripple is live but draws near the platform centre instead of at the impact. Decide how it should look first                                                           |
 | #125 audio   | No dependencies, biggest cheap feel upgrade. Kill and base-hit events exist; a continuous laser needs a loop, not one-shots                                                      |
 | #217 shaders | Programs climb from about 50-75 to 115-150 under stress. Measure whether that causes slow frames before changing anything; it matters more once #126 lands                       |
-| #216 test    | Fixed in #218, waiting to merge                                                                                                                                                  |
 
 ### Later or only on demand
 
@@ -50,22 +51,14 @@ All checks stayed green while the game was jammed (#156), because nothing runs t
 - **Limits of the runtime evidence:** one Apple GPU in headless Chromium and software rendering, few runs. No real low-end device or other browser has been tested.
 - **Spatial index is unused in play.** The game only rebuilds it at `SPATIAL_INDEX_THRESHOLD` (80), and the pool holds 60. Raising the pool past 80 would turn on a path that normal play has never exercised.
 - **Benchmarks include telemetry overhead.** `vp test bench` runs through the dev telemetry plugin. `docs/PERFORMANCE.md` shows both numbers for the store; `world.bench.ts` should be affected the same way, and its baselines haven't been re-measured.
-- **Dev dependency audit:** `npm audit` reports 1 high and 5 moderate findings through `vitest` and `vite-plus`, all in dev tooling. Not investigated.
+- **Dependency alerts:** GitHub Dependabot shows 11 open alerts (1 high, 9 moderate, 1 low), all with `development` scope, through `vite-plus` and `@vitest/*`. Several concern the dev server or test UI (for example `server.fs` bypasses and `launch-editor` flags), so they matter when running `vp dev` or test servers, not for the deployed game as far as the alerts show. `npm audit` lists `vite-plus@1.5.0` as the fix; the repo is on 1.0.0. Not done yet: the upgrade could change the toolchain, so run it as its own PR.
 - **Not filed yet:** load-time work, most likely `createNebulaTexture.ts`, records about 14.6M telemetry events and overflows the buffer before play starts.
 - **Not filed yet:** Pi reports the dev telemetry overlay covers the onboarding dialog's Close help button in `vp dev`. Not checked.
 
 ## Quick housekeeping
 
-Verified on 2026-11-05 and waiting on the owner, because the tool's permission check blocked them:
-
-- **Close PR #145.** `main` already has `fflate` 0.6.11 under `three-stdlib`, so the bump is redundant.
-- **Close #119.** All six children (#112-#117) are closed.
-- **Close #4 as a duplicate of #126.** Copy #4's pacing comment across first; it's the most useful part.
-- **Delete the `fix-ci-workflow` branch.** Its PR #105 merged, and `main` has the fix.
-
-Still to do:
-
 - **Repair #125 and #126.** Their code spans are blank (e.g. "Could use / to spatialize"). #126 also says the spawn interval is 0.5s-5s, while the code uses 1.0-5.0.
+- **Close umbrellas #150 and #152.** All their children are closed.
 - **Local branches:** 62 of 65 in the main checkout are fully merged and could be removed.
 
 ## Corrections to the issues
