@@ -24,7 +24,7 @@ import { RigidBody, BallCollider, RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { AsteroidType } from "../ecs/world";
 import useGameStore from "../store/gameStore";
-import { getAsteroidVisualProfile } from "../utils/asteroidVisualQuality";
+import { getAsteroidVisualProfile, type LoadTier } from "../utils/asteroidVisualQuality";
 import type { EffectsQuality } from "../utils/visualQuality";
 import AsteroidVisual from "./asteroid/AsteroidVisual";
 import { ASTEROID_CONFIGS } from "./asteroid/config";
@@ -44,7 +44,7 @@ interface AsteroidProps {
   type: AsteroidType;
   active: boolean; // Pooling: Object avoids physics/rendering workloads when inactive
   effectsQuality: EffectsQuality;
-  activeAsteroidCount: number;
+  loadTier: LoadTier;
   onDestroy: (
     id: string,
     pos: [number, number, number],
@@ -60,7 +60,7 @@ function Asteroid({
   type,
   active,
   effectsQuality,
-  activeAsteroidCount,
+  loadTier,
   onDestroy,
 }: AsteroidProps) {
   const rbRef = useRef<RapierRigidBody>(null);
@@ -76,7 +76,7 @@ function Asteroid({
   });
 
   const cfg = ASTEROID_CONFIGS[type] || ASTEROID_CONFIGS["swarmer"];
-  const visualProfile = getAsteroidVisualProfile(type, effectsQuality, activeAsteroidCount);
+  const visualProfile = getAsteroidVisualProfile(type, effectsQuality, loadTier);
 
   const entityRef = useAsteroidLifecycle({
     id,

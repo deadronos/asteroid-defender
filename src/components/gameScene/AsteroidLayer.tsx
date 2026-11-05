@@ -6,6 +6,7 @@ import type { AsteroidType } from "../../ecs/world";
 import { enqueueAsteroidFragment } from "../../ecs/asteroidSpawnQueue";
 import useGameStore from "../../store/gameStore";
 import { markTelemetry } from "../../telemetry/runtime";
+import { getLoadTier } from "../../utils/asteroidVisualQuality";
 import type { EffectsQuality } from "../../utils/visualQuality";
 
 interface AsteroidLayerProps {
@@ -18,7 +19,10 @@ const AsteroidLayer = memo(function AsteroidLayer({
   onShieldImpact,
 }: AsteroidLayerProps) {
   const asteroids = usePoolStore(useShallow((s) => s.asteroids));
-  const activeAsteroidCount = usePoolStore((s) => s.activeAsteroidCount);
+  // Subscribe to the tier, not the raw count: the selector returns the same
+  // number for every count within a band, so spawns and deaths only re-render
+  // the slots whose copy-on-write entry actually changed (#173).
+  const loadTier = usePoolStore((s) => getLoadTier(s.activeAsteroidCount));
 
   const handleDestroy = useCallback(
     (
@@ -62,7 +66,7 @@ const AsteroidLayer = memo(function AsteroidLayer({
           type={ast.type}
           active={ast.active}
           effectsQuality={effectsQuality}
-          activeAsteroidCount={activeAsteroidCount}
+          loadTier={loadTier}
           onDestroy={handleDestroy}
         />
       ))}

@@ -3,7 +3,7 @@ import type { AsteroidType } from "../ecs/world";
 import { nextId } from "../utils/id";
 import { markTelemetry } from "../telemetry/runtime";
 import { recordSpawnActivations } from "../ecs/spawnStats";
-import { ASTEROID_POOL_SIZE } from "../config/spawning";
+import { ASTEROID_POOL_SIZE, EXPLOSION_POOL_SIZE } from "../config/spawning";
 
 // Pooled asteroid shape — must match what Asteroid component expects
 export interface PooledAsteroid {
@@ -283,7 +283,7 @@ export const usePoolStore = create<PoolState>((set, get) => ({
       pos: storagePos,
       type: "swarmer" as AsteroidType,
     }));
-    const explosions = Array.from({ length: poolSize }, () => ({
+    const explosions = Array.from({ length: EXPLOSION_POOL_SIZE }, () => ({
       id: nextId(),
       active: false,
       pos: storagePos,
@@ -292,7 +292,7 @@ export const usePoolStore = create<PoolState>((set, get) => ({
 
     // Build initial free lists (all slots are free)
     const asteroidFreeList = Array.from({ length: poolSize }, (_, i) => i);
-    const explosionFreeList = Array.from({ length: poolSize }, (_, i) => i);
+    const explosionFreeList = Array.from({ length: EXPLOSION_POOL_SIZE }, (_, i) => i);
 
     set({
       asteroids,

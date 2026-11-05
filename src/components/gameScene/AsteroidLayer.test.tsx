@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { act, useEffect } from "react";
+import * as THREE from "three";
 import { Physics, useRapier, type RapierContext } from "@react-three/rapier";
 import AsteroidLayer from "./AsteroidLayer";
 import Platform from "../Platform";
@@ -9,6 +10,7 @@ import { markBaseHit } from "../../game/combat";
 import { ECS, asteroidQuery } from "../../ecs/world";
 import { usePoolStore } from "../../store/poolStore";
 import useGameStore from "../../store/gameStore";
+import * as visualQuality from "../../utils/asteroidVisualQuality";
 
 // Lets act() flush updates and warn about updates outside it; vite-plus does not set it.
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -139,6 +141,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   await Promise.all(mounted.splice(0).map((renderer) => renderer.unmount()));
+  vi.restoreAllMocks();
 });
 
 describe("AsteroidLayer pool smoke test", () => {
@@ -431,6 +434,72 @@ describe("live collision with the real Platform (#170)", () => {
     await advance(renderer, 2);
     expect(impacts).toHaveLength(2);
     expect(enabledBodies()).toHaveLength(0);
+  }, 20000);
+});
+
+describe("render fan-out (#173)", () => {
+  // `Asteroid` calls getAsteroidVisualProfile once per render, and the profile is
+  // the only thing the count used to decide. So this spy counts asteroid renders.
+  const countRenders = async (quality: "full" | "off") => {
+    const renderer = await ReactThreeTestRenderer.create(
+      <Physics>
+        <AsteroidLayer effectsQuality={quality} />
+      </Physics>,
+    );
+    await settle(renderer);
+    mounted.push(renderer);
+    return { renderer, spy: vi.spyOn(visualQuality, "getAsteroidVisualProfile") };
+  };
+
+  /** One trail mesh per asteroid that renders the trail subtree. */
+  const trailMeshes = (renderer: Renderer) =>
+    renderer.scene.findAll((node) => {
+      if (!(node.instance instanceof THREE.Mesh)) return false;
+      const material = Array.isArray(node.instance.material)
+        ? node.instance.material[0]
+        : node.instance.material;
+      return material?.type === "MeshLineMaterial";
+    });
+
+  const spawnAll = (count: number) => {
+    for (let i = 0; i < count; i++) activate([i % 5, 0, i]);
+  };
+
+  it("a spawn or death re-renders one slot, not the whole pool", async () => {
+    const { renderer, spy } = await countRenders("off");
+
+    spawnAll(50);
+    // 50 renders for 50 spawns, plus one full-pool repaint (59 more) for each of
+    // the three threshold crossings at 20, 40 and 50. The pool has 60 slots.
+    expect(spy.mock.calls.length).toBe(227);
+
+    await advance(renderer, 2);
+    expect(spy.mock.calls.length).toBe(227);
+
+    for (let i = 0; i < 20; i++) {
+      asteroidQuery.entities.find((entity) => entity.health! > 0)!.health = 0;
+      await advance(renderer, 1);
+    }
+
+    // 20 renders for 20 deaths, plus repaints at the 49 and 39 crossings.
+    expect(usePoolStore.getState().activeAsteroidCount).toBe(30);
+    expect(spy.mock.calls.length).toBe(227 + 138);
+  }, 20000);
+
+  it("crossing a threshold repaints every slot with the new profile", async () => {
+    const { renderer, spy } = await countRenders("full");
+
+    spawnAll(19);
+    expect(spy.mock.calls.length).toBe(19);
+    expect(spy.mock.results.every(({ value }) => value.showTrail && value.showEdges)).toBe(true);
+
+    expect(trailMeshes(renderer)).toHaveLength(19);
+
+    spawnAll(1); // the 20th spawn crosses into tier 1
+    expect(spy.mock.calls.length).toBe(19 + POOL_SIZE);
+    const repainted = spy.mock.results.slice(19).map(({ value }) => value);
+    expect(repainted.every((profile) => !profile.showTrail && profile.showEdges)).toBe(true);
+    expect(trailMeshes(renderer)).toHaveLength(0);
   }, 20000);
 });
 

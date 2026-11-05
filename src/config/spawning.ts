@@ -7,8 +7,18 @@
  * Spawn geometry (spawn radius, turret range) lives in `config/arena.ts`.
  */
 
-/** Number of pre-allocated asteroid (and explosion) slots. */
+/** Number of pre-allocated asteroid slots. */
 export const ASTEROID_POOL_SIZE = 60;
+
+/**
+ * Number of pre-allocated explosion slots. Explosions live about 0.6s, so far
+ * fewer are alive at once than there are asteroids. Measured peak concurrency:
+ * 5 during normal play, 23 with the arena filled to `AMBIENT_ACTIVE_CAP` and
+ * splitter fragments and base hits included. 32 leaves headroom over that
+ * peak; a smaller pool would start dropping blasts, because `triggerExplosion`
+ * returns without a slot when the pool is full.
+ */
+export const EXPLOSION_POOL_SIZE = 32;
 
 /**
  * Slots held back from the ambient spawner so splitter fragments always have
