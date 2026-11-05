@@ -26,6 +26,10 @@ function addAsteroid(id: string, position: THREE.Vector3): GameEntity {
     position,
     health: 100,
   });
+  // Adding an entity doesn't mark the index dirty, and updateSpatialIndex skips
+  // the rebuild unless something did, so mark it here rather than depend on
+  // what the previous test left behind (#216).
+  markAsteroidDirty();
   updateSpatialIndex();
   return entity;
 }
@@ -33,11 +37,13 @@ function addAsteroid(id: string, position: THREE.Vector3): GameEntity {
 describe("asteroid spatial index", () => {
   beforeEach(() => {
     clearWorld();
+    markAsteroidDirty();
     updateSpatialIndex();
   });
 
   afterEach(() => {
     clearWorld();
+    markAsteroidDirty();
     updateSpatialIndex();
   });
 
@@ -136,11 +142,13 @@ describe("asteroid spatial index", () => {
 describe("countAsteroidsInRange", () => {
   beforeEach(() => {
     clearWorld();
+    markAsteroidDirty();
     updateSpatialIndex();
   });
 
   afterEach(() => {
     clearWorld();
+    markAsteroidDirty();
     updateSpatialIndex();
   });
 
@@ -176,11 +184,13 @@ describe("countAsteroidsInRange", () => {
 describe("findNearestAsteroidInRange", () => {
   beforeEach(() => {
     clearWorld();
+    markAsteroidDirty();
     updateSpatialIndex();
   });
 
   afterEach(() => {
     clearWorld();
+    markAsteroidDirty();
     updateSpatialIndex();
   });
 
