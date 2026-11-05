@@ -26,7 +26,7 @@ We adopted a low-poly, cel-shaded art direction punctuated by high-contrast part
 ### Destruction Particles (Explosions)
 
 - **Design Pattern**: We do _not_ use complex particle systems (e.g., thousands of raw WebGL points). Instead, we use low-count Instanced or individually mapped meshes.
-- **Mechanic**: When an asteroid's ECS `health` reaches 0 (turret damage, or a platform collision that sets health to 0), `Asteroid.tsx` dispatches a callback with its final world coordinates. The pooled slot is deactivated: the ECS entity is removed and the still-dynamic Rapier body is teleported to `y = -1000` with zero velocity (`src/components/asteroid/bodyLifecycle.ts`). The component stays mounted rather than unmounting, and `ExplosionLayer` renders an `<Explosion>` at that vector.
+- **Mechanic**: When an asteroid's ECS `health` reaches 0 (turret damage, or a platform collision that sets health to 0), `Asteroid.tsx` dispatches a callback with its final world coordinates. The pooled slot is deactivated: the ECS entity is removed and the Rapier body is taken out of the simulation (`setEnabled(false)`) and parked at `y = -1000` with zero velocity (`src/components/asteroid/bodyLifecycle.ts`); re-activating it places and enables it again. The component stays mounted rather than unmounting, and `ExplosionLayer` renders an `<Explosion>` at that vector.
 - **Animation**: The `<Explosion>` is composed of 8 miniature `<dodecahedronGeometry>` fragments. Each fragment is assigned a random 3D trajectory velocity on initialization. The material color of the explosion matches the `AsteroidClass` color. A tight `useFrame` loop scales them down and moves them outward until they fade into zero and automatically unmount.
 
 ### Environment & Skybox (Space Background)

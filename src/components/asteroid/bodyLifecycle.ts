@@ -21,6 +21,10 @@ export function activateAsteroidBody(
   tempDir.copy(tempVec).negate().normalize();
   body.setLinvel({ x: tempDir.x * speed, y: tempDir.y * speed, z: tempDir.z * speed }, true);
   body.setAngvel(getRandomAngularVelocity(), true);
+
+  // Rejoin the simulation only after the new transform and velocity are set,
+  // so the first step after activation already sees the spawn state.
+  body.setEnabled(true);
 }
 
 export function deactivateAsteroidBody(body: RapierRigidBody | null) {
@@ -28,7 +32,10 @@ export function deactivateAsteroidBody(body: RapierRigidBody | null) {
     return;
   }
 
-  body.setTranslation({ x: 0, y: -1000, z: 0 }, true);
-  body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-  body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+  // Out of the simulation entirely: no broadphase entry, no contact solving
+  // and no collision events while parked (#170). The collider is kept for reuse.
+  body.setEnabled(false);
+  body.setTranslation({ x: 0, y: -1000, z: 0 }, false);
+  body.setLinvel({ x: 0, y: 0, z: 0 }, false);
+  body.setAngvel({ x: 0, y: 0, z: 0 }, false);
 }

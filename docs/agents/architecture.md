@@ -26,7 +26,7 @@ Reviewed: 2026-11-04 @ 855355f
 **Pools**
 
 - Slots are copy-on-write. Build a new slot object instead of mutating one, because `useShallow` subscribers compare by identity. In-place mutation once jammed the game within seconds (#156), and `src/store/poolStore.test.ts` guards against it.
-- Components stay mounted. Inactive asteroids are parked at `y = -1000`, not unmounted.
+- Components stay mounted. Inactive asteroids are parked at `y = -1000` and disabled in Rapier (`setEnabled(false)`), not unmounted.
 - `<group key={sessionId}>` in `src/components/GameScene.tsx` remounts the scene on restart. Changing that or the order of `useFrame` callbacks can change when a slot dies and is reused, so retest in the browser.
 
 **Hot paths**

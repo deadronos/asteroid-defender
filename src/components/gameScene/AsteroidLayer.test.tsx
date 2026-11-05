@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
-import { act } from "react";
-import { Physics } from "@react-three/rapier";
+import { act, useEffect } from "react";
+import { Physics, useRapier, type RapierContext } from "@react-three/rapier";
 import AsteroidLayer from "./AsteroidLayer";
+import Platform from "../Platform";
 import Turret from "../Turret";
 import { markBaseHit } from "../../game/combat";
 import { ECS, asteroidQuery } from "../../ecs/world";
@@ -16,6 +17,48 @@ type Renderer = Awaited<ReturnType<typeof ReactThreeTestRenderer.create>>;
 
 const POOL_SIZE = 60;
 const mounted: Renderer[] = [];
+
+/**
+ * Reads the live Rapier world the mounted scene is stepping, so a test can
+ * assert what physics actually sees rather than what the pool store believes.
+ */
+let world: RapierContext["world"] | null = null;
+function WorldProbe() {
+  const { world: rapierWorld } = useRapier();
+  useEffect(() => {
+    world = rapierWorld;
+  }, [rapierWorld]);
+  return null;
+}
+
+interface BodySnapshot {
+  dynamic: boolean;
+  enabled: boolean;
+  sleeping: boolean;
+  translation: [number, number, number];
+  velocity: [number, number, number];
+}
+
+const worldBodies = (): BodySnapshot[] => {
+  const bodies: BodySnapshot[] = [];
+  world!.forEachRigidBody((body) => {
+    const t = body.translation();
+    const v = body.linvel();
+    bodies.push({
+      dynamic: body.isDynamic(),
+      enabled: body.isEnabled(),
+      sleeping: body.isSleeping(),
+      translation: [t.x, t.y, t.z],
+      velocity: [v.x, v.y, v.z],
+    });
+  });
+  return bodies;
+};
+
+/** Only asteroids are dynamic; the fixed platform in the scene counts too. */
+const enabledBodies = () => worldBodies().filter((body) => body.dynamic && body.enabled);
+const isParkedAtOrigin = ([x, y, z]: [number, number, number]) => x === 0 && y === -1000 && z === 0;
+const distanceToOrigin = ([x, y, z]: [number, number, number]) => Math.hypot(x, y, z);
 
 /** One `<object3D>` per asteroid is the host Rapier mounts for its rigid body. */
 const poolSlots = (renderer: Renderer) =>
@@ -39,6 +82,11 @@ async function settle(renderer: Renderer) {
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
   }
+  for (let attempt = 0; attempt < 200 && (world?.bodies.len() ?? 0) !== POOL_SIZE; attempt++) {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+  }
 }
 
 async function advance(renderer: Renderer, frames: number) {
@@ -47,15 +95,30 @@ async function advance(renderer: Renderer, frames: number) {
   });
 }
 
+async function mountScene(element: React.ReactElement) {
+  const renderer = await ReactThreeTestRenderer.create(element);
+  mounted.push(renderer);
+  await settle(renderer);
+  return renderer;
+}
+
 async function mountLayer(onShieldImpact?: (pos: [number, number, number]) => void) {
-  const renderer = await ReactThreeTestRenderer.create(
+  return mountScene(
     <Physics>
+      <WorldProbe />
       <AsteroidLayer effectsQuality="off" onShieldImpact={onShieldImpact} />
     </Physics>,
   );
-  await settle(renderer);
-  mounted.push(renderer);
-  return renderer;
+}
+
+async function mountPlatformLayer(onShieldImpact?: (pos: [number, number, number]) => void) {
+  return mountScene(
+    <Physics>
+      <WorldProbe />
+      <Platform shieldImpacts={[]} />
+      <AsteroidLayer effectsQuality="off" onShieldImpact={onShieldImpact} />
+    </Physics>,
+  );
 }
 
 const activate = (...spawns: Array<[number, number, number]>) => {
@@ -69,6 +132,7 @@ const activate = (...spawns: Array<[number, number, number]>) => {
 beforeEach(() => {
   // clear() also empties the query buckets, so no manual removal is needed.
   ECS.clear();
+  world = null;
   usePoolStore.getState().resetPools(POOL_SIZE);
   useGameStore.setState({ gameState: "playing", asteroidsDestroyed: 0, activeAsteroids: 0 });
 });
@@ -239,16 +303,146 @@ describe("AsteroidLayer pool smoke test", () => {
   }, 20000);
 });
 
+describe("parked bodies leave the physics simulation (#170)", () => {
+  it("keeps every pooled body disabled and at the parking point at rest", async () => {
+    const renderer = await mountLayer();
+
+    expect(worldBodies()).toHaveLength(POOL_SIZE);
+    expect(enabledBodies()).toHaveLength(0);
+    expect(worldBodies().every((body) => isParkedAtOrigin(body.translation))).toBe(true);
+
+    // The old pile of overlapping dynamic bodies drifted off y=-1000 as soon as
+    // Rapier separated them. A disabled body cannot move.
+    await advance(renderer, 120);
+    expect(enabledBodies()).toHaveLength(0);
+    expect(worldBodies().every((body) => isParkedAtOrigin(body.translation))).toBe(true);
+  }, 20000);
+
+  it("enables the body at its spawn point, moving toward the origin, before the first step", async () => {
+    const renderer = await mountLayer();
+
+    activate([20, 0, 0]);
+
+    // The lifecycle effect must finish before the next physics step: a body
+    // enabled at the old parking point would collide there first.
+    expect(enabledBodies()).toHaveLength(1);
+    const spawned = enabledBodies()[0];
+    expect(spawned.translation[0]).toBeCloseTo(20, 5);
+    expect(spawned.translation[1]).toBeCloseTo(0, 5);
+    expect(spawned.translation[2]).toBeCloseTo(0, 5);
+    expect(spawned.velocity[0]).toBeCloseTo(-13, 5);
+
+    await advance(renderer, 1);
+    const moved = enabledBodies()[0];
+    expect(moved.translation[0]).toBeLessThan(20);
+    expect(moved.translation[0]).toBeGreaterThan(19.5);
+    expect(distanceToOrigin(moved.translation)).toBeLessThan(20);
+
+    await advance(renderer, 60);
+    const later = enabledBodies()[0];
+    expect(distanceToOrigin(later.translation)).toBeLessThan(15);
+    expect(enabledBodies()).toHaveLength(1);
+  }, 20000);
+
+  it("reuses the same body many times without leaving a spare enabled", async () => {
+    const renderer = await mountLayer();
+
+    for (let cycle = 0; cycle < 8; cycle++) {
+      const spawn: [number, number, number] = [20 + cycle, 0, 0];
+      activate(spawn);
+      await advance(renderer, 1);
+
+      const live = enabledBodies();
+      expect(live).toHaveLength(1);
+      expect(live[0].translation[0]).toBeGreaterThan(spawn[0] - 1);
+      expect(live[0].translation[0]).toBeLessThan(spawn[0]);
+
+      asteroidQuery.entities[0].health = 0;
+      await advance(renderer, 1);
+
+      expect(liveIds()).toEqual([]);
+      expect(enabledBodies()).toHaveLength(0);
+      expect(worldBodies().every((body) => isParkedAtOrigin(body.translation))).toBe(true);
+    }
+  }, 20000);
+
+  it("parks every body again after the scene remounts for a new session", async () => {
+    const first = await mountLayer();
+    activate([20, 0, 0]);
+    await advance(first, 2);
+    expect(enabledBodies()).toHaveLength(1);
+
+    await first.unmount();
+    mounted.splice(mounted.indexOf(first), 1);
+    act(() => usePoolStore.getState().resetPools(POOL_SIZE));
+
+    const second = await mountLayer();
+    expect(worldBodies()).toHaveLength(POOL_SIZE);
+    expect(enabledBodies()).toHaveLength(0);
+    expect(worldBodies().every((body) => isParkedAtOrigin(body.translation))).toBe(true);
+
+    activate([30, 0, 0]);
+    await advance(second, 1);
+    expect(enabledBodies()).toHaveLength(1);
+    expect(enabledBodies()[0].translation[0]).toBeGreaterThan(29);
+    expect(enabledBodies()[0].translation[0]).toBeLessThan(30);
+  }, 20000);
+});
+
+describe("live collision with the real Platform (#170)", () => {
+  it("takes exactly one base hit from an asteroid that flies in", async () => {
+    const impacts: Array<[number, number, number]> = [];
+    const renderer = await mountPlatformLayer((pos) => impacts.push(pos));
+    useGameStore.setState({ health: 100, maxHealth: 100 });
+
+    // A swarmer spawned 30 units out is outside the platform's 12-unit cylinder
+    // and flies straight into it.
+    activate([30, 0, 0]);
+    expect(enabledBodies()).toHaveLength(1);
+
+    let frames = 0;
+    while (useGameStore.getState().health === 100 && frames < 240) {
+      await advance(renderer, 1);
+      frames++;
+    }
+
+    expect(useGameStore.getState().health, "the asteroid never reached the platform").toBe(95);
+    expect(frames).toBeLessThan(240);
+    expect(useGameStore.getState().asteroidsDestroyed).toBe(0);
+
+    // The collider stops existing for physics before the slot can be reused.
+    await advance(renderer, 2);
+    expect(impacts).toHaveLength(1);
+    expect(enabledBodies()).toHaveLength(0);
+
+    await advance(renderer, 10);
+    expect(useGameStore.getState().health).toBe(95);
+    expect(impacts).toHaveLength(1);
+
+    // Reusing a parked body must not replay a collision from its old spot.
+    activate([30, 0, 0]);
+    expect(enabledBodies()).toHaveLength(1);
+    let second = 0;
+    while (useGameStore.getState().health === 95 && second < 240) {
+      await advance(renderer, 1);
+      second++;
+    }
+    expect(useGameStore.getState().health, "the reused body never reached the platform").toBe(90);
+    await advance(renderer, 2);
+    expect(impacts).toHaveLength(2);
+    expect(enabledBodies()).toHaveLength(0);
+  }, 20000);
+});
+
 describe("combat rules at the scene seam", () => {
   it("a turret kills an asteroid and the kill counts once", async () => {
-    const renderer = await ReactThreeTestRenderer.create(
+    const renderer = await mountScene(
       <Physics>
+        <WorldProbe />
         <Turret id="test-turret" position={[0, -1, 0]} rotation={[Math.PI / 2, 0, 0]} />
         <AsteroidLayer effectsQuality="off" />
       </Physics>,
     );
-    await settle(renderer);
-    mounted.push(renderer);
 
     activate([10, 0, 0]);
     await advance(renderer, 2);
