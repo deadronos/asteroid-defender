@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { getSpawnStatsSnapshot, resetSpawnStats } from "../ecs/spawnStats";
+import { EXPLOSION_POOL_SIZE } from "../config/spawning";
 import { usePoolStore } from "./poolStore";
 
 const initialState = usePoolStore.getInitialState();
@@ -188,6 +189,30 @@ describe("poolStore: resetPools", () => {
     expect(after.asteroidFreeList).toHaveLength(60);
     expect(after.asteroidIdToIndex.size).toBe(0);
   });
+
+  it("sizes the explosion pool independently of the asteroid pool", () => {
+    usePoolStore.getState().resetPools(60);
+
+    const after = usePoolStore.getState();
+    expect(after.explosions).toHaveLength(EXPLOSION_POOL_SIZE);
+    expect(after.explosionFreeList).toHaveLength(EXPLOSION_POOL_SIZE);
+  });
+
+  it("drops explosion triggers once every explosion slot is active", () => {
+    const store = usePoolStore.getState();
+    for (let i = 0; i < EXPLOSION_POOL_SIZE; i++) {
+      store.triggerExplosion([i, 0, 0], "swarmer");
+    }
+    expect(usePoolStore.getState().explosions.filter((e) => e.active)).toHaveLength(
+      EXPLOSION_POOL_SIZE,
+    );
+
+    store.triggerExplosion([99, 0, 0], "tank");
+
+    const after = usePoolStore.getState();
+    expect(after.explosions.filter((e) => e.active)).toHaveLength(EXPLOSION_POOL_SIZE);
+    expect(after.explosions.some((e) => e.pos[0] === 99)).toBe(false);
+  });
 });
 
 /**
@@ -258,7 +283,8 @@ describe("poolStore: copy-on-write slot identity", () => {
   });
 
   it("replaces the explosion slot object when triggering (fast path)", () => {
-    const beforeSlot = usePoolStore.getState().explosions[59];
+    const explosions = usePoolStore.getState().explosions;
+    const beforeSlot = explosions[explosions.length - 1];
 
     usePoolStore.getState().triggerExplosion([1, 2, 3], "tank");
 
@@ -271,7 +297,8 @@ describe("poolStore: copy-on-write slot identity", () => {
 
   it("replaces the explosion slot object when triggering (slow path)", () => {
     usePoolStore.setState({ explosionFreeList: [] });
-    const beforeSlot = usePoolStore.getState().explosions[59];
+    const explosions = usePoolStore.getState().explosions;
+    const beforeSlot = explosions[explosions.length - 1];
 
     usePoolStore.getState().triggerExplosion([4, 5, 6], "splitter");
 
