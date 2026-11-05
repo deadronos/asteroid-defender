@@ -82,6 +82,25 @@ These are the targets for the production build. Measurements should be taken on 
 
 ---
 
+## Store hot-path benchmarks
+
+`src/store/poolStore.bench.ts` (issue #172) covers the pool store, where the asteroid and explosion allocations actually happen. It complements the ECS benchmarks in `src/ecs/world.bench.ts`; both run under `vp test bench`. The store is a plain Zustand module, so the benchmarks run in Node without React or a DOM. Each iteration resets a 60-slot pool with `resetPools(60)` in a `beforeEach` hook, which tinybench runs outside the timed window; every task takes 20,000 samples.
+
+Measured 2026-11-05 on a quiet Apple M4 (macOS 27.2, Node 26.12.0) at `01b577d`: the median of 5 runs of the mean over 20,000 samples. `vp test bench` runs under Vite's dev pipeline, so the telemetry plugin instruments these functions. The first column is what the command measures today, and the second is the same run with `devTelemetryVitePlugin()` temporarily removed, which is closer to production. Absolute numbers are still not production numbers, because the benchmark runs in Node through Vite's module runner.
+
+| Case                                                    | `vp test bench` | Without telemetry plugin | Per call                                                            |
+| ------------------------------------------------------- | --------------- | ------------------------ | ------------------------------------------------------------------- |
+| Activate 1 into 10 active slots (fast path)             | 436 ns          | 298 ns                   | 1 array copy, 1 slot replacement, 1 `Map.set`                       |
+| Activate 4 (`MAX_ACTIVATIONS_PER_FRAME`) into 10 active | 734 ns          | 654 ns                   | 1 array copy, 4 slot replacements, 4 `Map.set`                      |
+| Deactivate 1 of 20                                      | 280 ns          | 121 ns                   | 1 array copy, 1 slot replacement, 1 `Map.delete`, 1 free-list push  |
+| Activate 4 with 1 free slot (slow path)                 | 3.47 µs         | 3.42 µs                  | free-list and id-map rebuild, 119 `Map.set`, 1 activated, 3 starved |
+
+The `useShallow`-style asteroid subscriber from `AsteroidLayer` adds one array-reference check plus a per-slot reference loop. Its runs (433 ns, 824 ns, 285 ns and 3.32 µs on the four cases) are close to those above. This only covers the store notification and selector comparison, not the React re-render of 60 `Asteroid` components, which a Node benchmark cannot measure.
+
+The slow path is roughly 8–11× the cost of activating a single asteroid, and most of that is the rebuilt id-to-index map: 119 `Map.set` calls versus 1 on the fast path. It is also rare in play. `deactivateAsteroid` pushes the freed index back onto the free list, so deactivating never forces a rebuild; the slow path fires only when an activation asks for more slots than remain free. With the 50-slot ambient cap and the 10-slot fragment reserve, that needs the pool near full, which is why the benchmark seeds 59 of 60 slots rather than the "deactivate 4" setup suggested in the issue.
+
+---
+
 ## Recommendations for further reduction
 
 If the budget needs to be tightened in the future, consider:
