@@ -9,11 +9,13 @@ import {
   degradeVisualProfile,
   fallbackVisualProfile,
   getInitialVisualProfile,
+  getPreferredEffectsQuality,
   improveVisualProfile,
 } from "./visualQuality";
 
 describe("visualQuality", () => {
-  it("starts with reduced effects on standard motion", () => {
+  it("starts reduced even on standard motion so the first frame stays cheap", () => {
+    expect(getPreferredEffectsQuality()).toBe("reduced");
     expect(getInitialVisualProfile(false)).toEqual({
       effectsQuality: "reduced",
       dpr: REDUCED_EFFECTS_MAX_DPR,

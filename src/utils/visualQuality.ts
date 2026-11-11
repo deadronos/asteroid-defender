@@ -19,8 +19,13 @@ function normalizeEffectsQuality(quality: EffectsQuality, reducedMotion: boolean
   return quality;
 }
 
-export function getPreferredEffectsQuality(reducedMotion: boolean): EffectsQuality {
-  return reducedMotion ? "reduced" : "reduced";
+/**
+ * Every session starts on "reduced": the first paint stays cheap while shaders
+ * compile, and the `PerformanceMonitor` in App.tsx promotes to "full" on
+ * healthy frame times.
+ */
+export function getPreferredEffectsQuality(): EffectsQuality {
+  return "reduced";
 }
 
 export function getMaxDprForEffectsQuality(
@@ -52,7 +57,7 @@ export function createVisualProfile(
 }
 
 export function getInitialVisualProfile(reducedMotion: boolean): VisualProfile {
-  return createVisualProfile(getPreferredEffectsQuality(reducedMotion), reducedMotion);
+  return createVisualProfile(getPreferredEffectsQuality(), reducedMotion);
 }
 
 export function improveVisualProfile(

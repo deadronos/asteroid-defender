@@ -78,6 +78,8 @@ These are the targets for the production build. Measurements should be taken on 
 - **Background visuals now follow those same tiers** – on **reduced** quality the star field becomes sparser, dust particles are cut roughly in half and stop updating every frame, and reduced-motion disables shooting stars entirely. On **off**, the scene keeps only a sparse static star field and skips the nebula shader, dust system, and shooting-star spawns to preserve readability under fallback mode.
 - **`<Suspense fallback={null}>`** wraps the physics world, postprocessing, and background so the canvas is presented immediately while heavier assets hydrate in the background.
 - **Reduced motion lowers the quality ceiling** – when `reducedMotion` is enabled, the app avoids the expensive Depth of Field tier entirely and clamps the adaptive profile to the cheaper Bloom-only path with lower DPR.
+- **Sessions start on the `reduced` tier** – the first paint stays cheap while shaders compile and `<PerformanceMonitor>` promotes to `full` on healthy frame times.
+- **Reduced motion follows the OS by default** – `reducedMotion` initialises from `prefers-reduced-motion` and tracks changes to it, until the player uses the toolbar toggle; that explicit choice is stored as `reducedMotionOverride` and wins over the media query.
 - **Explosion effects are hidden while idle** – the pre-allocated explosion pool stays mounted, but inactive slots hide their group (including the point light and fragments) and return from `useFrame` without running animation work, so idle slots cost little between blasts.
 
 ---
