@@ -54,7 +54,7 @@ export function useAsteroidLifecycle({
 
       // Re-teleport and reset velocity when pulled from pool
       activateAsteroidBody(bodyRef.current, startPos, cfg.speed);
-      frameState.current.prevHealth = cfg.health;
+      frameState.current.lastHealthChangedAt = entityRef.current?.healthChangedAt ?? 0;
       frameState.current.flashTimer = 0;
       frameState.current.isFirstActiveFrame = true;
 

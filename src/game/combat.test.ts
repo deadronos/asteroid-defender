@@ -66,7 +66,7 @@ describe("applyTurretDamage", () => {
     const delta = 1 / 60;
     const expected = calculateTurretDamage(distSq, delta);
 
-    const applied = applyTurretDamage(entity, distSq, delta);
+    const applied = applyTurretDamage(entity, distSq, delta, "t-1");
 
     expect(applied).toBe(expected);
     expect(entity.health).toBeCloseTo(SWARMER_HEALTH - expected);
@@ -75,7 +75,7 @@ describe("applyTurretDamage", () => {
   it("uses the delta clamp, so a long frame cannot deal more than MAX_DELTA_CLAMP worth", () => {
     const entity = asteroid("a-1", 1000);
 
-    const applied = applyTurretDamage(entity, 0, 5);
+    const applied = applyTurretDamage(entity, 0, 5, "t-1");
 
     expect(applied).toBeCloseTo(TURRET_MAX_DPS * MAX_DELTA_CLAMP);
     expect(entity.health).toBeCloseTo(1000 - TURRET_MAX_DPS * MAX_DELTA_CLAMP);
@@ -84,20 +84,57 @@ describe("applyTurretDamage", () => {
   it("kills a swarmer in the expected number of frames", () => {
     const entity = asteroid("a-1", SWARMER_HEALTH);
     const delta = 1 / 60;
-    const perFrame = applyTurretDamage(entity, 0, delta);
+    const perFrame = applyTurretDamage(entity, 0, delta, "t-1");
     expect(perFrame).toBeCloseTo(3);
 
     const framesToKill = Math.ceil(SWARMER_HEALTH / perFrame);
     expect(framesToKill).toBe(14);
 
     for (let frame = 1; frame < framesToKill - 1; frame++) {
-      applyTurretDamage(entity, 0, delta);
+      applyTurretDamage(entity, 0, delta, "t-1");
       expect(entity.health).toBeGreaterThan(0);
     }
 
-    applyTurretDamage(entity, 0, delta);
-    expect(entity.health).toBeCloseTo(SWARMER_HEALTH - framesToKill * perFrame);
-    expect(entity.health).toBeLessThanOrEqual(0);
+    applyTurretDamage(entity, 0, delta, "t-1");
+    // Clamped to what was left, so a kill lands exactly on zero (#182).
+    expect(entity.health).toBe(0);
+  });
+});
+
+describe("attribution", () => {
+  it("records which turret applied the damage", () => {
+    const entity = asteroid("a-1", SWARMER_HEALTH);
+
+    applyTurretDamage(entity, 625, 1 / 60, "t-3");
+
+    expect(entity.lastHitBy).toBe("t-3");
+  });
+
+  it("stamps the damage tick so the hit flash needs no health diff", () => {
+    const entity = asteroid("a-1", SWARMER_HEALTH);
+
+    applyTurretDamage(entity, 625, 1 / 60, "t-3");
+
+    expect(entity.healthChangedAt).toBeTypeOf("number");
+  });
+
+  it("never deals more than the remaining health", () => {
+    const entity = asteroid("a-1", 1);
+
+    const applied = applyTurretDamage(entity, 0, 1 / 60, "t-1");
+
+    expect(applied).toBe(1);
+    expect(entity.health).toBe(0);
+  });
+
+  it("clears attribution when the base delivers the killing blow", () => {
+    const entity = asteroid("a-1", SWARMER_HEALTH);
+    applyTurretDamage(entity, 625, 1 / 60, "t-1");
+
+    markBaseHit([entity], "a-1");
+
+    expect(entity.lastHitBy).toBeNull();
+    expect(entity.isBaseHit).toBe(true);
   });
 });
 

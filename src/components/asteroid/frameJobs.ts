@@ -22,7 +22,7 @@ const _proxColor = new THREE.Color();
 /** Mutable values the per-frame jobs carry between frames. */
 export interface AsteroidFrameState {
   isFirstActiveFrame: boolean;
-  prevHealth: number;
+  lastHealthChangedAt: number;
   flashTimer: number;
   prevEmissiveIntensity: number;
   prevTankRingOpacity: number;
@@ -86,10 +86,13 @@ export function updateHitFlash(
   frame: AsteroidFrameState,
   delta: number,
 ) {
-  if (entity.health! < frame.prevHealth) {
+  // A damage tick bumps the timestamp; watching health directly would miss
+  // two ticks that land in the same frame and needs a float compare (#182).
+  const changedAt = entity.healthChangedAt ?? 0;
+  if (changedAt !== frame.lastHealthChangedAt) {
+    frame.lastHealthChangedAt = changedAt;
     frame.flashTimer = 0.1;
   }
-  frame.prevHealth = entity.health!;
 
   if (frame.flashTimer > 0) {
     frame.flashTimer -= delta;

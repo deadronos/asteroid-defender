@@ -52,6 +52,7 @@ interface AsteroidProps {
     isHit: boolean,
     type: AsteroidType,
     damage: number,
+    lastHitBy: string | null,
   ) => void;
 }
 
@@ -69,7 +70,7 @@ function Asteroid({
   const dangerRingMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const frameState = useRef<AsteroidFrameState>({
     isFirstActiveFrame: false,
-    prevHealth: 0,
+    lastHealthChangedAt: 0,
     flashTimer: 0,
     // Track previously applied material values to skip redundant writes
     prevEmissiveIntensity: -1,
@@ -111,7 +112,14 @@ function Asteroid({
 
     if (entity.health! <= 0) {
       const t = body.translation();
-      onDestroy(id, [t.x, t.y, t.z], entity.isBaseHit ?? false, type, cfg.damage);
+      onDestroy(
+        id,
+        [t.x, t.y, t.z],
+        entity.isBaseHit ?? false,
+        type,
+        cfg.damage,
+        entity.lastHitBy ?? null,
+      );
       return;
     }
 
