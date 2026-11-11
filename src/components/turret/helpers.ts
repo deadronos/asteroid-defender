@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { findNearestAsteroidInRange, type GameEntity } from "../../ecs/world";
-import { TARGETING_PENALTY, TURRET_RANGE } from "../../config/arena";
+import { TARGETED_DISTANCE_MULTIPLIER, TURRET_RANGE } from "../../config/arena";
 
 export const LASER_ORIGIN_Z = 3.5;
 
@@ -14,20 +14,29 @@ export function findTurretTarget(turret: THREE.Group, turretId: string): GameEnt
   const turretPosition = turret.position;
   const isTopTurret = turretPosition.y > 0;
 
-  return findNearestAsteroidInRange(turretPosition, TURRET_RANGE, (entity, distSq) => {
-    const entityPosition = entity.position;
-    if (!entityPosition) {
-      return Infinity;
-    }
+  return findNearestAsteroidInRange(turretPosition, TURRET_RANGE, (entity, distSq) =>
+    turretTargetCost(distSq, entity.position?.y, isTopTurret, entity.targetedBy ?? null, turretId),
+  );
+}
 
-    if (entityPosition.y > 0 !== isTopTurret) {
-      return Infinity;
-    }
+/**
+ * Cost of a candidate target: its squared distance, scaled up when another
+ * turret already holds it so this one looks elsewhere. Infinity for the other
+ * hemisphere's asteroids.
+ */
+export function turretTargetCost(
+  distSq: number,
+  asteroidY: number | undefined,
+  isTopTurret: boolean,
+  targetedBy: string | null,
+  turretId: string,
+): number {
+  if (asteroidY === undefined || asteroidY > 0 !== isTopTurret) {
+    return Infinity;
+  }
 
-    const targetedBy = entity.targetedBy;
-    const penalty = targetedBy && targetedBy !== turretId ? TARGETING_PENALTY : 0;
-    return distSq + penalty;
-  });
+  const takenByOther = targetedBy !== null && targetedBy !== turretId;
+  return takenByOther ? distSq * TARGETED_DISTANCE_MULTIPLIER : distSq;
 }
 
 export function applyIdleTurretRotation(

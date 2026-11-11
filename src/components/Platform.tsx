@@ -1,4 +1,5 @@
 import { RigidBody, CylinderCollider } from "@react-three/rapier";
+import { BASE_COLLISION_GROUPS } from "../config/physics";
 import type { CollisionEnterPayload } from "@react-three/rapier";
 import { Edges } from "@react-three/drei";
 import { useMemo, useRef, useCallback } from "react";
@@ -129,7 +130,12 @@ export default function Platform({ shieldImpacts }: PlatformProps) {
   });
 
   return (
-    <RigidBody type="fixed" colliders={false} onCollisionEnter={onCollisionEnter}>
+    <RigidBody
+      type="fixed"
+      colliders={false}
+      collisionGroups={BASE_COLLISION_GROUPS}
+      onCollisionEnter={onCollisionEnter}
+    >
       <CylinderCollider args={[1, 12]} />
       <group>
         <mesh receiveShadow>

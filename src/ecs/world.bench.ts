@@ -22,7 +22,11 @@ import {
   markAsteroidDirty,
   updateSpatialIndex,
 } from "./world";
-import { PROXIMITY_PROBE_RADIUS, TARGETING_PENALTY, TURRET_RANGE } from "../config/arena";
+import {
+  PROXIMITY_PROBE_RADIUS,
+  TARGETED_DISTANCE_MULTIPLIER,
+  TURRET_RANGE,
+} from "../config/arena";
 import { ASTEROID_POOL_SIZE } from "../config/spawning";
 
 const sourcePosition = new THREE.Vector3(5, 1, 0);
@@ -59,9 +63,8 @@ function turretScoring(
 ) {
   if (!entity.position) return Infinity;
   if (entity.position.y > 0 !== true) return Infinity;
-  return (
-    distSq + (entity.targetedBy && entity.targetedBy !== "bench-turret" ? TARGETING_PENALTY : 0)
-  );
+  const takenByOther = entity.targetedBy != null && entity.targetedBy !== "bench-turret";
+  return takenByOther ? distSq * TARGETED_DISTANCE_MULTIPLIER : distSq;
 }
 
 const SCALES = [10, 30, 60, 80, 90, 120, 200, 400];
@@ -121,9 +124,8 @@ function turretScoringForPos(turretY: number) {
   return (entity: { position?: THREE.Vector3; targetedBy?: string | null }, distSq: number) => {
     if (!entity.position) return Infinity;
     if (entity.position.y > 0 !== isTopTurret) return Infinity;
-    return (
-      distSq + (entity.targetedBy && entity.targetedBy !== "bench-turret" ? TARGETING_PENALTY : 0)
-    );
+    const takenByOther = entity.targetedBy != null && entity.targetedBy !== "bench-turret";
+    return takenByOther ? distSq * TARGETED_DISTANCE_MULTIPLIER : distSq;
   };
 }
 

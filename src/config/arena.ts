@@ -23,5 +23,9 @@ export const PROXIMITY_PROBE_RADIUS = 25;
 export const TURRET_RANGE = 50;
 export const TURRET_RANGE_SQ = TURRET_RANGE * TURRET_RANGE; // 2500
 
-/** Added to a target's squared distance when another turret already holds it. */
-export const TARGETING_PENALTY = 400;
+/**
+ * How much an asteroid another turret already holds costs, as a multiple of its
+ * real squared distance: a turret takes a free target up to this much farther
+ * away, and only doubles up when everything else is beyond that (#183).
+ */
+export const TARGETED_DISTANCE_MULTIPLIER = 2;
