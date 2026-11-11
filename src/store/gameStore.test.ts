@@ -199,4 +199,21 @@ describe("gameStore cinematic indicator", () => {
     useGameStore.getState().startGame();
     expect(useGameStore.getState().showCinematicIndicator).toBe(false);
   });
+
+  it("follows the OS motion preference until the player chooses", () => {
+    useGameStore.getState().setReducedMotionFromMedia(true);
+    expect(useGameStore.getState().reducedMotion).toBe(true);
+
+    useGameStore.getState().toggleReducedMotion();
+    expect(useGameStore.getState().reducedMotion).toBe(false);
+    expect(useGameStore.getState().reducedMotionOverride).toBe(false);
+  });
+
+  it("keeps an explicit motion choice when the OS preference changes", () => {
+    useGameStore.getState().setReducedMotionFromMedia(true);
+    useGameStore.getState().toggleReducedMotion();
+
+    useGameStore.getState().setReducedMotionFromMedia(true);
+    expect(useGameStore.getState().reducedMotion).toBe(false);
+  });
 });

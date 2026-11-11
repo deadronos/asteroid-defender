@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
@@ -13,6 +13,7 @@ import {
   getInitialVisualProfile,
   improveVisualProfile,
 } from "./utils/visualQuality";
+import { reducedMotionMediaQuery } from "./utils/reducedMotion";
 import "./index.css";
 
 // Lazy-load the postprocessing pass so the heavy `postprocessing` +
@@ -26,8 +27,18 @@ function App() {
   const gameState = useGameStore((state) => state.gameState);
   const sessionId = useGameStore((state) => state.sessionId);
   const reducedMotion = useGameStore((state) => state.reducedMotion);
+  const setReducedMotionFromMedia = useGameStore((state) => state.setReducedMotionFromMedia);
   const [visualProfile, setVisualProfile] = useState(() => getInitialVisualProfile(reducedMotion));
   const effectiveVisualProfile = clampVisualProfile(visualProfile, reducedMotion);
+
+  useEffect(() => {
+    const mediaQuery = reducedMotionMediaQuery();
+    if (!mediaQuery) return;
+
+    const handleChange = (event: MediaQueryListEvent) => setReducedMotionFromMedia(event.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [setReducedMotionFromMedia]);
 
   return (
     <>

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { markTelemetry } from "../telemetry/runtime";
+import { prefersReducedMotion } from "../utils/reducedMotion";
 
 export type GameplayState = "menu" | "playing" | "paused" | "gameover";
 export type CameraMode = "cinematic" | "static";
@@ -15,7 +16,10 @@ interface GameState {
   runEndedAt: number | null;
   lastDamageTime: number;
   cameraMode: CameraMode;
+  /** Effective motion setting: the player's explicit choice, else the OS preference */
   reducedMotion: boolean;
+  /** The player's toolbar choice. `null` means "follow the OS preference" */
+  reducedMotionOverride: boolean | null;
   /** Whether the cinematic-sweep HUD label is shown during transitions */
   showCinematicIndicator: boolean;
   /** True while the cinematic camera is mid-transition between shots */
@@ -33,6 +37,7 @@ interface GameState {
   resetGame: () => void;
   toggleCameraMode: () => void;
   toggleReducedMotion: () => void;
+  setReducedMotionFromMedia: (reduce: boolean) => void;
   toggleCinematicIndicator: () => void;
   setCinematicTransition: (active: boolean) => void;
   setDofFocusDistance: (dist: number) => void;
@@ -81,7 +86,8 @@ const useGameStore = create<GameState>((set) => ({
   sessionId: 0,
   lastDamageTime: 0,
   cameraMode: "cinematic",
-  reducedMotion: false,
+  reducedMotion: prefersReducedMotion(),
+  reducedMotionOverride: null,
   showCinematicIndicator: true,
   inCinematicTransition: false,
   dofFocusDistance: DEFAULT_DOF_FOCUS_DISTANCE,
@@ -190,7 +196,12 @@ const useGameStore = create<GameState>((set) => ({
       }),
       {}),
       reducedMotion: !state.reducedMotion,
+      reducedMotionOverride: !state.reducedMotion,
     })),
+
+  // An explicit choice always wins, so OS changes only apply while it is unset.
+  setReducedMotionFromMedia: (reduce) =>
+    set((state) => (state.reducedMotionOverride === null ? { reducedMotion: reduce } : state)),
 
   toggleCinematicIndicator: () =>
     set((state) => ({
