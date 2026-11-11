@@ -4,6 +4,7 @@ import { Edges, Line } from "@react-three/drei";
 import * as THREE from "three";
 import { GameEntity } from "../ecs/world";
 import useGameStore from "../store/gameStore";
+import { random } from "../utils/rng";
 import {
   applyIdleTurretRotation,
   findTurretTarget,
@@ -35,8 +36,8 @@ export default function Turret({ id, position, rotation }: TurretProps) {
     () => new THREE.Euler(rotationX, rotationY, rotationZ),
     [rotationX, rotationY, rotationZ],
   );
-  const [idleOffset] = useState(() => Math.random() * Math.PI * 2);
-  const [firstRecalibration] = useState(() => 6 + Math.random() * 5);
+  const [idleOffset] = useState(() => random() * Math.PI * 2);
+  const [firstRecalibration] = useState(() => 6 + random() * 5);
   const nextRecalibrationRef = useRef(firstRecalibration);
   const recalibrationStartRef = useRef<number | null>(null);
   const pulseRef = useRef(0);
@@ -130,7 +131,7 @@ export default function Turret({ id, position, rotation }: TurretProps) {
         recalibrationStartRef.current === null
       ) {
         recalibrationStartRef.current = state.clock.elapsedTime;
-        nextRecalibrationRef.current = state.clock.elapsedTime + 8 + Math.random() * 6;
+        nextRecalibrationRef.current = state.clock.elapsedTime + 8 + random() * 6;
       }
 
       if (recalibrationStartRef.current !== null && barrelGroupRef.current) {

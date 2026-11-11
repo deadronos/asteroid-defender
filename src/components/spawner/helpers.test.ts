@@ -5,7 +5,8 @@ import {
   MIN_SPAWN_INTERVAL,
   PROXIMITY_TARGET_COUNT,
 } from "../../config/spawning";
-import { nextSpawnInterval, shouldEnqueueAmbient } from "./helpers";
+import { seedRandom } from "../../utils/rng";
+import { nextSpawnInterval, pickAsteroidType, shouldEnqueueAmbient } from "./helpers";
 
 describe("nextSpawnInterval", () => {
   it("speeds up (shrinks) when fewer than the threshold are nearby", () => {
@@ -36,5 +37,27 @@ describe("shouldEnqueueAmbient", () => {
 
   it("blocks ambient spawns above the cap", () => {
     expect(shouldEnqueueAmbient(AMBIENT_ACTIVE_CAP + 5)).toBe(false);
+  });
+});
+
+describe("pickAsteroidType", () => {
+  const rolls = (count: number) => Array.from({ length: count }, pickAsteroidType);
+
+  it("repeats the same class sequence from the same seed", () => {
+    seedRandom(7);
+    const first = rolls(100);
+    seedRandom(7);
+
+    expect(rolls(100)).toEqual(first);
+  });
+
+  it("keeps the 50/25/25 class mix", () => {
+    seedRandom(1);
+    const types = rolls(4000);
+    const share = (type: string) => types.filter((t) => t === type).length / types.length;
+
+    expect(share("swarmer")).toBeCloseTo(0.5, 1);
+    expect(share("tank")).toBeCloseTo(0.25, 1);
+    expect(share("splitter")).toBeCloseTo(0.25, 1);
   });
 });

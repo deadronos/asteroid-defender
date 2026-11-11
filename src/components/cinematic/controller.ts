@@ -25,7 +25,7 @@ import {
  * The controller does not touch the store: `outputs` reports the two writes the
  * component has to mirror (`setDofFocusDistance`, `setCinematicTransition`)
  * with the same timing as before, and `outputs.shake` says whether the damage
- * shake (which uses `Math.random()`) may run this frame.
+ * shake (which draws from the seeded `utils/rng.ts`) may run this frame.
  */
 
 export interface CameraState {
