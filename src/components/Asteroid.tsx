@@ -21,6 +21,7 @@
 import { useRef, memo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { RigidBody, BallCollider, RapierRigidBody } from "@react-three/rapier";
+import { ASTEROID_COLLISION_GROUPS } from "../config/physics";
 import * as THREE from "three";
 import { AsteroidType } from "../ecs/world";
 import useGameStore from "../store/gameStore";
@@ -166,6 +167,7 @@ function Asteroid({
       gravityScale={0}
       friction={0}
       linearDamping={0}
+      collisionGroups={ASTEROID_COLLISION_GROUPS}
     >
       <BallCollider args={[cfg.radius]} />
       <group visible={active}>

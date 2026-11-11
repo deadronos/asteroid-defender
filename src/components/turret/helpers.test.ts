@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { describe, expect, it, beforeEach, afterEach } from "vite-plus/test";
 import { ECS, asteroidQuery, updateSpatialIndex, type GameEntity } from "../../ecs/world";
 import { releaseTarget, findTurretTarget } from "./helpers";
-import { TARGETING_PENALTY } from "../../config/arena";
+import { TARGETED_DISTANCE_MULTIPLIER } from "../../config/arena";
 
 function clearWorld() {
   for (const entity of Array.from(asteroidQuery)) {
@@ -82,34 +82,35 @@ describe("Turret Helpers", () => {
       expect(target).toBeNull();
     });
 
-    it("should apply TARGETING_PENALTY to already targeted asteroids", () => {
+    it("should prefer a free asteroid within the targeting multiplier", () => {
       const turret = new THREE.Group();
       turret.position.set(0, 10, 0);
 
-      // Targeted asteroid is closer
-      const asteroid1 = addAsteroid("a-1", new THREE.Vector3(0, 10, 10)); // distSq = 100
+      // Held by another turret, a bit closer: 12 units -> cost 144 * multiplier
+      const asteroid1 = addAsteroid("a-1", new THREE.Vector3(0, 10, 12));
       asteroid1.targetedBy = "other-turret";
 
-      // Untargeted asteroid is slightly further
-      const asteroid2 = addAsteroid("a-2", new THREE.Vector3(0, 10, 25)); // distSq = 625
+      // Free, farther: 15 units -> cost 225
+      addAsteroid("a-2", new THREE.Vector3(0, 10, 15));
 
-      const targetedScore = 100 + TARGETING_PENALTY;
+      // 144 * 2 = 288 > 225, so the free one wins
+      expect(144 * TARGETED_DISTANCE_MULTIPLIER).toBeGreaterThan(225);
+      expect(findTurretTarget(turret, "t-1")?.id).toBe("a-2");
 
-      // 100 + TARGETING_PENALTY = 500
-      // 625 (no penalty)
-      // So it should still pick asteroid1 because 500 < 625
-      expect(targetedScore).toBe(500);
-
-      const target1 = findTurretTarget(turret, "t-1");
-      expect(target1?.id).toBe("a-1");
-
-      // Move asteroid2 closer to flip the decision
-      asteroid2.position?.set(0, 10, 15); // distSq = 225
-      // Now 500 (asteroid1) vs 225 (asteroid2) -> asteroid2 wins
-
+      // Drag asteroid1 in: 5 units -> cost 50, no longer worth crossing the field
+      asteroid1.position?.set(0, 10, 5);
       updateSpatialIndex();
-      const target2 = findTurretTarget(turret, "t-1");
-      expect(target2?.id).toBe("a-2");
+      expect(findTurretTarget(turret, "t-1")?.id).toBe("a-1");
+    });
+
+    it("should keep its own target when it is the only candidate", () => {
+      const turret = new THREE.Group();
+      turret.position.set(0, 10, 0);
+
+      const asteroid = addAsteroid("a-1", new THREE.Vector3(0, 10, 10));
+      asteroid.targetedBy = "t-1";
+
+      expect(findTurretTarget(turret, "t-1")?.id).toBe("a-1");
     });
   });
 });
