@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "v*"
+  # Manual kick for when a tag run sits queued and never gets a runner.
+  workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
