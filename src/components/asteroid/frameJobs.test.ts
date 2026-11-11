@@ -11,7 +11,7 @@ import {
 
 const newFrameState = (): AsteroidFrameState => ({
   isFirstActiveFrame: false,
-  prevHealth: 40,
+  lastHealthChangedAt: 0,
   flashTimer: 0,
   prevEmissiveIntensity: -1,
   prevTankRingOpacity: -1,
@@ -63,9 +63,9 @@ describe("getTankRingOpacity", () => {
 });
 
 describe("updateHitFlash", () => {
-  const entity = { health: 39 } as GameEntity;
+  const entity = { health: 39, healthChangedAt: 1000 } as GameEntity;
 
-  it("arms the white flash when health drops and skips redundant intensity writes", () => {
+  it("arms the white flash when a damage tick lands and skips redundant intensity writes", () => {
     const material = new THREE.MeshStandardMaterial();
     const frame = newFrameState();
 
@@ -80,11 +80,22 @@ describe("updateHitFlash", () => {
     expect(material.emissiveIntensity).toBe(5);
   });
 
+  it("does not re-arm the flash while no new damage tick arrives", () => {
+    const material = new THREE.MeshStandardMaterial();
+    const frame = newFrameState();
+
+    updateHitFlash(entity, material, frame, 1 / 60);
+    const armed = frame.flashTimer;
+    updateHitFlash(entity, material, frame, 1 / 60);
+
+    expect(frame.flashTimer).toBeLessThan(armed);
+  });
+
   it("clears the flash to black once the timer runs out", () => {
     const material = new THREE.MeshStandardMaterial();
     const frame = {
       ...newFrameState(),
-      prevHealth: 39,
+      lastHealthChangedAt: 1000,
       flashTimer: 0.005,
       prevEmissiveIntensity: 2,
     };

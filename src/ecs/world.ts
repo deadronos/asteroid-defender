@@ -12,6 +12,10 @@ export type GameEntity = {
   targetedBy?: string | null;
   asteroidType?: AsteroidType;
   isBaseHit?: boolean;
+  /** Id of the turret that last damaged this asteroid (#182). */
+  lastHitBy?: string | null;
+  /** `performance.now()` of the last damage tick, so the hit flash needs no float diff (#182). */
+  healthChangedAt?: number;
 };
 
 // Define the central ECS world

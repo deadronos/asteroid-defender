@@ -31,8 +31,9 @@ const AsteroidLayer = memo(function AsteroidLayer({
       isHit: boolean,
       type: AsteroidType,
       damage: number,
+      lastHitBy: string | null,
     ) => {
-      markTelemetry("asteroids:destroy", { type, baseHit: isHit });
+      markTelemetry("asteroids:destroy", { type, baseHit: isHit, lastHitBy });
 
       const store = usePoolStore.getState();
       store.deactivateAsteroid(id);

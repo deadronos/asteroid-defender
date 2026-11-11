@@ -21,10 +21,22 @@ export function calculateTurretDamage(actualDistSq: number, delta: number = 1 / 
   return calculateTurretDps(actualDistSq) * clampedDelta;
 }
 
-/** Applies one frame of turret fire to an asteroid and returns the damage dealt. */
-export function applyTurretDamage(entity: GameEntity, actualDistSq: number, delta: number): number {
-  const damage = calculateTurretDamage(actualDistSq, delta);
-  entity.health = entity.health! - damage;
+/**
+ * Applies one frame of turret fire to an asteroid, attributes it to `turretId`
+ * and returns the damage actually dealt — never more health than it had left,
+ * so a kill lands exactly on zero and the shot cannot be double-counted (#182).
+ */
+export function applyTurretDamage(
+  entity: GameEntity,
+  actualDistSq: number,
+  delta: number,
+  turretId: string,
+): number {
+  const remaining = entity.health ?? 0;
+  const damage = Math.min(calculateTurretDamage(actualDistSq, delta), remaining);
+  entity.health = remaining - damage;
+  entity.lastHitBy = turretId;
+  entity.healthChangedAt = performance.now();
   return damage;
 }
 
@@ -38,6 +50,9 @@ export function markBaseHit(entities: readonly GameEntity[], asteroidId: string)
     if (entity.id === asteroidId && entity.health! > 0) {
       entity.isBaseHit = true;
       entity.health = 0;
+      // The base killed it, not whichever turret hit it last.
+      entity.lastHitBy = null;
+      entity.healthChangedAt = performance.now();
       return true;
     }
   }

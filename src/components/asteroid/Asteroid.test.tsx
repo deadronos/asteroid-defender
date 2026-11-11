@@ -217,7 +217,9 @@ describe("Asteroid frame behaviour", () => {
     await settle(renderer, 1);
     await advance(renderer);
 
+    // A damage tick is now a timestamp bump, not a health diff (#182).
     asteroidQuery.entities[0].health = 39;
+    asteroidQuery.entities[0].healthChangedAt = 1;
     const flash = [];
     for (let frame = 0; frame < 7; frame++) {
       await advance(renderer);
@@ -260,7 +262,7 @@ describe("Asteroid frame behaviour", () => {
     entity.health = 0;
     await advance(renderer);
 
-    expect(destroyCalls).toEqual([["far", [38.916702, 0, 0], false, "swarmer", 5]]);
+    expect(destroyCalls).toEqual([["far", [38.916702, 0, 0], false, "swarmer", 5, null]]);
     // A turret kill is not a base hit; the kill branch does not touch position sync.
     expect(asteroidQuery.entities[0].position!.toArray().map(r6)).toEqual([39.133362, 0, 0]);
   }, 20000);
@@ -289,6 +291,6 @@ describe("Asteroid frame behaviour", () => {
     entity.health = 0;
     await advance(renderer);
 
-    expect(destroyCalls).toEqual([["tank", [0, 9.850002, 0], true, "tank", 30]]);
+    expect(destroyCalls).toEqual([["tank", [0, 9.850002, 0], true, "tank", 30, null]]);
   }, 20000);
 });
