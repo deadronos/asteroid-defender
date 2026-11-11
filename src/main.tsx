@@ -4,8 +4,12 @@ import "./index.css";
 import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { bootstrapDevTelemetry, markTelemetry } from "./telemetry/runtime";
+import { getRandomSeed } from "./utils/rng";
 
 bootstrapDevTelemetry();
+
+// Recorded so a surprising run can be replayed with `?seed=<seed>`.
+markTelemetry("rng:seed", { seed: getRandomSeed() });
 
 /**
  * Renders a minimal DOM error overlay for crashes that happen outside

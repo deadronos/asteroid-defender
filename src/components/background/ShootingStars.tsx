@@ -16,6 +16,8 @@ interface StreakSlot {
 }
 
 function randomizeTrajectory(slot: StreakSlot) {
+  // Cosmetics stay on `Math.random()`: background variety should stay unrepeatable,
+  // gameplay randomness comes from the seeded `utils/rng.ts`.
   const theta = Math.random() * Math.PI * 2;
   const phi = (Math.random() * 0.6 + 0.2) * Math.PI;
   const r = 90;

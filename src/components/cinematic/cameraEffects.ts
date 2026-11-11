@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { random } from "../../utils/rng";
 
 const tempShakeOffset = new THREE.Vector3();
 
@@ -24,9 +25,9 @@ export function applyDamageCameraShake(
   const shakeScale = reducedMotion ? 0.3 : 1.0;
   const shakeIntensity = (0.5 - timeSinceDamage) * 2.0 * shakeScale;
   tempShakeOffset.set(
-    (Math.random() - 0.5) * shakeIntensity,
-    (Math.random() - 0.5) * shakeIntensity,
-    (Math.random() - 0.5) * shakeIntensity * 0.5,
+    (random() - 0.5) * shakeIntensity,
+    (random() - 0.5) * shakeIntensity,
+    (random() - 0.5) * shakeIntensity * 0.5,
   );
   camera.position.add(tempShakeOffset);
 }

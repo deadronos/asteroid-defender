@@ -3,6 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { AsteroidType } from "../ecs/world";
 import { ASTEROID_CONFIGS } from "./asteroid/config";
+import { random } from "../utils/rng";
 
 const EMISSIVE_COLOR = new THREE.Color(10, 2, 0);
 const EXPLOSION_FRAGMENT_IDS = Array.from({ length: 8 }, (_, index) => index);
@@ -78,9 +79,9 @@ const ActiveExplosionEffect = memo(
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         particleLifeRef.current[i] = 1.0;
         particleVelocityRef.current[i].set(
-          (Math.random() - 0.5) * 15,
-          (Math.random() - 0.5) * 15,
-          (Math.random() - 0.5) * 15,
+          (random() - 0.5) * 15,
+          (random() - 0.5) * 15,
+          (random() - 0.5) * 15,
         );
 
         const particle = particleRefs.current[i];

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { AsteroidType, countAsteroidsInRange } from "../ecs/world";
+import { countAsteroidsInRange } from "../ecs/world";
 import { enqueueAsteroidSpawn } from "../ecs/asteroidSpawnQueue";
 import useGameStore from "../store/gameStore";
 import { usePoolStore } from "../store/poolStore";
@@ -9,14 +9,7 @@ import { nextId } from "../utils/id";
 import { getRandomSpherePosition } from "../utils/math";
 import { INITIAL_SPAWN_INTERVAL } from "../config/spawning";
 import { PROXIMITY_PROBE_RADIUS, SPAWN_RADIUS } from "../config/arena";
-import { nextSpawnInterval, shouldEnqueueAmbient } from "./spawner/helpers";
-
-function pickAsteroidType(): AsteroidType {
-  const roll = Math.random();
-  if (roll < 0.5) return "swarmer";
-  if (roll < 0.75) return "tank";
-  return "splitter";
-}
+import { nextSpawnInterval, pickAsteroidType, shouldEnqueueAmbient } from "./spawner/helpers";
 
 export default function AsteroidSpawner() {
   const originRef = useRef(new THREE.Vector3(0, 0, 0));

@@ -35,3 +35,5 @@ usePoolStore.getState().activeAsteroidCount;
 ```
 
 Report what you ran, for how long and what you saw. Headless Chrome with software rendering is fine for checking behaviour, but its frame rates say nothing about real devices.
+
+Gameplay randomness is seeded (`utils/rng.ts`): add `?seed=<n>` to replay the exact spawn, turret and explosion sequence, and the seed used appears in dev telemetry as `rng:seed`. Background dust and shooting stars stay on `Math.random()` on purpose.

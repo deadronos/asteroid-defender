@@ -2,6 +2,8 @@
  * Generic math and randomization utilities for 3D logic.
  */
 
+import { random } from "./rng";
+
 /**
  * Clamps a number between min and max.
  */
@@ -23,7 +25,7 @@ export function clamp(val: number, min: number, max: number): number {
  * Can be generalized to a true uniform-on-sphere distribution if needed.
  */
 export function getRandomSpherePosition(radius: number): [number, number, number] {
-  const phi = Math.acos(-1 + 2 * Math.random());
+  const phi = Math.acos(-1 + 2 * random());
   const theta = Math.sqrt(radius * Math.PI) * phi;
   const x = radius * Math.cos(theta) * Math.sin(phi);
   const y = radius * Math.sin(theta) * Math.sin(phi) * 0.5; // Flattened Y for gameplay
@@ -36,8 +38,8 @@ export function getRandomSpherePosition(radius: number): [number, number, number
  */
 export function getRandomAngularVelocity(magnitude = 0.9): { x: number; y: number; z: number } {
   return {
-    x: (Math.random() - 0.5) * magnitude,
-    y: (Math.random() - 0.5) * magnitude,
-    z: (Math.random() - 0.5) * magnitude,
+    x: (random() - 0.5) * magnitude,
+    y: (random() - 0.5) * magnitude,
+    z: (random() - 0.5) * magnitude,
   };
 }

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
+// Cosmetics stay on `Math.random()`: background variety should stay unrepeatable,
+// gameplay randomness comes from the seeded `utils/rng.ts`.
 function createSpaceDustData(count: number) {
   const positions = new Float32Array(count * 3);
   const velocities = new Float32Array(count * 3);
